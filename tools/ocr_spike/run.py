@@ -36,6 +36,10 @@ def models():
         target = OUTPUT / 'models' / f'{language}.traineddata'
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(content)
+        # Public models only, embedded for first-run offline native comparison.
+        asset = Path(__file__).parent / 'android/app/src/main/assets/tessdata' / target.name
+        asset.parent.mkdir(parents=True, exist_ok=True)
+        asset.write_bytes(content)
     print('Pinned Finnish and English models downloaded and verified.')
 
 
@@ -184,7 +188,11 @@ def android(args):
     if 'android.permission.INTERNET' in permissions:
         raise ValueError('Offline harness must not request INTERNET permission')
     with zipfile.ZipFile(apk) as archive:
-        assets = [n for n in archive.namelist() if 'mlkit' in n.lower() or 'tflite' in n.lower()]
+        assets = [n for n in archive.namelist() if any(s in n.lower() for s in ('mlkit', 'tflite', 'tess', 'lept'))]
+        if args.engine == 'tesseract':
+            for language, digest in MODEL_HASHES.items():
+                if hashlib.sha256(archive.read(f'assets/tessdata/{language}.traineddata')).hexdigest() != digest:
+                    raise ValueError('APK does not contain the expected bundled Tesseract models')
     manifest = load_manifest()
     prior_airplane = call('shell', 'settings', 'get', 'global', 'airplane_mode_on').decode().strip()
     installed = False
@@ -195,6 +203,7 @@ def android(args):
         call('install', str(apk))
         installed = True
         call('shell', 'run-as', PACKAGE, 'mkdir', '-p', 'files/inputs')
+        call('shell', 'run-as', PACKAGE, 'sh', '-c', f'"echo {args.engine} > files/engine"')
         for entry in manifest:
             sample = entry['sampleId']
             # No shared-storage copy: stream directly into app-private storage.
@@ -222,19 +231,25 @@ def android(args):
             raise TimeoutError('Android OCR did not finish')
         for entry in manifest:
             sample = entry['sampleId']
-            result = json.loads(call('exec-out', 'run-as', PACKAGE, 'cat', f'files/results/{sample}.json'))
-            validate(result)
-            if (result['image']['width'], result['image']['height']) != (entry['width'], entry['height']):
-                raise ValueError('Engines did not receive the same image dimensions')
-            result['inputSha256'] = entry['preparedSha256']
-            save(OUTPUT / 'mlkit' / f'{sample}.json', result)
-        save(OUTPUT / 'android-evidence.json', {'apkSha256': sha256(apk), 'apkBytes': apk.stat().st_size,
+            for psm in ([3, 6] if args.engine == 'tesseract' else [None]):
+                filename = f'{sample}-psm{psm}.json' if psm else f'{sample}.json'
+                result = json.loads(call('exec-out', 'run-as', PACKAGE, 'cat', f'files/results/{filename}'))
+                validate(result)
+                if (result['image']['width'], result['image']['height']) != (entry['width'], entry['height']):
+                    raise ValueError('Engines did not receive the same image dimensions')
+                result['inputSha256'] = entry['preparedSha256']
+                if psm:
+                    result['modelHashes'] = {f'{lang}.traineddata': digest for lang, digest in MODEL_HASHES.items()}
+                folder = f'android-tesseract-psm{psm}' if psm else 'mlkit'
+                save(OUTPUT / folder / f'{sample}.json', result)
+        evidence_name = 'android-tesseract-evidence.json' if args.engine == 'tesseract' else 'android-evidence.json'
+        save(OUTPUT / evidence_name, {'apkSha256': sha256(apk), 'apkBytes': apk.stat().st_size,
              'permissions': permissions, 'bundledModelAssets': assets, 'freshInstall': True,
              'airplaneModeDuringRun': call('shell', 'settings', 'get', 'global', 'airplane_mode_on').decode().strip(),
              'device': call('shell', 'getprop', 'ro.build.fingerprint').decode().strip(),
              'samplesCompleted': len(manifest)})
         (OUTPUT / 'android-failure.json').unlink(missing_ok=True)
-        print(f'ML Kit: {len(manifest)} samples completed on fresh offline installation.')
+        print(f'{args.engine}: {len(manifest)} samples completed on fresh offline installation.')
     finally:
         # This removes only this dedicated harness and its copies, not source images.
         try:
@@ -250,6 +265,7 @@ def main():
     parser.add_argument('command', choices=['models', 'prepare', 'windows', 'android'])
     parser.add_argument('--tesseract', default=r'C:\Program Files\Tesseract-OCR\tesseract.exe')
     parser.add_argument('--device', default='emulator-5554')
+    parser.add_argument('--engine', choices=['mlkit', 'tesseract'], default='mlkit')
     args = parser.parse_args()
     {'models': models, 'prepare': prepare, 'windows': lambda: windows(args),
      'android': lambda: android(args)}[args.command]()

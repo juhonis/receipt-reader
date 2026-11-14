@@ -1,4 +1,4 @@
-# Offline OCR spike: first baseline
+# Offline OCR spike: platform baselines
 
 Status: **exploratory; no production engine selected**. Run on 2026-11-14.
 The independent harness is in [`tools/ocr_spike`](../tools/ocr_spike/README.md).
@@ -63,6 +63,32 @@ recognition after decoding; Windows timing includes subprocess startup and TSV
 conversion. They are not comparable benchmarks. The Android APK is a debug,
 multi-ABI build; its size must not be presented as a release-size estimate.
 
+### Shared-engine candidate: Tesseract on Android
+
+- Added a native development adapter using **Tesseract4Android 4.9.0**
+  (Tesseract **5.5.1**, standard single-threaded build). It runs outside the UI
+  thread and exports block/line/word rectangles through the native iterator.
+- The exact same pinned Finnish/English models are bundled as APK assets.
+  The host verifies their SHA-256 hashes inside the APK before installing;
+  no runtime model download is involved. Receipt images are never APK assets.
+- All three images completed in modes 3 and 6 on a fresh installation in
+  airplane mode, with INTERNET permission absent. Results passed the same
+  image-dimension and coordinate checks as ML Kit and Windows Tesseract.
+- The same important layout failures remained: mode 3 missed several prices
+  on one sample, and mode 6 recovered those while still corrupting some amounts
+  elsewhere. The shared-engine option is technically feasible, but this
+  baseline does not justify choosing it for recognition quality.
+- Windows 5.4.0 and Android 5.5.1 are different native versions. Matching model
+  and input hashes makes the inputs controlled, but does not isolate the effect
+  of OS, compiler, native version, or segmentation implementation.
+- The experimental APK now includes both candidates. Its total size cannot be
+  attributed to either engine individually. Model extraction temporarily keeps
+  a second copy in app-private storage; the runner removes it with the harness.
+
+The provisional direction is to keep ML Kit as the Android front-runner while
+improving and packaging Windows OCR. This is based on manual inspection of this
+small corpus, not a completed engine choice, correctness score, or guarantee.
+
 ## Proposed normalized geometry contract (version 1)
 
 Both adapters export the same JSON shape:
@@ -92,6 +118,8 @@ its line/block rectangles are unions of word rectangles. ML Kit supplies native
 word corners and line/block rectangles. Preserve these differences rather than
 inventing equivalent geometry. Blocks and lines are engine groupings, not
 canonical receipt rows; do not assume they are sorted or pair prices by index.
+The Android Tesseract adapter uses native iterator rectangles and reports
+`corners: null`; it does not synthesize rotated corners.
 
 Optional engine-specific configuration/model hashes may be attached. Confidence
 values are deliberately absent from this contract; they do not verify amounts
@@ -111,14 +139,18 @@ orientation, and rejection of plain text masquerading as TSV.
 - The Flutter ML Kit wrapper is MIT-licensed; Google's native ML Kit SDK/model
   terms are separate. Review [ML Kit terms](https://developers.google.com/ml-kit/terms)
   before choosing the production integration.
+- Tesseract4Android 4.9.0 is Apache-2.0 and ships native Tesseract, Leptonica,
+  libjpeg, and libpng components with their own notices. The harness restricts
+  its JitPack repository to that dependency group; production distribution
+  still needs the complete native dependency/license audit.
 - The harness uses Pillow 12.2.0 only for local preparation. It is not a runtime
   app dependency. Public SDK/model downloads occur during explicit setup only.
 
 ## Next work
 
-1. Evaluate a shared engine on both targets (for example, Tesseract on Android)
-   before comparing it with the ML Kit + Windows-engine combination. This first
-   baseline does not satisfy that full engine-selection milestone.
+1. Extend the shared-engine comparison with matched native versions and more
+   representative inputs if pursuing it further. Initial Android Tesseract
+   feasibility is verified; the full engine-selection milestone remains open.
 2. Evaluate controlled crop/deskew preprocessing and a broader private corpus,
    including returns, ambiguous dates, incomplete receipts, and longer layouts.
 3. Build geometry-aware row assembly against manually annotated expectations.

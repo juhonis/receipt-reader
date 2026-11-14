@@ -19,6 +19,8 @@ flutter pub get --directory tools/ocr_spike
 
 The `models` command downloads only pinned public Finnish/English Tesseract
 models and verifies their SHA-256 hashes. It never uploads receipt data.
+It also copies these public models to the harness's ignored Android assets
+directory, so the next APK build bundles them for first-run offline use.
 Tesseract was tested with UB Mannheim 5.4.0.20240606. A newer executable may
 produce different output; its version is recorded in each result.
 
@@ -42,6 +44,7 @@ Back at the repository root:
 
 ```powershell
 .\localreceipts\.venv\Scripts\python.exe tools/ocr_spike/run.py android --device emulator-5554
+.\localreceipts\.venv\Scripts\python.exe tools/ocr_spike/run.py android --engine tesseract --device emulator-5554
 .\localreceipts\.venv\Scripts\python.exe -m unittest discover -s tools/ocr_spike -p test_contract.py
 ```
 
@@ -52,7 +55,9 @@ and launches it through ADB instead.
 
 The Android command removes an existing `fi.juhonis.ocr_spike` installation,
 enables airplane mode before installation, stages hash-verified image copies
-in app-private storage, and runs bundled Latin recognition on a fresh install.
+in app-private storage, and runs the chosen bundled engine on a fresh install.
+The default is ML Kit Latin; `--engine tesseract` evaluates both segmentation
+modes 3 and 6 with bundled Finnish/English models via Tesseract4Android 4.9.0.
 It retrieves private results, uninstalls the harness, and restores the previous
 airplane-mode setting in `finally`. The ordinary receipt app is untouched.
 If the host process is killed, uninstall `fi.juhonis.ocr_spike` manually and

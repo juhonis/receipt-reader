@@ -29,6 +29,14 @@ Future<void> main() async {
   await outputs.create(recursive: true);
   final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
   try {
+    final engineFile = File('$root/engine');
+    if (await engineFile.exists() &&
+        (await engineFile.readAsString()).trim() == 'tesseract') {
+      await const MethodChannel('ocr_spike/tesseract')
+          .invokeMethod<void>('recognize');
+      await File('${outputs.path}/done').writeAsString('ok');
+      return;
+    }
     final files = await inputs
         .list()
         .where((f) => f.path.endsWith('.png'))
