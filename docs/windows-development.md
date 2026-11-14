@@ -99,6 +99,11 @@ platform spike, not installed globally in advance.
 
 ## Windows versus WSL
 
+Using WSL Git to inspect or manage this checkout is fine. The repository's
+`.gitattributes` keeps text files on LF line endings, with CRLF for Windows
+command scripts, so Windows and WSL Git agree. Avoid simultaneous Git writes
+from both environments. Local Android Studio settings in `.idea/` are ignored.
+
 Do not run Linux Flutter against this Windows checkout or share generated
 `build/` and `.dart_tool/` directories across Windows and WSL. Use a separate
 WSL checkout if Linux-side auxiliary work is needed. Run these commands in
