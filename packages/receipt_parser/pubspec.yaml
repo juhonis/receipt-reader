@@ -1,0 +1,8 @@
+name: receipt_parser
+description: Offline, geometry-aware receipt parsing and exact financial validation.
+version: 0.1.0
+publish_to: none
+environment:
+  sdk: ^3.14.0
+dev_dependencies:
+  test: 1.33.0
