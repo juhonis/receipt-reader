@@ -239,6 +239,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [ ] Implement camera guidance and clear warnings for incomplete/long receipts.
 - [ ] Implement JPEG/PNG selection and offline OCR on both platforms using the normalized OCR interface.
 - [ ] Build editable store/date/total/row review with independent validation states.
+- [x] Add a temporary manual review prototype with independent checks, editable signed rows, and explicit no-save messaging. Evaluate the parser against private OCR outputs; [real-layout failures remain open](review-prototype.md).
 - [ ] Support adding, removing, and correcting rows and their relationships.
 - [ ] Save only reviewed, reconciled receipts; verify atomic domain/change-log writes.
 - [ ] Test image cleanup on save, cancel, error, and startup after crashes.

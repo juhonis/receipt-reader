@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart'
 import 'package:material_ui/material_ui.dart';
 
 import 'l10n/generated/app_localizations.dart';
+import 'review_page.dart';
 
 class ReceiptReaderApp extends StatelessWidget {
   const ReceiptReaderApp({super.key});
@@ -57,6 +58,15 @@ class _HomePage extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(strings.developmentNotice, textAlign: TextAlign.center),
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const ReviewPage(),
+                      ),
+                    ),
+                    child: Text(strings.startReview),
+                  ),
                 ],
               ),
             ),

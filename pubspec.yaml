@@ -7,6 +7,8 @@ environment:
   sdk: ^3.14.0
 
 dependencies:
+  receipt_parser:
+    path: packages/receipt_parser
   flutter:
     sdk: flutter
   flutter_localizations:

@@ -5,7 +5,8 @@ The first implementation is a standalone Dart package at
 native OCR or database dependency and performs no network requests. Its pinned
 `timezone` 0.11.2 dependency supplies bundled IANA 2026e timezone data; the
 parser imports the local database, not the package's loading APIs. The main app
-does not use it yet. All committed test inputs are invented, including prices,
+now uses its financial/date rules in a [manual review prototype](review-prototype.md),
+but OCR drafts are not yet connected to the UI. All committed test inputs are invented, including prices,
 names, and geometry; no private OCR exports were copied into fixtures.
 
 ## Numeric rules
@@ -108,9 +109,9 @@ dependency update and rerunning the transition tests.
 
 The draft exposes independent arithmetic state and parser issues. Quantity/rate
 discrepancies, uncertain geometry, and unresolved discount semantics remain
-visible even when the total matches. All drafts require review. There is no save
-eligibility API yet: branch/date review, row correction, and persistence validation
-must be implemented before any save workflow can use these results.
+visible even when the total matches. All drafts require review. The manual
+prototype has independent review validation; it is not a save eligibility API.
+Persistence validation and OCR issue-resolution workflows remain open.
 
 The numeric and printed-date conventions are now defined. Broad layout coverage,
 store confirmation, discount-parent relationships, date correction, and save
@@ -136,7 +137,8 @@ Date cases cover leap years, invalid calendar/time values, header-only extractio
 date-only precision, winter/summer offsets, both DST transitions, competing
 candidates, and refusal to guess beyond the timezone database's usable range.
 
-Next, exercise private OCR outputs locally and build explicit review corrections
-for row proposals, branch/date candidates, and discount relationships. Engine
+Private OCR evaluation now documents real-layout failures in the
+[review prototype findings](review-prototype.md). Next, improve skew/section
+handling and build explicit review corrections for OCR proposals and discount relationships. Engine
 packaging and clean-machine tests remain separate
 requirements before connecting OCR to the shared review workflow.

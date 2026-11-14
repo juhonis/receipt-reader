@@ -1,7 +1,8 @@
 # receipt_parser
 
 Pure Dart receipt parsing and exact financial validation. Experimental;
-the Flutter app does not depend on it yet.
+the Flutter app uses its numeric/date rules in a temporary manual review screen.
+OCR draft integration and persistence remain open.
 
 See [scope, numeric rules, and limitations](../../docs/parser-foundations.md).
 
