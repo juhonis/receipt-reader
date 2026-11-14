@@ -2,22 +2,23 @@
 
 ## 1. Project Overview & MVP Scope
 
-A privacy-first receipt, spending, and product-price tracker built with **Flutter** for **Android** and **Desktop** (Windows, macOS, Linux).
+A privacy-first receipt, spending, and product-price tracker built as **one Flutter app for Android and Windows**, with a shared codebase and adaptive layouts. The project produces native Android and Windows builds, not an Android APK running inside a Windows emulator. macOS and Linux are potential later targets, not MVP release requirements.
 
 ### Guiding Principles
 1. **Offline core:** Capture, OCR, parsing, review, storage, and analytics work without internet access, including first-run OCR. Optional synchronization uses only the local network.
-2. **No retained receipt images:** Images exist only during capture/review in memory or private temporary storage. Structured receipt data is retained locally. This is not a guarantee of secure erasure from flash storage.
+2. **No retained app-owned receipt images:** Captured images and temporary import copies exist only during capture/review in memory or private temporary storage. Structured receipt data is retained locally. Imported original files remain under the user's control and are never deleted by the app. This is not a guarantee of secure erasure from flash storage.
 3. **Explicit validation, not accuracy percentages:** Matching totals verifies arithmetic, not product identity or transcription accuracy. Users review every receipt before saving.
 4. **Store-specific products:** Product identities belong to a particular store branch (`Prisma Kaari != Prisma Jumbo`). No cross-store product merging in the MVP.
-5. **One authoritative editor:** Android owns all edits; desktop is a read-only replica with local analytics. This avoids bidirectional conflict resolution in the MVP.
+5. **Full local functionality on both platforms:** Android and Windows can independently import, OCR, review, edit, delete, and analyze receipts. Synchronization is optional; neither platform depends on the other to operate.
 6. **Authenticated, encrypted local sync:** No cloud servers or accounts. Local Wi-Fi is not assumed to be trusted.
 
 ### MVP Boundaries
-- One Android dataset paired with one desktop replica. Replacement/re-pairing must be explicit; multiple writers and merging existing datasets are out of scope.
-- Android supports camera capture, review, corrections, deletion, and product-alias management.
-- Desktop supports history, search, charts, and synchronization, but not capture, OCR, or editing.
+- One Android device and one Windows device may share a dataset through bidirectional local sync. Both may edit offline. Concurrent edits require explicit resolution rather than silent overwrites.
+- Both platforms support image import, offline OCR, review, corrections, deletion, product-alias management, history, search, and charts. Android additionally supports phone-camera capture; Windows webcam capture is deferred.
+- Start with single-image JPEG/PNG import on both platforms. PDF import and multi-shot stitching are deferred. Long receipts must be rejected or clearly flagged when incomplete.
+- Each installation can start standalone. Initial pairing seeds an empty installation from the chosen existing dataset; automatically merging two independently populated datasets is deferred and must never overwrite either dataset silently.
 - Currency is EUR; UI is Finnish. Receipt dates use Finnish conventions and `Europe/Helsinki` interpretation.
-- Single-image capture is the first vertical slice. Long receipts must be rejected or clearly flagged when incomplete; multi-shot stitching is a later feature.
+- Adaptive layouts share workflows and domain logic: compact phone navigation, and keyboard/mouse-friendly desktop tables and panels. This is not a separate desktop product with reduced functionality.
 - Basic backup/export and restore are required before relying on the app as the only copy of financial history. Sync is not a backup because deletions propagate.
 
 ---
@@ -26,18 +27,26 @@ A privacy-first receipt, spending, and product-price tracker built with **Flutte
 
 | Component | Technology | Requirements |
 | :--- | :--- | :--- |
-| Framework | Flutter / Dart | Shared domain logic and UI where appropriate; verify supported SDK versions when initializing. |
+| Framework | Flutter / Dart | One project with Android and Windows targets, shared workflows/domain logic, and adaptive UI; verify supported SDK versions when initializing. |
 | Database | Drift / SQLite | Transactions, foreign-key enforcement, migrations, reactive queries, and desktop support. |
 | Android capture | `camera` | Private temporary files only; platform-specific cleanup. |
-| Android OCR | `google_mlkit_text_recognition` | Explicitly configure a bundled Latin-script model and verify first-run operation in airplane mode. Not the desktop OCR solution. |
-| Desktop sync server | `shelf` with Dart HTTPS server support | TLS and certificate/public-key pinning; never transmit credentials or receipts over plaintext HTTP. |
-| Android sync client | Dart HTTP client with explicit pin validation | Restrict any self-signed certificate exception to the paired identity; never disable verification globally. |
+| Image import | Platform file picker behind a shared import service | JPEG/PNG on Android and Windows; read originals without modifying them and use private temporary copies only when needed. |
+| Offline OCR | Shared `OcrEngine` interface; engine choice decided by platform spike | Compare one bundled cross-platform engine with Android ML Kit plus a separate Windows engine. Evaluate Finnish accuracy, geometry output, licensing, package size, performance, and native integration. No runtime model downloads or cloud fallback. |
+| Android OCR candidate | `google_mlkit_text_recognition` | If selected, bundle the Latin-script model and verify first-run operation offline. This package does not provide Windows OCR. |
+| Windows OCR candidates | Bundled Tesseract or a suitable ONNX-based engine | Verify available bindings/native packaging, required language assets, and bounding-box output before choosing. Candidates are not committed dependencies. |
+| Windows sync server | `shelf` with Dart HTTPS server support | TLS and certificate/public-key pinning; never transmit credentials or receipts over plaintext HTTP. Serving requests does not make Windows authoritative for data. |
+| Android sync client | Dart HTTP client with explicit pin validation | Pushes and pulls changes during each sync; restrict any self-signed certificate exception to the paired identity and never disable verification globally. |
 | Pairing / discovery | QR pairing; optional `nsd` / `multicast_dns` | Discovery is optional and untrusted. Manual pairing must work without multicast. |
-| Secure credential storage | Platform-backed secure storage | Validate support and behaviour on each desktop OS before selecting the package. |
+| Secure credential storage | Platform-backed secure storage | Validate Android and Windows support and behaviour before selecting the package. |
 | Charts | `fl_chart` | Store-specific comparable price observations. |
 | State management | `flutter_riverpod` | Keep parser, financial rules, and sync logic independently testable. |
 
-Do an early platform spike for bundled OCR, HTTPS pinning, secure storage, firewall requirements, and macOS sandbox/network entitlements. Pin compatible dependency versions after these checks.
+Do an early platform spike for bundled OCR on both targets, HTTPS pinning, secure storage, and Windows firewall requirements. Normalize engine-specific OCR results into the same text/geometry model; keep the parser independent of native OCR packages. Pin compatible dependency versions after these checks.
+
+### Development Environment
+- Use a Windows-native checkout, for example `C:\dev\receipt-reader`, with Windows Flutter, Git, Android Studio/Android SDK, and Visual Studio 2022's **Desktop development with C++** workload and Windows SDK.
+- Use a Windows-native editor/coding agent for the main build loop. Verify the environment with `flutter doctor -v`, accept Android SDK licenses, and test both an Android device/emulator and `flutter run -d windows` once the project exists.
+- WSL remains optional for auxiliary work. Do not run Linux and Windows Flutter tooling against the same checkout or share generated build directories. A WSL symlink is only a path shortcut; use a separate checkout for Linux-specific tooling if needed.
 
 ---
 
@@ -58,14 +67,15 @@ The following is a schema contract, not migration-ready SQL. Add constraints, in
 
 | Table | Main fields and invariants |
 | :--- | :--- |
-| `dataset_state` | Persistent `dataset_id`, Android `source_device_id`, and transactional monotonic `next_change_seq`. A restore must not silently reuse an older sequence under an existing sync identity. |
+| `dataset_state` | Shared `dataset_id`, unique installation `device_id`, and transactional monotonic `next_local_seq`. Sequence numbers order only one device's events; restore must not reuse an old device identity/sequence stream. |
 | `stores` | UUID `id`, branch display name, chain, optional address/printed identifier, audit timestamps. Detecting `PRISMA` alone does not resolve a branch. |
 | `products` | UUID `id`, `store_id`, canonical name, optional known package quantity/unit, audit timestamps. Products never cross store boundaries. |
 | `product_aliases` | UUID `id`, `store_id`, normalized observed name, `product_id`. Unique alias within a store; collisions require review rather than automatic merging. |
-| `receipts` | UUID `id`, `store_id`, printed local date/time and precision, timezone, nullable UTC instant, `currency = EUR`, `total_amount_cents`, validation results, parser version, `reviewed_at`, revision, audit timestamps, `is_deleted`. |
+| `receipts` | UUID `id`, `store_id`, printed local date/time and precision, timezone, nullable UTC instant, `currency = EUR`, `total_amount_cents`, validation results, parser/OCR engine versions, `reviewed_at`, current revision head(s), audit timestamps, deletion/conflict state. |
 | `receipt_items` | UUID `id`, `receipt_id`, position, line type, optional parent item, nullable `product_id`, raw and normalized names, nullable fixed-point quantity/unit and unit rate, signed `line_total_cents`, warnings. |
-| `change_log` | Monotonic `seq`, entity kind/id, entity revision, immutable full snapshot or tombstone. Written in the same transaction as the domain mutation. |
-| `sync_peers` | Peer identity, pinned certificate identity, non-secret pairing metadata, acknowledged cursor. Secrets live in secure storage, not ordinary database columns. |
+| `change_log` | Unique `(origin_device_id, origin_seq)` event identity, entity kind/id, parent revision IDs, immutable full snapshot or tombstone. Written transactionally with local mutations; incoming events retain their original identity and are not re-emitted as local edits. |
+| `sync_conflicts` | Entity identity, competing revision heads, detection metadata, and resolution state. Preserve candidate snapshots; do not silently discard either version. |
+| `sync_peers` | Peer identity, pinned certificate identity, non-secret pairing metadata, and per-origin committed cursors. Secrets live in secure storage, not ordinary database columns. |
 
 ### 3.3 Line Types and Reconciliation
 
@@ -89,7 +99,7 @@ Save only after store branch, date, total, and rows have been reviewed and recon
 - Match aliases only within the confirmed branch. Normalization preserves meaningful package sizes and variants.
 - Unknown names remain unmatched until reviewed; fuzzy matching may suggest, but must not silently merge products.
 - Enforce that linked products, aliases, and receipts belong to the same store.
-- All corrections happen on Android and are synchronized to desktop.
+- Corrections can happen on either platform and synchronize in both directions. Concurrent alias mappings or store/product changes require review just like receipt conflicts; independent UUIDs alone do not identify duplicate real-world products or branches.
 - Distinguish printed shelf/unit price from effective price after linked discounts. Exclude deposits from product price trends.
 - Do not allocate receipt-wide discounts to individual products without a documented rule. Label such observations accordingly.
 - Compare only compatible units/package sizes. Receipts without enough information still count toward spending but may be excluded from normalized price charts.
@@ -101,15 +111,15 @@ Save only after store branch, date, total, and rows have been reviewed and recon
 ### 4.1 Pipeline
 
 ```text
-Private camera capture
-  -> bundled on-device OCR (text, blocks, lines, bounding boxes)
+Android private camera capture OR Android/Windows image import
+  -> bundled offline OCR adapter (normalized text, blocks, lines, bounding boxes)
   -> geometry-aware parsing and receipt-section classification
   -> store branch and date candidates
   -> signed financial rows, quantities, rates, and receipt total
   -> independent validation results and row warnings
   -> mandatory user review and correction
   -> atomic SQLite save + change-log entry
-  -> temporary image cleanup
+  -> app-owned temporary image cleanup (never delete an imported original)
 ```
 
 Regexes identify candidates, not guaranteed facts. Use geometry to join names, quantities, and right-aligned prices, including wrapped descriptions. Separate receipt totals from payment totals and VAT sections.
@@ -139,50 +149,61 @@ Recompute validation after every edit. Arithmetic success must never hide unreso
 - Cover discounts, deposits/refunds, returns, multi-buy pricing, weighed goods, duplicate products, wrapped names, missing/duplicated rows, ambiguous totals, and poor OCR.
 - Test Finnish dates, decimal separators, rounding, malformed inputs, and daylight-saving ambiguity.
 - Assert extracted fields, financial rows, reconciliation, and warnings—not just a summary status.
-- Keep parser tests independent of Flutter and maintain separate OCR/camera integration tests on real devices.
+- Keep parser tests independent of Flutter and maintain Android camera/import and Windows import/OCR integration tests. Run comparable fixtures through each selected OCR backend and check the normalized geometry contract.
 
 ---
 
-## 5. Secure Local Replication
+## 5. Secure Bidirectional Local Sync
 
 ### 5.1 Roles and Pairing
-- Desktop runs a user-enabled HTTPS endpoint on an available port; Android initiates all connections.
-- Desktop creates a cryptographically random, short-lived, single-use pairing secret and shows a QR code containing protocol version, endpoint, certificate/public-key fingerprint, secret, and expiry.
+- Windows runs a user-enabled HTTPS endpoint on an available port; Android initiates connections and both pushes and pulls changes. Transport roles do not limit editing rights or determine which data wins.
+- Windows creates a cryptographically random, short-lived, single-use pairing secret and shows a QR code containing protocol version, endpoint, certificate/public-key fingerprint, secret, and expiry.
 - Android pins the advertised identity before transmitting the pairing secret. The QR/manual fingerprint exchange is the trust anchor; discovery never establishes trust.
 - Successful pairing consumes the temporary secret and creates a separate persistent device credential stored securely on both platforms.
 - Provide peer revocation, credential rotation, and explicit re-pairing. Certificate identity changes require confirmation/re-pairing, never automatic trust.
 - Manual pairing provides the same authenticated information as QR pairing; typing only an IP address is insufficient.
 - Enforce authentication, payload/schema validation, request-size limits, timeouts, and bounded batches. Do not expose secrets in logs or discovery records.
 
-### 5.2 Single-Writer Change Protocol
+### 5.2 Multi-Writer Change Protocol
 
 Do not use wall-clock timestamps as delta cursors or last-write-wins conflict resolution.
 
-1. Each Android mutation increments the affected entity revision and appends an immutable change with a dataset-wide monotonic sequence in the same SQLite transaction.
-2. Changes contain full store/product/alias snapshots, full receipt snapshots including all current items, or supported deletion tombstones. Catalog changes precede receipts that reference them. Store/product deletion is deferred in the MVP.
-3. Android sends ordered, bounded batches after the desktop's last committed cursor. Each batch includes protocol version, dataset/source identity, expected starting cursor, and ending sequence.
-4. Desktop validates identity, ordering, references, and revisions. It applies the entire batch and advances its cursor in one transaction. A receipt snapshot replaces its item collection atomically; absent old items are removed.
-5. Desktop acknowledges only committed changes. A lost response causes a safe retry; already-applied sequences are idempotent and cannot resurrect older state. Cursor gaps or identity mismatches trigger explicit recovery, not best-effort merging.
-6. Receipt deletion is a higher-revision tombstone, not immediate removal from the source change history. Desktop does not upload edits.
+1. Each local mutation on either device appends an immutable event with its device-scoped sequence and the entity revision(s) the edit was based on, in the same SQLite transaction as the domain mutation. Editing an old screen must detect a changed base rather than silently overwrite it.
+2. Changes contain full store/product/alias snapshots, full receipt snapshots including all current items, or supported deletion tombstones. A receipt is the conflict unit: do not merge rows independently. Store/product deletion is deferred in the MVP.
+3. Devices exchange dataset/protocol identities and committed per-origin cursors, then transfer missing events in bounded batches in both directions. Validate causal parents and catalog dependencies; missing dependencies must be requested or safely staged, not discarded or applied with broken references.
+4. Receiving devices persist events, apply valid projections or record conflicts, and advance their contiguous per-origin cursors transactionally. Cursors acknowledge durable receipt of events, not user resolution of conflicts. A receipt snapshot replaces its item collection atomically when selected as the current version.
+5. Acknowledge only committed batches. Deduplicate by event identity so lost responses and replay are harmless. Received events keep their original identity to prevent sync feedback loops. Reject cursor gaps, identity mismatches, invalid dependencies, and incompatible versions explicitly.
+6. Use revision ancestry to distinguish a newer descendant from a concurrent edit: descendants can advance automatically, ancestors are historical, and incomparable heads create a conflict. Numeric revision counts or timestamps alone cannot establish ancestry.
+7. Receipt deletion is a versioned tombstone. A concurrent edit versus deletion is a conflict; an old replay cannot resurrect a deleted receipt. Resolving a conflict creates a new event referencing all competing heads, containing the selected/reviewed snapshot or deletion.
 
-Keep immutable changes and tombstones in the MVP; define storage monitoring. Compaction is deferred until a consistent snapshot/bootstrap protocol exists. Initial pairing or rebuilding an empty replica replays the retained history in order. If required history is missing, stop and require a defined rebuild path rather than guessing.
+Keep immutable events and tombstones in the MVP, with storage monitoring. Defer compaction until a consistent snapshot/bootstrap protocol exists. Initial pairing seeds an empty installation by replaying the chosen dataset's history, preserving event identities but assigning the new installation a distinct device identity. Never automatically merge populated unrelated datasets.
 
-Acknowledgements are an optimization: the desktop's committed cursor is authoritative after connection loss. A restored Android backup must establish a new sync identity and require a replica rebuild, avoiding sequence reuse. Reject unsupported protocol/schema versions safely.
+Restore must assign a fresh local device identity and preserve imported event identities. If an existing peer contains changes absent from the backup, recovery must reconcile the histories and surface conflicts; it must not reset the peer or overwrite its newer work. Specify and test this recovery procedure before enabling sync. Missing required history must stop sync with an explicit recovery path rather than guessing.
 
-### 5.3 Required Sync Tests
+### 5.3 Conflict UX and Analytics
+- Show both receipt versions with origin device, audit time for context only, row differences, and any delete-versus-edit state.
+- Let the user keep either version or manually produce a reviewed, reconciled version; deletion is an explicit choice. Never automatically choose the latest wall-clock timestamp.
+- Retain candidate snapshots until resolution is durably recorded. Concurrent resolutions can themselves conflict and must follow the same rules.
+- Unresolved receipt conflicts remain visible in history but are excluded from aggregate spending and price trends, with a clear warning that totals are incomplete. Never count both versions.
+- Catalog conflicts and alias uniqueness collisions block affected automatic matching; unrelated records remain usable. Define deterministic projection rules for affected references before implementing sync.
+
+### 5.4 Required Sync Tests
 - Retry after a lost acknowledgement; duplicate batch; interrupted upload.
-- App crash during source mutation or destination application.
+- App crash during local mutation or incoming-event application on either platform.
 - Offline edit/delete followed by reconnect; removed receipt items; stale replay after deletion.
 - Clock skew, equal timestamps, and clock changes have no effect on ordering.
 - Invalid certificate/pin, expired pairing secret, revoked device, malformed payload, and oversized request.
 - Changed IP, blocked multicast, unavailable desktop, firewall restrictions, and incompatible protocol.
-- Empty replica rebuild and source backup restore/re-pairing.
+- Independent imports/edits on each device followed by two-way exchange without duplicate events or echo loops.
+- Sequential edits versus concurrent receipt edits, item removals, delete-versus-edit conflicts, catalog/alias collisions, and concurrent conflict resolutions.
+- Missing dependencies, partial causal histories, deterministic projections, and exclusion of unresolved conflicts from analytics.
+- Empty-device bootstrap, refusal to merge unrelated populated datasets, and backup restore/re-pairing without loss of unsynced peer changes.
 
 ---
 
 ## 6. Privacy, Retention & Recovery
 
-- Capture only into private application cache; do not export to the gallery.
+- Capture only into private application cache; do not export to the gallery. Import originals read-only and never delete or modify them. Explain that source images may remain in the user's gallery, file storage, or backups outside the app's control.
 - Delete temporary images on save, cancel, review exit, and error paths. Run stale-cache cleanup at startup after crashes; immediate deletion while the process is dead cannot be guaranteed.
 - Exclude temporary captures from OS backups where supported. Verify platform behaviour rather than promising secure erasure.
 - Do not retain full OCR dumps in production. Keep only structured receipt fields, necessary per-line names, validation metadata, and parser version.
@@ -197,53 +218,59 @@ Acknowledgements are an optimization: the desktop's committed cursor is authorit
 ## 7. Implementation Roadmap
 
 ### Phase 1: Scope, Platform Spikes & Parser Foundations (Current Phase)
-- [ ] Confirm single-writer scope, first-image capture limits, backup policy, and review rules.
-- [ ] Verify bundled OCR works on a fresh Android install in airplane mode, including Finnish characters.
-- [ ] Spike pinned HTTPS and secure credential storage on Android and all desktop targets.
+- [ ] Confirm Android/Windows feature parity, two-writer scope, image-import limits, backup policy, and review rules.
+- [ ] Set up the Windows-native Flutter/Android/Windows C++ toolchains and verify both build targets.
+- [ ] Evaluate shared versus platform-specific offline OCR engines on representative Finnish receipts; select and document the adapter contract, packaging, licenses, and model assets.
+- [ ] Verify first-run offline OCR on fresh Android and Windows installs, including Finnish characters and bounding boxes.
+- [ ] Spike pinned HTTPS and secure credential storage on Android and Windows.
 - [ ] Define fixed-point arithmetic, financial row semantics, and date/time representation.
 - [ ] Build representative geometry-preserving OCR fixtures and expected outputs.
 - [ ] Implement standalone Dart parser and validation tests, including discounts, deposits, returns, and weighed goods.
-- [ ] Define schema constraints, replication envelopes, and protocol versioning before creating migrations.
+- [ ] Define schema constraints, causal revisions, event identities, conflict states, and protocol versioning before creating migrations. Defer network implementation until both local workflows work.
 
-### Phase 2: Android Capture → Review → Save
-- [ ] Initialize Flutter targets and separate platform-specific capture from shared domain code.
+### Phase 2: Shared Import → Review → Save, Plus Android Capture
+- [ ] Initialize one Flutter project with Android and Windows targets; separate platform services from shared domain code and adaptive workflows.
 - [ ] Configure Drift, foreign keys, transactions, migration tests, and change logging.
 - [ ] Implement camera guidance and clear warnings for incomplete/long receipts.
+- [ ] Implement JPEG/PNG selection and offline OCR on both platforms using the normalized OCR interface.
 - [ ] Build editable store/date/total/row review with independent validation states.
 - [ ] Support adding, removing, and correcting rows and their relationships.
 - [ ] Save only reviewed, reconciled receipts; verify atomic domain/change-log writes.
 - [ ] Test image cleanup on save, cancel, error, and startup after crashes.
+- [ ] Verify that imported original files remain untouched on both platforms.
 
 ### Phase 3: History, Product Identity & Recovery
-- [ ] Build receipt history with branch/date/amount filters and Android correction/deletion flows.
+- [ ] Build receipt history with branch/date/amount filters and correction/deletion flows on both platforms.
 - [ ] Add store-scoped products, aliases, and explicit match correction.
 - [ ] Build price trends with unit comparability, discount semantics, and deposit exclusion.
-- [ ] Implement structured backup/export and restore tests, including new sync identity after restore.
+- [ ] Implement structured backup/export and restore tests on both platforms, including fresh device identity and preserved event identities after restore.
 - [ ] Test migrations and data integrity before using real financial history as the only copy.
 
-### Phase 4: Read-Only Desktop
-- [ ] Add desktop navigation, wide tables, split-screen history, and monthly spending charts.
-- [ ] Share validation and analytics rules; keep all editing controls Android-only.
-- [ ] Exercise desktop queries using representative fixtures before networking is integrated.
+### Phase 4: Adaptive UI & Standalone Feature Parity
+- [ ] Refine Windows navigation, wide tables, keyboard shortcuts, split-screen editing, and charts alongside compact Android layouts.
+- [ ] Verify import, OCR, review, corrections, deletion, aliases, history, and analytics work independently on both platforms without pairing or internet.
+- [ ] Exercise shared validation/analytics and platform-specific integrations with representative fixtures before networking is integrated.
 
-### Phase 5: Secure Local Replication
+### Phase 5: Secure Bidirectional Local Sync
 - [ ] Implement pinned HTTPS, QR/manual pairing, credential persistence, and revocation.
-- [ ] Implement transactional ordered change batches, cursors, receipts-as-snapshots, and tombstones.
+- [ ] Implement transactional two-way event exchange, per-origin cursors, causal revision tracking, receipts-as-snapshots, and tombstones.
+- [ ] Implement conflict comparison/resolution for receipts and catalog changes, including edit-versus-delete and concurrent resolutions.
+- [ ] Implement empty-device bootstrap, restore reconciliation, and safeguards against accidental merging/overwriting of unrelated datasets.
 - [ ] Add optional discovery without making multicast a prerequisite.
-- [ ] Run retry, crash, deletion, restore, malicious-input, and network-failure tests.
+- [ ] Run retry, crash, concurrent-edit, deletion, restore, malicious-input, and network-failure tests in both directions.
 - [ ] Make sync progress, last successful sync, and recovery errors visible to users.
 
 ### Phase 6: Release Hardening
 - [ ] Complete Finnish localization and accessibility checks; externalize strings from the start.
 - [ ] Test camera quality, poor lighting, crumpled receipts, performance, and large histories.
 - [ ] Validate privacy guarantees, backup exclusions, log redaction, and dataset deletion.
-- [ ] Test installers, firewall prompts, secure storage, and TLS behaviour on each supported desktop OS.
-- [ ] Document unsupported receipt layouts and deferred features: multi-shot stitching, multi-device writers, cross-store merging, and desktop OCR.
+- [ ] Test Android/Windows installers, bundled OCR assets, Windows firewall prompts, secure storage, and TLS behaviour.
+- [ ] Document unsupported receipt layouts and deferred features: PDF import, multi-shot stitching, Windows webcam capture, more than two synchronized devices, automatic merging of independent datasets, cross-store product merging, and macOS/Linux releases.
 
 ---
 
 ## 8. Immediate Next Step
 
-Collect 2–3 representative S-kaupat receipts to establish the parser fixture format, including at least one with a discount, deposit, or weighed item. Capture OCR text plus bounding boxes through a minimal Android harness; manually transcribed text can bootstrap lexical tests but cannot validate geometry.
+Set up the Windows-native development environment and collect 2–3 representative S-kaupat receipt images, including at least one with a discount, deposit, or weighed item. Use minimal Android and Windows OCR harnesses to compare engine candidates and establish the normalized text/bounding-box fixture format; manually transcribed text can bootstrap lexical tests but cannot validate geometry.
 
-Write expected financial rows and totals by hand, then expand the corpus and implement deterministic arithmetic, parser output, and validation tests before building the main Flutter UI. Development receipt exports must be explicit and anonymized before committing.
+Write expected financial rows and totals by hand, then expand the corpus and implement deterministic arithmetic, parser output, and validation tests before building the main Flutter UI. Complete the standalone import/review/edit workflow on both platforms before implementing bidirectional sync. Development receipt exports must be explicit and anonymized before committing.
