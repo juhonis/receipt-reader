@@ -53,10 +53,8 @@ expectations are a starting point, not complete annotated parser fixtures.
   prices on one sample; mode 6 recovered those but still introduced other
   character/layout errors. Choosing the mode by total recognition would hide
   these failures. Image preprocessing and more samples need evaluation.
-- This is **not yet a bundled Flutter Windows OCR adapter**. It relies on a
-  development-machine installation. Fresh Windows app installation without
-  system Tesseract, DLL deployment, language-asset loading, redistribution
-  notices, and release package size remain unverified.
+- This is **not yet a bundled Flutter Windows OCR adapter**. The baseline uses
+  the development installation; the later relocation prototype is described below.
 
 Timing fields are single-run diagnostic measurements. Android timing covers
 recognition after decoding; Windows timing includes subprocess startup and TSV
@@ -121,6 +119,11 @@ canonical receipt rows; do not assume they are sorted or pair prices by index.
 The Android Tesseract adapter uses native iterator rectangles and reports
 `corners: null`; it does not synthesize rotated corners.
 
+For preprocessing experiments, boxes refer to the actual variant image named
+by `inputSha256`, not the original prepared PNG. `preparedInputSha256` and
+`transform` record that original's dimensions and 3x3 forward/inverse homographies.
+Map all four box corners for source overlays; the amount probe maps only centers.
+
 Optional engine-specific configuration/model hashes may be attached. Confidence
 values are deliberately absent from this contract; they do not verify amounts
 or product identity. Raw text and coordinates are development fixture data,
@@ -146,18 +149,53 @@ orientation, and rejection of plain text masquerading as TSV.
 - The harness uses Pillow 12.2.0 only for local preparation. It is not a runtime
   app dependency. Public SDK/model downloads occur during explicit setup only.
 
+## Windows preprocessing and relocation experiment
+
+Tested the same three images with baseline, manually guided bounding crop,
+perspective correction, and perspective correction plus grayscale contrast.
+Each variant ran in PSM 3 and 6 using the same Windows executable and models.
+Originals remain hash-identical. Paper corners and posted-amount rectangles
+were annotated privately and their placement visually checked against the photos.
+
+Cropping recovered missing price-column text in one layout, but no variant
+consistently fixed recognition. Perspective correction introduced or retained
+errors on other images. Keep preprocessing optional pending broader evidence;
+manual corners are not automatic receipt detection. The private spatial probe
+checks strict decimal amounts at annotated positions, including the total.
+It does not verify product identity, quantity, discount semantics, or row assembly,
+and its matches must not be presented as whole-receipt accuracy.
+
+Built a private relocatable Windows prototype from the installed executable's
+recursive PE import/delay-import dependency closure, plus pinned models.
+It ran in a new path containing spaces with a sanitized PATH and explicit
+bundle-relative model selection. All 24 preprocessing cases reproduced the
+installed executable's text and geometry exactly. The private bundle contains
+binary/model hashes, system dependency names, and smoke evidence.
+
+This verifies local relocation only. System Tesseract remains installed;
+runtime loaded modules were not audited. Windows Sandbox is unavailable on
+this PC, and a clean Windows machine without development tooling has not been
+tested. Available source notices were retained, but complete dependency/model
+license notices and release size remain open. Do not distribute this prototype
+or mark the fresh-install milestone complete. No production Flutter code changed.
+
+Seven synthetic Python tests cover the geometry adapter, transform round trips,
+invalid crop corners, and signed amount probes that exclude footer regions and
+reject character guesses. Real receipt data and all prototype binaries stay ignored.
+
 ## Next work
 
 1. Extend the shared-engine comparison with matched native versions and more
    representative inputs if pursuing it further. Initial Android Tesseract
    feasibility is verified; the full engine-selection milestone remains open.
-2. Evaluate controlled crop/deskew preprocessing and a broader private corpus,
+2. Expand the controlled preprocessing experiment to a broader private corpus,
    including returns, ambiguous dates, incomplete receipts, and longer layouts.
 3. Build geometry-aware row assembly against manually annotated expectations.
    Preserve signed cents, fixed-point quantities, and the distinction between
    a posted net price and an explanatory discount. The discount already included
    in a net amount must not be subtracted a second time.
-4. Prototype self-contained Windows packaging and fresh-install offline OCR,
-   then measure release size and comparable cold/warm timings.
+4. Complete dependency notices and verify the Windows prototype on a clean
+   offline Windows installation, then measure release size and comparable
+   cold/warm timings.
 5. Finalize the Dart `OcrEngine` interface and dependency choice using that
    evidence. Do not wire an experimental engine into the production app yet.

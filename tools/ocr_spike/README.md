@@ -77,3 +77,40 @@ It is private reference material, not an automatic correctness score.
 Do not commit any real receipt output or include it in the production app.
 The harness intentionally retains host-side artifacts for inspection; this is
 an explicit development export, not the production image-retention policy.
+
+## Controlled Windows preprocessing and portable prototype
+
+These commands require the private baseline inputs and pinned models above:
+
+```powershell
+.\localreceipts\.venv\Scripts\python.exe tools/ocr_spike/preprocess.py
+.\localreceipts\.venv\Scripts\python.exe tools/ocr_spike/bundle_windows.py
+.\localreceipts\.venv\Scripts\python.exe -m unittest discover -s tools/ocr_spike -p 'test_*.py'
+```
+
+Preprocessing additionally needs private `localreceipts/ocr/annotations.json`.
+Its top-level keys are manifest sample IDs. Each value has `inputSha256`
+(the prepared PNG hash), `quad` (four pixel points TL/TR/BR/BL), and
+`amountRegions` (objects with `id`, `box: [left, top, right, bottom]`, and
+`amountCents`). Annotate from the image, including the printed total separately;
+exclude unit rates and explanatory discounts from posted amount regions.
+Inspect region placement before interpreting matches. The annotation file is
+deliberately private and must be recreated for new images.
+
+The runner compares baseline, bounding crop, manual perspective correction,
+and perspective correction with grayscale percentile contrast, in PSM 3/6.
+All variants preserve their image hashes and forward/inverse transforms in
+private JSON. The report probes word centers inside the annotated regions;
+it is not a parser or a full receipt accuracy metric. OpenCV and NumPy are
+development-only dependencies; pefile audits Windows PE imports.
+
+The bundle command recursively copies the executable's imported/delay-imported
+DLL closure, pinned models, and available source notices to a new private folder.
+It relocates that folder to a path with spaces, removes system Tesseract from
+PATH, clears TESSDATA_PREFIX, and explicitly selects the bundled models. Every
+saved preprocessing case must reproduce identical text and word geometry.
+Hashes, OS imports, and smoke evidence are saved beside the private bundle.
+The source installation remains installed: this is a relocation smoke test,
+not a clean-machine test or a runtime loaded-module audit. Complete dependency
+and model notices, clean offline Windows testing, and Flutter integration are
+still required before distribution. No downloadable release is produced.
