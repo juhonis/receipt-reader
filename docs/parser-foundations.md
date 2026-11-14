@@ -2,7 +2,9 @@
 
 The first implementation is a standalone Dart package at
 [`packages/receipt_parser`](../packages/receipt_parser). It has no Flutter,
-native OCR, database, network, or runtime package dependencies. The main app
+native OCR or database dependency and performs no network requests. Its pinned
+`timezone` 0.11.2 dependency supplies bundled IANA 2026e timezone data; the
+parser imports the local database, not the package's loading APIs. The main app
 does not use it yet. All committed test inputs are invented, including prices,
 names, and geometry; no private OCR exports were copied into fixtures.
 
@@ -35,7 +37,8 @@ is an initial single-column layout implementation, not a general layout solver.
 
 The caller must supply an item-section top and price-column left edge in that
 image's pixels. These are explicit layout hints. Automatic section detection,
-store/branch recognition, and date recognition are not implemented. A price
+and store/branch recognition are not implemented. Header date candidates are
+described below. A price
 column boundary cutting through a word or a badly skewed image can produce
 unclassified rows; tune neither hints nor expected outputs to hide failures.
 
@@ -60,6 +63,47 @@ joined to the next product. Complex multi-buy offers, arbitrary footer formats,
 discount-parent relationships, and automatic rounding adjustments need further
 fixtures and implementation. Parent links and product identity are not inferred.
 
+`draft.wrappedNames` proposes a combined name for a single adjacent text-only
+line followed by a priced product. Lines must be left-aligned within one word
+height and separated by at most 1.5 word heights. Numeric/rate-like lines,
+discount explanations, intervening rows, and large gaps do not qualify. The
+financial row and original note are unchanged; `wrappedNameNeedsReview` and
+the unclassified-row issue remain until a later review workflow resolves them.
+A missing price can look like wrapping, so these are proposals only.
+
+Payment/VAT boundaries additionally recognize `PANKKIKORTTI`, `VAIHTORAHA`,
+and `VEROTON`. Quantity/rate text can span separate description/price columns.
+
+## Printed dates and Helsinki time
+
+`draft.date` is independent of financial reconciliation. `parseReceiptDate`
+also supports direct parsing of a printed date string. Accepted syntax is
+`d.m.yyyy`, optionally followed by `HH:mm` or `HH:mm:ss`; spaces around date
+dots are allowed. Calendar values and times are checked without normalization.
+Two-digit years, OCR letter substitutions, and years outside 1970..2099 are
+rejected rather than guessed. Dot-separated clocks and times on a separate
+baseline are not joined in this iteration.
+
+The stored candidate preserves printed year/month/day, nullable clock fields,
+day/minute/second precision, and `Europe/Helsinki`. Date-only candidates have
+no UTC instant. Header candidates are found only on reconstructed baselines
+wholly above `itemTop`. Footer/payment timestamps never provide a fallback.
+Multiple candidates remain ambiguous; malformed recognized candidates are
+invalid. Missing or unrecognized syntax produces a missing date for review.
+
+Timed candidates round-trip possible UTC offsets through the bundled IANA
+rules. A spring clock gap is `nonexistent`; an autumn repeated hour is
+`ambiguous`, with both possible UTC instants retained and neither selected.
+Only a unique valid timed candidate exposes `utcInstant`. This does not depend
+on the Windows/Android timezone setting.
+
+Timezone lookup refuses years at or beyond the database's final explicit
+Helsinki transition year, returning `unsupportedTimezone` while preserving
+the printed fields. This conservative complete-year boundary avoids silently
+extending the final fixed offset indefinitely. Date-only validation does not
+need timezone transitions. Future rule changes require a reviewed timezone
+dependency update and rerunning the transition tests.
+
 ## Validation and review
 
 The draft exposes independent arithmetic state and parser issues. Quantity/rate
@@ -68,9 +112,9 @@ visible even when the total matches. All drafts require review. There is no save
 eligibility API yet: branch/date review, row correction, and persistence validation
 must be implemented before any save workflow can use these results.
 
-Printed dates, date-only precision, Europe/Helsinki DST ambiguity, and UTC
-conversion are still open work. The roadmap's full financial/date and parser
-milestones remain unchecked until that work and broader fixture coverage exist.
+The numeric and printed-date conventions are now defined. Broad layout coverage,
+store confirmation, discount-parent relationships, date correction, and save
+validation remain open; this is not a production-ready parser milestone.
 
 ## Verification
 
@@ -88,8 +132,11 @@ amounts, quantity checks, reconciliation and warnings. Coverage includes signed
 returns/deposits, explanatory discounts, duplicate products, strict decimal
 parsing, rounding and large integers, missing/competing totals, footer exclusion,
 wrapped names, invalid prices, orphan quantities, and invalid/overlapping geometry.
+Date cases cover leap years, invalid calendar/time values, header-only extraction,
+date-only precision, winter/summer offsets, both DST transitions, competing
+candidates, and refusal to guess beyond the timezone database's usable range.
 
-Next, expand representative synthetic layout fixtures, implement conservative
-wrapped-name/discount relationships and date candidates, then exercise private
-OCR outputs locally. Engine packaging and clean-machine tests remain separate
+Next, exercise private OCR outputs locally and build explicit review corrections
+for row proposals, branch/date candidates, and discount relationships. Engine
+packaging and clean-machine tests remain separate
 requirements before connecting OCR to the shared review workflow.

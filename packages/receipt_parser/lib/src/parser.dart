@@ -1,5 +1,6 @@
 import 'finance.dart';
 import 'geometry.dart';
+import 'receipt_date.dart';
 
 enum ParseIssue {
   missingTotal,
@@ -10,6 +11,13 @@ enum ParseIssue {
   quantityWithoutProduct,
   quantityMismatch,
   discountNeedsReview,
+  wrappedNameNeedsReview,
+}
+
+class WrappedNameCandidate {
+  const WrappedNameCandidate(this.rowIndex, this.proposedName);
+  final int rowIndex;
+  final String proposedName;
 }
 
 class ReceiptDraft {
@@ -18,12 +26,17 @@ class ReceiptDraft {
     this.printedTotal,
     Iterable<ParseIssue> issues,
     Iterable<String> notes,
+    this.date,
+    Iterable<WrappedNameCandidate> wrappedNames,
   ) : rows = List.unmodifiable(rows),
       issues = Set.unmodifiable(issues),
-      notes = List.unmodifiable(notes);
+      notes = List.unmodifiable(notes),
+      wrappedNames = List.unmodifiable(wrappedNames);
   final List<FinancialRow> rows;
   final BigInt? printedTotal;
   final Set<ParseIssue> issues;
+  final ReceiptDateResult date;
+  final List<WrappedNameCandidate> wrappedNames;
 
   /// Explanatory discount text is not a second financial contribution.
   final List<String> notes;
@@ -58,7 +71,7 @@ ReceiptDraft parseReceipt(
     issues.add(ParseIssue.ambiguousGeometry);
   }
   final bands = <List<OcrWord>>[];
-  final ordered = page.words.where((w) => w.box.top >= itemTop).toList()
+  final ordered = page.words.toList()
     ..sort((a, b) {
       final y = a.box.centerY.compareTo(b.box.centerY);
       return y != 0 ? y : a.box.left.compareTo(b.box.left);
@@ -95,14 +108,20 @@ ReceiptDraft parseReceipt(
       .map((w) => w.text)
       .join('')
       .trim();
+  final date = findReceiptDate(
+    bands
+        .where((b) => b.every((w) => w.box.bottom <= itemTop))
+        .map((b) => b.map((w) => w.text).join(' ')),
+  );
+  bands.removeWhere((b) => b.any((w) => w.box.top < itemTop));
   final totals = bands
       .where((b) => label(b).toUpperCase() == 'YHTEENSÄ')
       .toList();
   // VAT and payment sections are never scanned for purchased items.
   final footer = bands.indexWhere(
-    (b) =>
-        RegExp(r'^(ALV|VISA|MASTERCARD|KÄTEINEN|MAKSETTU)(?:\s|$)')
-            .hasMatch(label(b).toUpperCase()),
+    (b) => RegExp(
+      r'^(ALV|VEROTON|VISA|MASTERCARD|KÄTEINEN|MAKSETTU|PANKKIKORTTI|VAIHTORAHA)(?:\s|$)',
+    ).hasMatch(label(b).toUpperCase()),
   );
   final candidates = totals
       .where((b) => footer < 0 || bands.indexOf(b) < footer)
@@ -123,12 +142,16 @@ ReceiptDraft parseReceipt(
       : bands.length;
   final rows = <FinancialRow>[];
   final notes = <String>[];
+  final wrappedNames = <WrappedNameCandidate>[];
+  List<OcrWord>? pendingDescription;
   var canAttachQuantity = false;
   final quantityPattern = RegExp(
     r'^(-?[0-9]+(?:[,.][0-9]+)?)\s+(kg|kpl|l)\s+([0-9]+(?:[,.][0-9]+)?)\s+(?:€|EUR)?/?(kg|kpl|l)$',
     caseSensitive: false,
   );
   for (final band in bands.take(end)) {
+    final preceding = pendingDescription;
+    pendingDescription = null;
     final name = label(band);
     final upper = name.toUpperCase();
     final amountText = price(band);
@@ -175,6 +198,12 @@ ReceiptDraft parseReceipt(
             ? ParseIssue.invalidAmount
             : ParseIssue.unclassifiedRow,
       );
+      // Only propose a single adjacent description line. Keep the original
+      // row and note unchanged; missing prices can masquerade as wrapping.
+      if (name.isNotEmpty &&
+          amountText.isEmpty &&
+          !RegExp(r'[0-9€/=]').hasMatch(name))
+        pendingDescription = band;
       continue;
     }
     final kind = RegExp(r'^PANTTI(?:\s|$)').hasMatch(upper)
@@ -186,7 +215,18 @@ ReceiptDraft parseReceipt(
       issues.add(ParseIssue.discountNeedsReview);
     }
     rows.add(FinancialRow(name: name, cents: amount, kind: kind));
+    if (preceding != null &&
+        kind == LineKind.product &&
+        (preceding.first.box.left - band.first.box.left).abs() <=
+            band.first.box.height &&
+        band.first.box.top - preceding.first.box.bottom <=
+            1.5 * band.first.box.height) {
+      wrappedNames.add(
+        WrappedNameCandidate(rows.length - 1, '${label(preceding)} $name'),
+      );
+      issues.add(ParseIssue.wrappedNameNeedsReview);
+    }
     canAttachQuantity = kind == LineKind.product;
   }
-  return ReceiptDraft(rows, total, issues, notes);
+  return ReceiptDraft(rows, total, issues, notes, date, wrappedNames);
 }

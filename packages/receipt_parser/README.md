@@ -13,5 +13,7 @@ dart test
 
 Read normalized OCR using `OcrPage.fromJson`, then call `parseReceipt` with
 explicit `itemTop` and `priceColumnLeft` pixel hints. Inspect both `draft.totals`
-and `draft.issues`. Every draft still requires user review; arithmetic matching
+and `draft.issues`, plus the independent `draft.date` state and optional
+`draft.wrappedNames` proposals. Helsinki timezone rules are bundled locally.
+Every draft still requires user review; arithmetic matching
 does not establish transcription accuracy or permission to save.

@@ -226,8 +226,8 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [ ] Evaluate shared versus platform-specific offline OCR engines on representative Finnish receipts; select and document the adapter contract, packaging, licenses, and model assets.
 - [ ] Verify first-run offline OCR on fresh Android and Windows installs, including Finnish characters and bounding boxes.
 - [ ] Spike pinned HTTPS and secure credential storage on Android and Windows.
-- [ ] Define fixed-point arithmetic, financial row semantics, and date/time representation.
-- [x] Establish a standalone Dart parser foundation with exact arithmetic, geometry-based row candidates, and synthetic financial validation tests. See [parser scope and limitations](parser-foundations.md); date handling, broader layouts, and review integration remain open.
+- [x] Define fixed-point arithmetic, financial row semantics, and printed date/time representation with explicit Helsinki DST ambiguity. See [parser conventions](parser-foundations.md); persistence range checks and review resolution remain open.
+- [x] Establish a standalone Dart parser foundation with exact arithmetic, geometry-based row candidates, header dates, and synthetic validation tests. See [parser scope and limitations](parser-foundations.md); broader layouts and review integration remain open.
 - [ ] Build representative geometry-preserving OCR fixtures and expected outputs.
 - [ ] Implement standalone Dart parser and validation tests, including discounts, deposits, returns, and weighed goods.
 - [ ] Define schema constraints, causal revisions, event identities, conflict states, and protocol versioning before creating migrations. Defer network implementation until both local workflows work.
