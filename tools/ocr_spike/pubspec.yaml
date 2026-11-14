@@ -1,0 +1,17 @@
+name: ocr_spike
+description: Private development harness for offline OCR evaluation.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.14.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  google_mlkit_text_recognition: 1.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

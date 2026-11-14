@@ -1,0 +1,2 @@
+# Python version used for local image preparation only.
+Pillow==12.2.0

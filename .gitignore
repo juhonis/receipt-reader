@@ -13,3 +13,5 @@
 
 # Private development receipts (never commit originals)
 /localreceipts/
+/local_receipts/
+__pycache__/

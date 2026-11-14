@@ -220,6 +220,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 ### Phase 1: Scope, Platform Spikes & Parser Foundations (Current Phase)
 - [ ] Confirm Android/Windows feature parity, two-writer scope, image-import limits, backup policy, and review rules.
 - [x] Set up the Windows-native Flutter/Android/Windows C++ toolchains and verify both build targets. See [Windows development setup](windows-development.md) for the setup and smoke-build results.
+- [x] Establish private-image baselines with offline Android ML Kit and Windows Tesseract, preserving normalized word geometry. See [OCR spike findings](ocr-spike.md); engine selection and Windows app bundling remain open.
 - [ ] Evaluate shared versus platform-specific offline OCR engines on representative Finnish receipts; select and document the adapter contract, packaging, licenses, and model assets.
 - [ ] Verify first-run offline OCR on fresh Android and Windows installs, including Finnish characters and bounding boxes.
 - [ ] Spike pinned HTTPS and secure credential storage on Android and Windows.
@@ -272,6 +273,6 @@ Restore must assign a fresh local device identity and preserve imported event id
 
 ## 8. Immediate Next Step
 
-The Windows-native environment and Flutter scaffold are ready. Collect 2–3 representative S-kaupat receipt images, including at least one with a discount, deposit, or weighed item. Keep originals in the ignored `local_receipts/` directory. Use minimal Android and Windows OCR harnesses to compare engine candidates and establish the normalized text/bounding-box fixture format; manually transcribed text can bootstrap lexical tests but cannot validate geometry.
+The Windows-native environment and Flutter scaffold are ready. Keep representative S-kaupat receipt images in the ignored `localreceipts/` directory. Use minimal Android and Windows OCR harnesses to compare engine candidates and establish the normalized text/bounding-box fixture format; manually transcribed text can bootstrap lexical tests but cannot validate geometry.
 
 Write expected financial rows and totals by hand, then expand the corpus and implement deterministic arithmetic, parser output, and validation tests before building the main Flutter UI. Complete the standalone import/review/edit workflow on both platforms before implementing bidirectional sync. Development receipt exports must be explicit and anonymized before committing.

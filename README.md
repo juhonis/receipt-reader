@@ -8,6 +8,9 @@ The Flutter scaffold builds on both targets and contains a localized starter
 screen. Receipt import, OCR, storage, and sync are not implemented yet.
 The next milestone is the offline OCR platform spike described in
 [the project plan](docs/plan.md).
+The first baseline and remaining decisions are documented in
+[OCR spike findings](docs/ocr-spike.md); the separate
+[development harness](tools/ocr_spike/README.md) can reproduce it.
 
 ## Development
 
@@ -29,7 +32,7 @@ Keep app strings in that ARB file. `lib/app.dart` holds the app shell;
 `lib/main.dart` is the entry point. Add shared domain logic independently of
 native OCR and storage adapters as the platform spike establishes their needs.
 
-Keep original test receipts in the ignored `local_receipts/` directory.
+Keep original test receipts in the ignored `localreceipts/` directory.
 Only explicitly anonymized fixtures should enter version control.
 Commit `pubspec.lock` to keep application dependencies reproducible.
 
