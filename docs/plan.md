@@ -229,7 +229,8 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [ ] Define schema constraints, causal revisions, event identities, conflict states, and protocol versioning before creating migrations. Defer network implementation until both local workflows work.
 
 ### Phase 2: Shared Import → Review → Save, Plus Android Capture
-- [ ] Initialize one Flutter project with Android and Windows targets; separate platform services from shared domain code and adaptive workflows.
+- [x] Initialize one Flutter project with Android and Windows targets and externalized Finnish UI strings.
+- [ ] Separate platform services from shared domain code and adaptive workflows as the OCR spike establishes the adapter contracts.
 - [ ] Configure Drift, foreign keys, transactions, migration tests, and change logging.
 - [ ] Implement camera guidance and clear warnings for incomplete/long receipts.
 - [ ] Implement JPEG/PNG selection and offline OCR on both platforms using the normalized OCR interface.
@@ -271,6 +272,6 @@ Restore must assign a fresh local device identity and preserve imported event id
 
 ## 8. Immediate Next Step
 
-Set up the Windows-native development environment and collect 2–3 representative S-kaupat receipt images, including at least one with a discount, deposit, or weighed item. Use minimal Android and Windows OCR harnesses to compare engine candidates and establish the normalized text/bounding-box fixture format; manually transcribed text can bootstrap lexical tests but cannot validate geometry.
+The Windows-native environment and Flutter scaffold are ready. Collect 2–3 representative S-kaupat receipt images, including at least one with a discount, deposit, or weighed item. Keep originals in the ignored `local_receipts/` directory. Use minimal Android and Windows OCR harnesses to compare engine candidates and establish the normalized text/bounding-box fixture format; manually transcribed text can bootstrap lexical tests but cannot validate geometry.
 
 Write expected financial rows and totals by hand, then expand the corpus and implement deterministic arithmetic, parser output, and validation tests before building the main Flutter UI. Complete the standalone import/review/edit workflow on both platforms before implementing bidirectional sync. Development receipt exports must be explicit and anonymized before committing.

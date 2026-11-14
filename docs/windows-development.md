@@ -47,8 +47,8 @@ The Flutter, Android toolchain, and Visual Studio checks should pass.
 Web-browser checks are not required for this project's two target platforms.
 
 In Android Studio, check **Settings > Languages & Frameworks > Flutter** and
-set the SDK path above if needed. The project currently contains planning
-documents; there is no Flutter app or runnable `lib/main.dart` yet.
+set the SDK path above if needed. Open the repository root as the Flutter
+project and run `lib/main.dart` with Windows or the Android emulator selected.
 
 ## Android testing
 
@@ -70,7 +70,7 @@ connect with a data-capable USB cable, and approve this computer's debugging
 prompt. Check `adb devices` and `flutter devices`. Some manufacturers require
 a Windows USB driver. A physical phone is useful for receipt-camera tests.
 
-## Build loop once the Flutter app exists
+## Build loop
 
 ```powershell
 flutter pub get
@@ -122,10 +122,9 @@ version control; Flutter's generated project supplies the usual ignore rules.
 - `flutter run -d emulator-5554 --no-resident`: passed; the debug APK built,
   installed, and launched on the Android emulator.
 
-The environment milestone in `plan.md` is complete. The receipt app itself has
-not been scaffolded. The disposable project remains available for repeating
-these checks; it does not contain receipt-app implementation. The emulator
-remains running for development. Emulator IDs can change between sessions,
+The environment milestone in `plan.md` is complete. The repository now has its
+own Flutter scaffold; use it for ongoing development. The disposable project
+remains available for isolated toolchain checks. Emulator IDs can change between sessions,
 so use `flutter devices` to find the current ID.
 
 ## First-build troubleshooting

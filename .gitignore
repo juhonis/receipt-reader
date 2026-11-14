@@ -1,3 +1,15 @@
 # Local Android Studio / IntelliJ settings
 .idea/
 *.iml
+
+# Flutter/Dart generated files
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+/build/
+/coverage/
+/lib/l10n/generated/
+*.log
+
+# Private development receipts (never commit originals)
+/local_receipts/
