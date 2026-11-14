@@ -219,7 +219,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 
 ### Phase 1: Scope, Platform Spikes & Parser Foundations (Current Phase)
 - [ ] Confirm Android/Windows feature parity, two-writer scope, image-import limits, backup policy, and review rules.
-- [ ] Set up the Windows-native Flutter/Android/Windows C++ toolchains and verify both build targets.
+- [x] Set up the Windows-native Flutter/Android/Windows C++ toolchains and verify both build targets. See [Windows development setup](windows-development.md) for the setup and smoke-build results.
 - [ ] Evaluate shared versus platform-specific offline OCR engines on representative Finnish receipts; select and document the adapter contract, packaging, licenses, and model assets.
 - [ ] Verify first-run offline OCR on fresh Android and Windows installs, including Finnish characters and bounding boxes.
 - [ ] Spike pinned HTTPS and secure credential storage on Android and Windows.
