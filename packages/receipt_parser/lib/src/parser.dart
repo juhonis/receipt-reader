@@ -23,6 +23,16 @@ class WrappedNameCandidate {
   final String proposedName;
 }
 
+/// One occurrence, rather than a deduplicated category. Indices refer to the
+/// immutable draft rows, never the current position in an edited row list.
+class ParseFinding {
+  ParseFinding(this.issue, {this.rowIndex, Iterable<OcrWord> words = const []})
+    : words = List.unmodifiable(words);
+  final ParseIssue issue;
+  final int? rowIndex;
+  final List<OcrWord> words;
+}
+
 class ReceiptDraft {
   ReceiptDraft(
     Iterable<FinancialRow> rows,
@@ -32,13 +42,16 @@ class ReceiptDraft {
     this.date,
     Iterable<WrappedNameCandidate> wrappedNames, {
     Iterable<Iterable<OcrWord>> rowEvidence = const [],
+    Iterable<ParseFinding> findings = const [],
   }) : rowEvidence = List.unmodifiable(
          rowEvidence.map((words) => List<OcrWord>.unmodifiable(words)),
        ),
        rows = List.unmodifiable(rows),
        issues = Set.unmodifiable(issues),
        notes = List.unmodifiable(notes),
-       wrappedNames = List.unmodifiable(wrappedNames);
+       wrappedNames = List.unmodifiable(wrappedNames),
+       findings = List.unmodifiable(findings);
+  final List<ParseFinding> findings;
   final List<FinancialRow> rows;
 
   /// Original words associated with each row, including attached quantity lines
@@ -72,7 +85,15 @@ ReceiptDraft parseReceipt(
     throw ArgumentError('Layout hints outside page');
   }
   final issues = <ParseIssue>{};
-  if (page.baselineSlope.abs() > .005) issues.add(ParseIssue.skewAdjusted);
+  final findings = <ParseFinding>[];
+  Iterable<OcrWord> activeWords = const [];
+  int? activeRow;
+  void report(ParseIssue issue) {
+    issues.add(issue);
+    findings.add(ParseFinding(issue, rowIndex: activeRow, words: activeWords));
+  }
+
+  if (page.baselineSlope.abs() > .005) report(ParseIssue.skewAdjusted);
   if (page.words.any(
     (w) =>
         (w.box.top < itemTop && w.box.bottom > itemTop) ||
@@ -80,7 +101,7 @@ ReceiptDraft parseReceipt(
             w.box.left < priceColumnLeft &&
             w.box.right > priceColumnLeft),
   )) {
-    issues.add(ParseIssue.ambiguousGeometry);
+    report(ParseIssue.ambiguousGeometry);
   }
   final bands = <List<OcrWord>>[];
   final ordered = page.words.toList()
@@ -89,6 +110,7 @@ ReceiptDraft parseReceipt(
       return y != 0 ? y : a.box.left.compareTo(b.box.left);
     });
   for (final word in ordered) {
+    activeWords = [word];
     final matches = bands.where((band) {
       final anchor = band.first.box;
       final tolerance =
@@ -97,7 +119,7 @@ ReceiptDraft parseReceipt(
       return (page.baselineY(band.first) - page.baselineY(word)).abs() <=
           tolerance;
     }).toList();
-    if (matches.length > 1) issues.add(ParseIssue.ambiguousGeometry);
+    if (matches.length > 1) report(ParseIssue.ambiguousGeometry);
     if (matches.isEmpty) {
       bands.add([word]);
     } else {
@@ -105,10 +127,11 @@ ReceiptDraft parseReceipt(
     }
   }
   for (final band in bands) {
+    activeWords = band;
     band.sort((a, b) => a.box.left.compareTo(b.box.left));
     for (var i = 1; i < band.length; i++) {
       if (band[i].box.left < band[i - 1].box.right)
-        issues.add(ParseIssue.ambiguousGeometry);
+        report(ParseIssue.ambiguousGeometry);
     }
   }
   String label(List<OcrWord> band) => band
@@ -138,7 +161,7 @@ ReceiptDraft parseReceipt(
         .replaceAll(RegExp(r'(?<=[,.])\s+(?=[0-9])'), '')
         .replaceAll(RegExp(r'(?<=[0-9])\s+(?=[,.])'), '');
     final parsed = parseCents(normalized);
-    if (parsed != null) issues.add(ParseIssue.normalizedOcrAmount);
+    if (parsed != null) report(ParseIssue.normalizedOcrAmount);
     return parsed;
   }
 
@@ -162,17 +185,18 @@ ReceiptDraft parseReceipt(
   final candidates = totals
       .where((b) => footer < 0 || bands.indexOf(b) < footer)
       .toList();
+  activeWords = candidates.expand((band) => band);
   BigInt? total;
   if (candidates.isEmpty) {
-    issues.add(ParseIssue.missingTotal);
+    report(ParseIssue.missingTotal);
   } else if (candidates.length > 1) {
-    issues.add(ParseIssue.ambiguousTotal);
+    report(ParseIssue.ambiguousTotal);
   } else {
     total = amount(price(candidates.single));
     if (label(candidates.single).toUpperCase() != 'YHTEENSÄ') {
-      issues.add(ParseIssue.totalLabelNeedsReview);
+      report(ParseIssue.totalLabelNeedsReview);
     }
-    if (total == null) issues.add(ParseIssue.invalidAmount);
+    if (total == null) report(ParseIssue.invalidAmount);
   }
   final end = candidates.isNotEmpty
       ? bands.indexOf(candidates.first)
@@ -190,6 +214,8 @@ ReceiptDraft parseReceipt(
     caseSensitive: false,
   );
   for (final band in bands.take(end)) {
+    activeWords = band;
+    activeRow = null;
     final preceding = pendingDescription;
     pendingDescription = null;
     final name = label(band);
@@ -205,7 +231,7 @@ ReceiptDraft parseReceipt(
           value == null ||
           rate == null ||
           quantity[2]!.toLowerCase() != quantity[4]!.toLowerCase()) {
-        issues.add(ParseIssue.quantityWithoutProduct);
+        report(ParseIssue.quantityWithoutProduct);
         notes.add(fullText);
       } else {
         final unit = switch (quantity[2]!.toLowerCase()) {
@@ -219,8 +245,10 @@ ReceiptDraft parseReceipt(
           rate,
         );
         rowEvidence.last.addAll(band);
+        activeRow = rows.length - 1;
+        activeWords = rowEvidence.last;
         if (rows.last.quantityMatches == false)
-          issues.add(ParseIssue.quantityMismatch);
+          report(ParseIssue.quantityMismatch);
       }
       canAttachQuantity = false;
       continue;
@@ -228,13 +256,17 @@ ReceiptDraft parseReceipt(
     canAttachQuantity = false;
     if (RegExp(r'^(NORM\.?|NORMAALIHINTA|KAMPANJA)(?:\s|$)').hasMatch(upper)) {
       notes.add(fullText);
-      issues.add(ParseIssue.discountNeedsReview);
+      report(ParseIssue.discountNeedsReview);
       continue;
     }
+    // A valid posted row will use this index; malformed/unclassified bands
+    // are reset below because they never become a row.
+    activeRow = name.isEmpty ? null : rows.length;
     final cents = amount(amountText);
     if (name.isEmpty || cents == null) {
+      activeRow = null;
       notes.add(fullText);
-      issues.add(
+      report(
         amountText.isNotEmpty
             ? ParseIssue.invalidAmount
             : ParseIssue.unclassifiedRow,
@@ -253,7 +285,7 @@ ReceiptDraft parseReceipt(
         ? LineKind.discount
         : LineKind.product;
     if (kind == LineKind.discount && !cents.isNegative) {
-      issues.add(ParseIssue.discountNeedsReview);
+      report(ParseIssue.discountNeedsReview);
     }
     rows.add(FinancialRow(name: name, cents: cents, kind: kind));
     rowEvidence.add(List.of(band));
@@ -267,7 +299,8 @@ ReceiptDraft parseReceipt(
         WrappedNameCandidate(rows.length - 1, '${label(preceding)} $name'),
       );
       rowEvidence.last.insertAll(0, preceding);
-      issues.add(ParseIssue.wrappedNameNeedsReview);
+      activeWords = rowEvidence.last;
+      report(ParseIssue.wrappedNameNeedsReview);
     }
     canAttachQuantity = kind == LineKind.product;
   }
@@ -279,5 +312,6 @@ ReceiptDraft parseReceipt(
     date,
     wrappedNames,
     rowEvidence: rowEvidence,
+    findings: findings,
   );
 }

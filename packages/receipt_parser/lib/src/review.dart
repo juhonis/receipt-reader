@@ -1,5 +1,32 @@
 import 'finance.dart';
 import 'receipt_date.dart';
+import 'parser.dart';
+
+/// Arithmetic/field prerequisites only. The UI also requires image comparison
+/// and a written explanation; this never authorizes persistence.
+bool canResolveFinding(
+  ParseFinding finding, {
+  ReviewRowInput? row,
+  String total = '',
+  bool nameHandled = false,
+}) {
+  switch (finding.issue) {
+    case ParseIssue.missingTotal:
+    case ParseIssue.ambiguousTotal:
+    case ParseIssue.totalLabelNeedsReview:
+      return parseCents(total) != null;
+    case ParseIssue.quantityMismatch:
+      return row != null && row.quantityState == QuantityReviewState.matched;
+    case ParseIssue.normalizedOcrAmount:
+      return row != null &&
+          row.name.trim().isNotEmpty &&
+          parseCents(row.amount) != null;
+    case ParseIssue.wrappedNameNeedsReview:
+      return row != null && row.name.trim().isNotEmpty && nameHandled;
+    default:
+      return false;
+  }
+}
 
 class ReviewRowInput {
   const ReviewRowInput(

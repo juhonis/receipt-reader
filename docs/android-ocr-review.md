@@ -20,7 +20,7 @@ its OCR packaging and distribution audit remain open.
    section, unaffected by corrections.
 
 All OCR drafts remain blocked from completion, even when their sums match.
-Resolution of individual parser issues and row relationships is still required.
+Complete coverage of parser issues and row relationships is still required.
 Quantity/rate editing and row evidence are now available as described below.
 Nothing is saved. Closing the review discards
 the app's temporary image and draft; the selected original is untouched.
@@ -83,3 +83,33 @@ Validation: 42 parser tests and 17 Flutter tests, including signed rounding,
 incomplete input, source immutability, quantity editing, and image-crop rendering.
 Android and Windows debug builds and both analyzers pass. No new native adapter
 changes were made in this step; the earlier offline smoke remains its baseline.
+
+## Individual finding review
+
+The parser now retains every warning occurrence with immutable source words and
+an original draft-row index where applicable. Its existing category set remains
+available to evaluation tools. Two rows with the same warning produce two review
+cards; handling one does not handle the other. Row references remain attached to
+their original row objects after edits or removal of another row.
+
+The current resolution flow supports missing/ambiguous/noncanonical totals,
+quantity mismatches, normalized amounts on recognized rows, and wrapped-name
+proposals. It requires an imported image, valid relevant fields, explicit image
+comparison, and a written explanation. Quantity mismatches require matching
+quantity arithmetic; wrapped names require an explicit accept/keep decision.
+Handling a finding does not change financial values or erase original evidence.
+
+Data edits reopen all handled findings conservatively, retaining their notes for
+rechecking. Deleted-row findings cannot be reassigned accidentally to the next
+row. Unsupported findings stay open: layout ambiguity/skew, orphan quantities,
+discount relationships, unclassified/invalid rows, and normalized total amounts
+without a row association. Older manually constructed drafts without occurrence
+details retain category-level warnings and cannot invent missing row links.
+
+OCR completion and persistence remain disabled even if every currently supported
+finding has been handled. Next work is explicit orphan/discount relationships and
+the remaining issue types, followed by full evidence-coverage validation.
+
+Verification: 44 parser tests and 18 Flutter tests cover repeated occurrences,
+immutable source evidence, resolution prerequisites, independent handling, and
+reopening after edits. Android/Windows debug builds and analyzers pass.

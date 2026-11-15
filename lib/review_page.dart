@@ -48,6 +48,49 @@ class _ReviewPageState extends State<ReviewPage> {
   bool _branchConfirmed = false;
   bool _reviewed = false;
   final _handledNames = <int>{};
+  final _resolvedFindings = <int>{};
+  final _findingNotes = <int, String>{};
+  List<ParseFinding> _findings = [];
+
+  _RowFields? _findingRow(ParseFinding finding) {
+    final index = finding.rowIndex;
+    if (index == null || index < 0 || index >= _sourceRows.length) return null;
+    final row = _sourceRows[index];
+    return _rows.contains(row) ? row : null;
+  }
+
+  bool _canResolve(ParseFinding finding) => canResolveFinding(
+    finding,
+    row: _findingRow(finding)?.input,
+    total: _total.text,
+    nameHandled: _draft!.wrappedNames.asMap().entries.any(
+      (entry) =>
+          entry.value.rowIndex == finding.rowIndex &&
+          _handledNames.contains(entry.key),
+    ),
+  );
+
+  Future<void> _reviewFinding(int index, String message) async {
+    final finding = _findings[index];
+    final note = await showDialog<String>(
+      context: context,
+      builder: (_) => _FindingDialog(
+        finding: finding,
+        image: widget.evidence?.image,
+        message: message,
+        initialNote: _findingNotes[index] ?? '',
+        allowed: _canResolve(finding),
+      ),
+    );
+    if (mounted && note != null) {
+      setState(() {
+        _findingNotes[index] = note;
+        _resolvedFindings.add(index);
+        _reviewed = false;
+      });
+    }
+  }
+
   List<_RowFields> _sourceRows = [];
   ReceiptDraft? _draft;
   OcrPage? _ocr;
@@ -122,6 +165,12 @@ class _ReviewPageState extends State<ReviewPage> {
 
   void _seed(ReceiptDraft draft) {
     _draft = draft;
+    _findings = [
+      ...draft.findings,
+      for (final issue in draft.issues)
+        if (!draft.findings.any((finding) => finding.issue == issue))
+          ParseFinding(issue),
+    ];
     for (final row in draft.rows) {
       _rows.add(
         _RowFields()
@@ -168,6 +217,7 @@ class _ReviewPageState extends State<ReviewPage> {
   void _edit([String? _]) => setState(() {
     _reviewed = false;
     _edited = true;
+    _resolvedFindings.clear();
   });
 
   void _showEvidence(_RowFields row) {
@@ -367,10 +417,43 @@ class _ReviewPageState extends State<ReviewPage> {
                           s.ocrDraftNotice,
                           key: const Key('ocr-draft-blocked'),
                         ),
-                        Text(s.ocrIssuesPresent(draft.issues.length)),
-                        for (final message
-                            in draft.issues.map(issueText).toSet())
-                          Text(message),
+                        Text(
+                          s.ocrIssuesPresent(
+                            _findings.length - _resolvedFindings.length,
+                          ),
+                        ),
+                        for (var f = 0; f < _findings.length; f++)
+                          Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Text(issueText(_findings[f].issue)),
+                                  if (_findings[f].rowIndex != null)
+                                    Text(
+                                      _findingRow(_findings[f])?.name.text ??
+                                          s.findingRowRemoved,
+                                    ),
+                                  Text(
+                                    _resolvedFindings.contains(f)
+                                        ? s.findingResolved
+                                        : s.findingOpen,
+                                  ),
+                                  if (_findingNotes[f] != null)
+                                    Text(_findingNotes[f]!),
+                                  TextButton(
+                                    key: ValueKey('finding-$f'),
+                                    onPressed: () => _reviewFinding(
+                                      f,
+                                      issueText(_findings[f].issue),
+                                    ),
+                                    child: Text(s.reviewFinding),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         for (final note in draft.notes) Text(note),
                         for (var n = 0; n < draft.wrappedNames.length; n++)
                           if (!_handledNames.contains(n) &&
@@ -710,4 +793,92 @@ class _EvidenceCrop extends CustomPainter {
   @override
   bool shouldRepaint(_EvidenceCrop oldDelegate) =>
       image != oldDelegate.image || words != oldDelegate.words;
+}
+
+class _FindingDialog extends StatefulWidget {
+  const _FindingDialog({
+    required this.finding,
+    required this.image,
+    required this.message,
+    required this.initialNote,
+    required this.allowed,
+  });
+  final ParseFinding finding;
+  final ui.Image? image;
+  final String message, initialNote;
+  final bool allowed;
+  @override
+  State<_FindingDialog> createState() => _FindingDialogState();
+}
+
+class _FindingDialogState extends State<_FindingDialog> {
+  late final _note = TextEditingController(text: widget.initialNote);
+  bool _compared = false;
+  @override
+  void dispose() {
+    _note.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
+    return AlertDialog(
+      title: Text(widget.message),
+      content: SizedBox(
+        width: 600,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.image != null && widget.finding.words.isNotEmpty)
+                SizedBox(
+                  height: 220,
+                  width: 600,
+                  child: CustomPaint(
+                    painter: _EvidenceCrop(widget.image!, widget.finding.words),
+                  ),
+                ),
+              SelectableText(widget.finding.words.map((w) => w.text).join(' ')),
+              Text(s.findingCompareHint),
+              if (!widget.allowed) Text(s.findingPrerequisite),
+              if (widget.image == null) Text(s.findingImageRequired),
+              TextField(
+                key: const Key('finding-note'),
+                controller: _note,
+                decoration: InputDecoration(labelText: s.findingNote),
+                maxLines: 3,
+                onChanged: (_) => setState(() {}),
+              ),
+              CheckboxListTile(
+                key: const Key('finding-compared'),
+                title: Text(s.findingCompared),
+                value: _compared,
+                onChanged: (value) => setState(() {
+                  _compared = value ?? false;
+                }),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(s.closeEvidence),
+        ),
+        FilledButton(
+          key: const Key('resolve-finding'),
+          onPressed:
+              widget.image != null &&
+                  widget.allowed &&
+                  _compared &&
+                  _note.text.trim().isNotEmpty
+              ? () => Navigator.pop(context, _note.text.trim())
+              : null,
+          child: Text(s.resolveFinding),
+        ),
+      ],
+    );
+  }
 }

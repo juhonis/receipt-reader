@@ -94,5 +94,15 @@
   "quantityInvalidSummary": "Tarkista rivien määrät, yksiköt ja yksikköhinnat.",
   "rowEvidence": "Näytä rivin lähde",
   "rowEvidenceHint": "Alkuperäiset tähän riviehdotukseen liitetyt sanat. Mukana voi olla ehdotettu jatkorivi. Vertaa myös koko kuittiin; rajaus ei todista tulkintaa oikeaksi.",
-  "closeEvidence": "Sulje"
+  "closeEvidence": "Sulje",
+  "findingCompareHint": "Vertaa lähdettä ja korjattuja tietoja koko kuittikuvaan. Kirjaa, mitä korjasit tai miksi tieto on oikein. Muutokset tietoihin avaavat kaikki käsitellyt huomiot uudelleen; selitykset säilyvät.",
+  "findingPrerequisite": "Korjaa ensin tiedot tai käsittele nimiehdotus. Poistettujen rivien, kohdistuksen ja alennussuhteiden huomioita ei vielä voi ratkaista tässä kokeilussa.",
+  "findingImageRequired": "Ratkaisu edellyttää alkuperäistä kuittikuvaa.",
+  "findingNote": "Korjaus tai perustelu",
+  "findingCompared": "Vertasin korjattuja tietoja kuittikuvaan",
+  "resolveFinding": "Merkitse tämä huomio käsitellyksi",
+  "findingRowRemoved": "Alkuperäinen riviehdotus on poistettu",
+  "findingResolved": "Käsitelty tässä tarkistuksessa",
+  "findingOpen": "Avoin tarkistuskohta",
+  "reviewFinding": "Tarkista tämä huomio"
 }
