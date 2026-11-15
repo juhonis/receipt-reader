@@ -3,9 +3,11 @@ import 'package:receipt_parser/receipt_parser.dart';
 
 import 'l10n/generated/app_localizations.dart';
 import 'receipt_import.dart';
+import 'receipt_ocr.dart';
 
 class ReviewPage extends StatefulWidget {
-  const ReviewPage({super.key, this.draft, this.evidence});
+  const ReviewPage({super.key, this.draft, this.evidence, this.recognizer});
+  final Future<OcrPage> Function(ReceiptEvidence)? recognizer;
   final ReceiptDraft? draft;
   final ReceiptEvidence? evidence;
   @override
@@ -30,33 +32,97 @@ class _ReviewPageState extends State<ReviewPage> {
   bool _branchConfirmed = false;
   bool _reviewed = false;
   final _handledNames = <int>{};
-  late final List<_RowFields> _sourceRows;
+  List<_RowFields> _sourceRows = [];
+  ReceiptDraft? _draft;
+  OcrPage? _ocr;
+  bool _recognizing = false;
+  bool _ocrFailed = false;
+  bool _edited = false;
+  double _itemTop = .2, _priceLeft = .75;
+
+  Future<void> _recognize() async {
+    if (_recognizing || _edited || _draft != null) return;
+    setState(() {
+      _recognizing = true;
+      _ocrFailed = false;
+    });
+    try {
+      final page = await (widget.recognizer ?? recognizeReceipt)(
+        widget.evidence!,
+      );
+      if (!mounted) return;
+      final proposal = proposeLayout(page);
+      setState(() {
+        _ocr = page;
+        if (proposal.available) {
+          _itemTop = proposal.itemTop! / page.height;
+          _priceLeft = proposal.priceColumnLeft! / page.width;
+        }
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _ocrFailed = true;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _recognizing = false;
+        });
+      }
+    }
+  }
+
+  void _applyLayout() {
+    if (_edited || _draft != null || _ocr == null) return;
+    final draft = parseReceipt(
+      _ocr!,
+      itemTop: _itemTop * _ocr!.height,
+      priceColumnLeft: _priceLeft * _ocr!.width,
+    );
+    final oldRows = List.of(_rows);
+    setState(() {
+      _rows.clear();
+      _seed(draft);
+      _reviewed = false;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final row in oldRows) {
+        row.dispose();
+      }
+    });
+  }
 
   @override
   void initState() {
     super.initState();
-    final draft = widget.draft;
-    if (draft != null) {
+    if (widget.draft != null) {
       _rows.single.dispose();
       _rows.clear();
-      for (final row in draft.rows) {
-        _rows.add(
-          _RowFields()
-            ..name.text = row.name
-            ..amount.text = formatCents(row.cents)
-            ..kind = row.kind,
-        );
-      }
-      _total.text = draft.printedTotal == null
-          ? ''
-          : formatCents(draft.printedTotal!);
-      final date = draft.date.printed;
-      if (date != null) {
-        _date.text =
-            '${date.day}.${date.month}.${date.year}'
-            '${date.hour == null ? '' : ' ${date.hour!.toString().padLeft(2, '0')}:${date.minute!.toString().padLeft(2, '0')}'}'
-            '${date.second == null ? '' : ':${date.second!.toString().padLeft(2, '0')}'}';
-      }
+      _seed(widget.draft!);
+    }
+  }
+
+  void _seed(ReceiptDraft draft) {
+    _draft = draft;
+    for (final row in draft.rows) {
+      _rows.add(
+        _RowFields()
+          ..name.text = row.name
+          ..amount.text = formatCents(row.cents)
+          ..kind = row.kind,
+      );
+    }
+    _total.text = draft.printedTotal == null
+        ? ''
+        : formatCents(draft.printedTotal!);
+    final date = draft.date.printed;
+    if (date != null) {
+      _date.text =
+          '${date.day}.${date.month}.${date.year}'
+          '${date.hour == null ? '' : ' ${date.hour!.toString().padLeft(2, '0')}:${date.minute!.toString().padLeft(2, '0')}'}'
+          '${date.second == null ? '' : ':${date.second!.toString().padLeft(2, '0')}'}';
     }
     _sourceRows = List.of(_rows);
   }
@@ -75,6 +141,7 @@ class _ReviewPageState extends State<ReviewPage> {
 
   void _edit([String? _]) => setState(() {
     _reviewed = false;
+    _edited = true;
   });
 
   @override
@@ -88,7 +155,7 @@ class _ReviewPageState extends State<ReviewPage> {
       reviewed: _reviewed,
       // OCR completion stays gated until evidence-based issue resolution and
       // quantity/rate editing are implemented. Manual review remains available.
-      hasUnresolvedParserIssues: widget.draft != null,
+      hasUnresolvedParserIssues: _draft != null || _ocr != null,
       rows: [
         for (final row in _rows)
           ReviewRowInput(row.name.text, row.amount.text, row.kind),
@@ -123,10 +190,35 @@ class _ReviewPageState extends State<ReviewPage> {
             minScale: 1,
             maxScale: 8,
             child: SizedBox.expand(
-              child: RawImage(
-                key: const Key('receipt-evidence'),
-                image: widget.evidence!.image,
+              child: FittedBox(
                 fit: BoxFit.contain,
+                child: SizedBox(
+                  width: widget.evidence!.image.width.toDouble(),
+                  height: widget.evidence!.image.height.toDouble(),
+                  child: Stack(
+                    children: [
+                      RawImage(
+                        key: const Key('receipt-evidence'),
+                        image: widget.evidence!.image,
+                        fit: BoxFit.contain,
+                      ),
+                      if (_ocr != null && _draft == null) ...[
+                        Positioned(
+                          top: _itemTop * widget.evidence!.image.height,
+                          left: 0,
+                          right: 0,
+                          child: Container(height: 4, color: Colors.red),
+                        ),
+                        Positioned(
+                          left: _priceLeft * widget.evidence!.image.width,
+                          top: 0,
+                          bottom: 0,
+                          child: Container(width: 4, color: Colors.blue),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -149,7 +241,66 @@ class _ReviewPageState extends State<ReviewPage> {
                       Text(s.reviewNotice),
                       if (widget.evidence != null && !wide)
                         SizedBox(height: 360, child: preview()),
-                      if (widget.draft case final draft?) ...[
+                      if (widget.evidence != null &&
+                          (supportsReceiptOcr ||
+                              widget.recognizer != null)) ...[
+                        Text(s.ocrExperiment),
+                        if (_draft == null && _ocr == null)
+                          OutlinedButton(
+                            key: const Key('recognize'),
+                            onPressed: _recognizing || _edited
+                                ? null
+                                : _recognize,
+                            child: Text(
+                              _recognizing ? s.ocrLoading : s.ocrRecognize,
+                            ),
+                          ),
+                        if (_ocrFailed) Text(s.ocrFailure),
+                        if (_edited && _draft == null) Text(s.ocrEditsKept),
+                        if (_ocr != null && _draft == null && !_edited) ...[
+                          Text(
+                            proposeLayout(_ocr!).available
+                                ? s.ocrLayoutProposal
+                                : s.ocrLayoutManual,
+                          ),
+                          Text(s.ocrItemTop),
+                          Slider(
+                            value: _itemTop.clamp(0, .99),
+                            min: 0,
+                            max: .99,
+                            onChanged: (v) => setState(() {
+                              _itemTop = v;
+                            }),
+                          ),
+                          Text(s.ocrPriceLeft),
+                          Slider(
+                            value: _priceLeft.clamp(.01, .99),
+                            min: .01,
+                            max: .99,
+                            onChanged: (v) => setState(() {
+                              _priceLeft = v;
+                            }),
+                          ),
+                          OutlinedButton(
+                            onPressed: _applyLayout,
+                            child: Text(s.ocrUseLayout),
+                          ),
+                        ],
+                        if (_ocr != null)
+                          ExpansionTile(
+                            title: Text(s.ocrSourceWords),
+                            children: [
+                              for (final word in _ocr!.words)
+                                ListTile(
+                                  title: Text(word.text),
+                                  subtitle: Text(
+                                    'x ${word.box.left.round()}–${word.box.right.round()}, y ${word.box.top.round()}–${word.box.bottom.round()}',
+                                  ),
+                                ),
+                            ],
+                          ),
+                      ],
+                      if (_draft case final draft?) ...[
                         const SizedBox(height: 16),
                         Text(
                           s.ocrDraftNotice,
@@ -211,6 +362,7 @@ class _ReviewPageState extends State<ReviewPage> {
                       ],
                       const SizedBox(height: 16),
                       TextField(
+                        enabled: !_recognizing,
                         key: const Key('branch'),
                         controller: _branch,
                         decoration: InputDecoration(labelText: s.branchLabel),
@@ -225,10 +377,12 @@ class _ReviewPageState extends State<ReviewPage> {
                         value: _branchConfirmed,
                         onChanged: (value) => setState(() {
                           _branchConfirmed = value ?? false;
+                          _edited = true;
                           _reviewed = false;
                         }),
                       ),
                       TextField(
+                        enabled: !_recognizing,
                         key: const Key('date'),
                         controller: _date,
                         decoration: InputDecoration(
@@ -239,6 +393,7 @@ class _ReviewPageState extends State<ReviewPage> {
                       ),
                       const SizedBox(height: 12),
                       TextField(
+                        enabled: !_recognizing,
                         key: const Key('total'),
                         controller: _total,
                         decoration: InputDecoration(
@@ -265,6 +420,7 @@ class _ReviewPageState extends State<ReviewPage> {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 TextField(
+                                  enabled: !_recognizing,
                                   key: ValueKey('row-name-$i'),
                                   controller: _rows[i].name,
                                   decoration: InputDecoration(
@@ -273,6 +429,7 @@ class _ReviewPageState extends State<ReviewPage> {
                                   onChanged: _edit,
                                 ),
                                 TextField(
+                                  enabled: !_recognizing,
                                   key: ValueKey('row-amount-$i'),
                                   controller: _rows[i].amount,
                                   decoration: InputDecoration(

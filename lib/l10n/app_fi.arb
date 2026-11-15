@@ -2,7 +2,7 @@
   "@@locale": "fi",
   "appTitle": "Kuittiseuranta",
   "welcomeTitle": "Kuitit ja ostokset yhdessä paikassa",
-  "developmentNotice": "Voit avata kuittikuvan ja kirjoittaa tiedot käsin. Automaattinen tekstintunnistus ja tallennus eivät ole vielä käytettävissä.",
+  "developmentNotice": "Voit avata kuittikuvan ja kirjoittaa tiedot käsin. Androidilla voit kokeilla tekstintunnistusta. Tallennus ei ole vielä käytettävissä.",
   "startReview": "Kokeile kuitin tarkistusta",
   "reviewTitle": "Kuitin tarkistus",
   "reviewNotice": "Kirjoita tiedot käsin ja tarkista ne kuitista. Tietoja tai avattua kuvaa ei tallenneta sovellukseen. Ne poistuvat tästä näkymästä, kun palaat takaisin. Alkuperäinen kuvatiedosto säilyy.",
@@ -31,15 +31,33 @@
   "totalsMatch": "Summat täsmäävät — tarkista tuotteet",
   "totalMissing": "Täytä loppusumma kahdella desimaalilla",
   "totalsDifference": "Rivien summan ja loppusumman erotus: {amount} €",
-  "@totalsDifference": {"placeholders": {"amount": {"type": "String"}}},
+  "@totalsDifference": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "discountSignWarning": "Alennusrivin summan pitää olla negatiivinen. Älä vähennä jo nettohintaan sisältyvää alennusta uudelleen.",
   "reviewConfirmation": "Olen tarkistanut päivämäärän, tuotteet, palautukset, alennukset ja summat kuitista",
   "reviewComplete": "Tarkistus valmis tässä kokeilussa. Tietoja ei ole tallennettu.",
-  "ocrDraftNotice": "Tekstintunnistuksen ehdotus. Voit korjata rivejä, mutta tarkistusta ei vielä voi vahvistaa valmiiksi. Alkuperäisen kuitin näyttö ja kaikkien tulkintaongelmien ratkaisu puuttuvat tästä kokeilusta.",
+  "ocrDraftNotice": "Tekstintunnistuksen ehdotus. Vertaa rivejä kuittikuvaan ja korjaa virheet. Tarkistusta ei vielä voi vahvistaa valmiiksi: tulkintaongelmien sekä määrien ja yksikköhintojen käsittely on kesken.",
   "ocrIssuesPresent": "Tulkinnan tarkistuskohtia: {count}. Alkuperäiset huomiot säilyvät korjauksista huolimatta.",
-  "@ocrIssuesPresent": {"placeholders": {"count": {"type": "int"}}},
+  "@ocrIssuesPresent": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "proposedName": "Nimiehdotus: {name}",
-  "@proposedName": {"placeholders": {"name": {"type": "String"}}},
+  "@proposedName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "acceptName": "Käytä nimiehdotusta",
   "keepName": "Säilytä nykyinen nimi",
   "quantityReviewPending": "Tunnistettuja määriä tai yksikköhintoja ei vielä voi korjata tässä näkymässä. Ne säilyvät alkuperäisessä ehdotuksessa.",
@@ -52,5 +70,16 @@
   "importTooLarge": "Kuva on liian suuri. Enimmäiskoko on 20 Mt ja 24 megapikseliä, pisin sivu 12 000 pikseliä.",
   "importUnsupported": "Valitse yksi tavallinen JPEG- tai PNG-kuva. Animoituja kuvia ei tueta.",
   "importUnreadable": "Kuvaa ei voitu avata. Valitse ehjä, paikallisesti saatavilla oleva JPEG- tai PNG-tiedosto.",
-  "imageEvidenceHint": "Vertaa tietoja kuittiin. Voit suurentaa ja siirtää kuvaa. Tarkista, että koko kuitti näkyy."
+  "imageEvidenceHint": "Vertaa tietoja kuittiin. Voit suurentaa ja siirtää kuvaa. Tarkista, että koko kuitti näkyy.",
+  "ocrExperiment": "Kokeellinen Android-tekstintunnistus. Tunnistus tehdään laitteella. Mitään ei tallenneta.",
+  "ocrRecognize": "Tunnista kuitin teksti",
+  "ocrLoading": "Tunnistetaan…",
+  "ocrFailure": "Tekstintunnistus epäonnistui. Voit yrittää uudelleen tai täyttää tiedot käsin.",
+  "ocrEditsKept": "Käsin tehdyt muutokset säilytetään. Aloita uusi tuonti, jos haluat käyttää tekstintunnistusta.",
+  "ocrLayoutProposal": "Tarkista ehdotetut rajat kuvasta ennen rivien muodostamista.",
+  "ocrLayoutManual": "Rajoja ei voitu päätellä luotettavasti. Aseta rajat kuvasta tai täytä tiedot käsin.",
+  "ocrItemTop": "Punainen raja: tuoterivien alku otsikon ja päivämäärän jälkeen",
+  "ocrPriceLeft": "Sininen raja: rivisummien sarakkeen vasen reuna",
+  "ocrUseLayout": "Muodosta riviehdotus näillä rajoilla",
+  "ocrSourceWords": "Alkuperäiset tunnistetut sanat ja sijainnit"
 }

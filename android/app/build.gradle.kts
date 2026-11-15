@@ -47,3 +47,8 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Experimental candidate; the Latin model is bundled for first-run offline use.
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+}

@@ -9,6 +9,7 @@ import java.io.ByteArrayOutputStream
 import java.util.concurrent.Executors
 
 class MainActivity : FlutterActivity() {
+    private val ocr = ReceiptOcr()
     private var pending: MethodChannel.Result? = null
     private val reader = Executors.newSingleThreadExecutor()
     private val requestImage = 4101
@@ -16,6 +17,11 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "receipt_reader/ocr")
+            .setMethodCallHandler { call, result ->
+                if (call.method == "recognize") ocr.recognize(call.arguments as? ByteArray, result)
+                else result.notImplemented()
+            }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "receipt_reader/import")
             .setMethodCallHandler { call, result ->
                 if (call.method != "pickImage") {
@@ -75,6 +81,7 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onDestroy() {
+        ocr.close()
         pending = null
         reader.shutdownNow()
         super.onDestroy()
