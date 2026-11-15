@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/widgets.dart';
 import 'package:material_ui/material_ui.dart'
@@ -5,8 +7,75 @@ import 'package:material_ui/material_ui.dart'
 import 'package:receipt_parser/receipt_parser.dart';
 import 'package:receipt_reader/review_page.dart';
 import 'package:receipt_reader/app.dart';
+import 'package:receipt_reader/receipt_import.dart';
 
 void main() {
+  testWidgets('quantity corrections preserve posted amount and row source', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final draft = ReceiptDraft(
+      [
+        FinancialRow(
+          name: 'MILK',
+          cents: BigInt.from(200),
+          quantity: Quantity(BigInt.from(2), 0, QuantityUnit.piece),
+          rateMicros: BigInt.from(1000000),
+        ),
+      ],
+      BigInt.from(200),
+      [],
+      [],
+      parseReceiptDate('15.11.2026'),
+      [],
+      rowEvidence: [
+        [OcrWord('ORIGINAL MILK', PixelBox(1, 1, 6, 8))],
+      ],
+    );
+    final evidence = (await tester.runAsync(
+      () async => ReceiptEvidence.decode(
+        await File('test/fixtures/rotated.jpg').readAsBytes(),
+      ),
+    ))!;
+    await tester.pumpWidget(const ReceiptReaderApp());
+    Navigator.of(tester.element(find.text('Kokeile kuitin tarkistusta'))).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ReviewPage(draft: draft, evidence: evidence),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final vertical = find
+        .byWidgetPredicate(
+          (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+        )
+        .first;
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('row-quantity-0')),
+      200,
+      scrollable: vertical,
+    );
+    expect(find.text('2'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('row-quantity-0')), '3');
+    await tester.pumpAndSettle();
+    expect(find.textContaining('ei vastaa rivisummaa'), findsOneWidget);
+    expect(draft.rows.single.quantity!.value, BigInt.from(2));
+    expect(draft.rows.single.cents, BigInt.from(200));
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('row-evidence-0')),
+      150,
+      scrollable: vertical,
+    );
+    await tester.tap(find.byKey(const Key('row-evidence-0')));
+    await tester.pumpAndSettle();
+    expect(find.text('ORIGINAL MILK'), findsOneWidget);
+    expect(find.byKey(const Key('row-evidence-crop')), findsOneWidget);
+    await tester.tap(find.text('Sulje'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
   testWidgets(
     'OCR name proposal changes only the name and keeps review gated',
     (tester) async {
@@ -110,6 +179,9 @@ void main() {
         200,
         scrollable: vertical,
       );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Lisää rivi'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Lisää rivi'));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(

@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:material_ui/material_ui.dart';
 import 'package:receipt_parser/receipt_parser.dart';
 
@@ -17,10 +19,24 @@ class ReviewPage extends StatefulWidget {
 class _RowFields {
   final name = TextEditingController();
   final amount = TextEditingController();
+  final quantity = TextEditingController();
+  final rate = TextEditingController();
+  QuantityUnit unit = QuantityUnit.unknown;
+  List<OcrWord> evidence = const [];
+  ReviewRowInput get input => ReviewRowInput(
+    name.text,
+    amount.text,
+    kind,
+    quantity: quantity.text,
+    rate: rate.text,
+    unit: unit,
+  );
   LineKind kind = LineKind.product;
   void dispose() {
     name.dispose();
     amount.dispose();
+    quantity.dispose();
+    rate.dispose();
   }
 }
 
@@ -111,7 +127,17 @@ class _ReviewPageState extends State<ReviewPage> {
         _RowFields()
           ..name.text = row.name
           ..amount.text = formatCents(row.cents)
-          ..kind = row.kind,
+          ..kind = row.kind
+          ..quantity.text = row.quantity == null
+              ? ''
+              : formatFixed(row.quantity!.value, row.quantity!.scale)
+          ..unit = row.quantity?.unit ?? QuantityUnit.unknown
+          ..rate.text = row.rateMicros == null
+              ? ''
+              : formatFixed(row.rateMicros!, 6)
+          ..evidence = _rows.length < draft.rowEvidence.length
+              ? draft.rowEvidence[_rows.length]
+              : const [],
       );
     }
     _total.text = draft.printedTotal == null
@@ -144,6 +170,44 @@ class _ReviewPageState extends State<ReviewPage> {
     _edited = true;
   });
 
+  void _showEvidence(_RowFields row) {
+    final words = row.evidence;
+    final s = AppLocalizations.of(context)!;
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(s.rowEvidence),
+        content: SizedBox(
+          width: 600,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(s.rowEvidenceHint),
+                if (widget.evidence != null)
+                  SizedBox(
+                    height: 240,
+                    width: 600,
+                    child: CustomPaint(
+                      key: const Key('row-evidence-crop'),
+                      painter: _EvidenceCrop(widget.evidence!.image, words),
+                    ),
+                  ),
+                SelectableText(words.map((word) => word.text).join(' ')),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(s.closeEvidence),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
@@ -154,12 +218,9 @@ class _ReviewPageState extends State<ReviewPage> {
       branchConfirmed: _branchConfirmed,
       reviewed: _reviewed,
       // OCR completion stays gated until evidence-based issue resolution and
-      // quantity/rate editing are implemented. Manual review remains available.
+      // row relationships are implemented. Manual review remains available.
       hasUnresolvedParserIssues: _draft != null || _ocr != null,
-      rows: [
-        for (final row in _rows)
-          ReviewRowInput(row.name.text, row.amount.text, row.kind),
-      ],
+      rows: [for (final row in _rows) row.input],
     );
     final kinds = {
       LineKind.product: s.productKind,
@@ -355,10 +416,6 @@ class _ReviewPageState extends State<ReviewPage> {
                                 ),
                               ),
                             ),
-                        if (draft.rows.any(
-                          (r) => r.quantity != null || r.rateMicros != null,
-                        ))
-                          Text(s.quantityReviewPending),
                       ],
                       const SizedBox(height: 16),
                       TextField(
@@ -443,6 +500,73 @@ class _ReviewPageState extends State<ReviewPage> {
                                       ),
                                   onChanged: _edit,
                                 ),
+                                ExpansionTile(
+                                  key: ValueKey('quantity-panel-$i'),
+                                  title: Text(s.quantityDetails),
+                                  initiallyExpanded:
+                                      _rows[i].quantity.text.isNotEmpty ||
+                                      _rows[i].rate.text.isNotEmpty,
+                                  children: [
+                                    TextField(
+                                      key: ValueKey('row-quantity-$i'),
+                                      controller: _rows[i].quantity,
+                                      decoration: InputDecoration(
+                                        labelText: s.quantityLabel,
+                                      ),
+                                      onChanged: _edit,
+                                    ),
+                                    TextField(
+                                      key: ValueKey('row-rate-$i'),
+                                      controller: _rows[i].rate,
+                                      decoration: InputDecoration(
+                                        labelText: s.rateLabel,
+                                      ),
+                                      onChanged: _edit,
+                                    ),
+                                    DropdownButtonFormField<QuantityUnit>(
+                                      key: ValueKey('row-unit-$i'),
+                                      initialValue: _rows[i].unit,
+                                      decoration: InputDecoration(
+                                        labelText: s.unitLabel,
+                                      ),
+                                      items: [
+                                        for (final unit in QuantityUnit.values)
+                                          DropdownMenuItem(
+                                            value: unit,
+                                            child: Text(switch (unit) {
+                                              QuantityUnit.unknown =>
+                                                s.unitUnknown,
+                                              QuantityUnit.piece => 'kpl',
+                                              QuantityUnit.kg => 'kg',
+                                              QuantityUnit.litre => 'l',
+                                            }),
+                                          ),
+                                      ],
+                                      onChanged: (unit) {
+                                        if (unit != null) {
+                                          _rows[i].unit = unit;
+                                          _edit();
+                                        }
+                                      },
+                                    ),
+                                    Text(switch (_rows[i].input.quantityState) {
+                                      QuantityReviewState.absent =>
+                                        s.quantityAbsent,
+                                      QuantityReviewState.invalid =>
+                                        s.quantityInvalid,
+                                      QuantityReviewState.matched =>
+                                        s.quantityMatched,
+                                      QuantityReviewState.mismatched =>
+                                        s.quantityMismatch,
+                                    }),
+                                  ],
+                                ),
+                                if (_rows[i].evidence.isNotEmpty)
+                                  OutlinedButton(
+                                    key: ValueKey('row-evidence-$i'),
+                                    onPressed: () => _showEvidence(_rows[i]),
+                                    child: Text(s.rowEvidence),
+                                  ),
                                 DropdownButtonFormField<LineKind>(
                                   initialValue: _rows[i].kind,
                                   decoration: InputDecoration(
@@ -523,6 +647,8 @@ class _ReviewPageState extends State<ReviewPage> {
                                 formatCents(validation.totals.difference!),
                               ),
                       ),
+                      if (!validation.quantitiesValid)
+                        Text(s.quantityInvalidSummary),
                       if (validation.positiveDiscount)
                         Text(s.discountSignWarning),
                       CheckboxListTile(
@@ -550,4 +676,38 @@ class _ReviewPageState extends State<ReviewPage> {
       ),
     );
   }
+}
+
+class _EvidenceCrop extends CustomPainter {
+  _EvidenceCrop(this.image, this.words);
+  final ui.Image image;
+  final List<OcrWord> words;
+  @override
+  void paint(Canvas canvas, Size size) {
+    var left = words.first.box.left, top = words.first.box.top;
+    var right = words.first.box.right, bottom = words.first.box.bottom;
+    for (final word in words.skip(1)) {
+      if (word.box.left < left) left = word.box.left;
+      if (word.box.top < top) top = word.box.top;
+      if (word.box.right > right) right = word.box.right;
+      if (word.box.bottom > bottom) bottom = word.box.bottom;
+    }
+    final source = Rect.fromLTRB(
+      (left - 12).clamp(0, image.width).toDouble(),
+      (top - 12).clamp(0, image.height).toDouble(),
+      (right + 12).clamp(0, image.width).toDouble(),
+      (bottom + 12).clamp(0, image.height).toDouble(),
+    );
+    if (source.isEmpty) return;
+    final fitted = applyBoxFit(BoxFit.contain, source.size, size);
+    final destination = Alignment.center.inscribe(
+      fitted.destination,
+      Offset.zero & size,
+    );
+    canvas.drawImageRect(image, source, destination, Paint());
+  }
+
+  @override
+  bool shouldRepaint(_EvidenceCrop oldDelegate) =>
+      image != oldDelegate.image || words != oldDelegate.words;
 }

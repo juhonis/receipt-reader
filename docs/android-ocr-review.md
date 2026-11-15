@@ -20,8 +20,9 @@ its OCR packaging and distribution audit remain open.
    section, unaffected by corrections.
 
 All OCR drafts remain blocked from completion, even when their sums match.
-Quantity/rate editing, row-specific evidence links, and resolution of individual
-parser issues are still required. Nothing is saved. Closing the review discards
+Resolution of individual parser issues and row relationships is still required.
+Quantity/rate editing and row evidence are now available as described below.
+Nothing is saved. Closing the review discards
 the app's temporary image and draft; the selected original is untouched.
 
 ## Adapter and ownership
@@ -56,3 +57,29 @@ the engine-selection audit.
 - Windows build verified; native Windows picker interaction remains pending.
 
 No private receipt images or OCR text were added to source control.
+
+## Row evidence and quantity corrections
+
+Each parsed row retains immutable original OCR words, including an attached
+quantity line and any proposed wrapped description. **Näytä rivin lähde** opens
+their text and a crop of the original image. This association survives edits and
+deleting other rows. The crop is supporting evidence, not confirmation of the
+parser's interpretation; the full image remains available. Manually added rows
+have no invented OCR source.
+
+**Määrä ja yksikköhinta** permits editing quantity, unit (kpl/kg/l), and EUR/unit
+rate. OCR values populate the controls without floating-point conversion.
+Up to six decimal places are accepted. An entered quantity must be nonzero;
+the rate must be nonnegative. Negative quantities support returns. If any part
+is supplied, all three parts must be valid. Leave both fields empty and the unit
+unselected when the receipt provides no quantity information.
+
+Multiplication rounds once, half away from zero, to cents and is compared with
+the posted row amount. It never replaces that amount. Mismatches, including
+possible discounted prices, require review; matching receipt totals do not
+override them. Original parser issues remain visible after corrections.
+
+Validation: 42 parser tests and 17 Flutter tests, including signed rounding,
+incomplete input, source immutability, quantity editing, and image-crop rendering.
+Android and Windows debug builds and both analyzers pass. No new native adapter
+changes were made in this step; the earlier offline smoke remains its baseline.

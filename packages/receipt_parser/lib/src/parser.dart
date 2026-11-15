@@ -30,12 +30,20 @@ class ReceiptDraft {
     Iterable<ParseIssue> issues,
     Iterable<String> notes,
     this.date,
-    Iterable<WrappedNameCandidate> wrappedNames,
-  ) : rows = List.unmodifiable(rows),
-      issues = Set.unmodifiable(issues),
-      notes = List.unmodifiable(notes),
-      wrappedNames = List.unmodifiable(wrappedNames);
+    Iterable<WrappedNameCandidate> wrappedNames, {
+    Iterable<Iterable<OcrWord>> rowEvidence = const [],
+  }) : rowEvidence = List.unmodifiable(
+         rowEvidence.map((words) => List<OcrWord>.unmodifiable(words)),
+       ),
+       rows = List.unmodifiable(rows),
+       issues = Set.unmodifiable(issues),
+       notes = List.unmodifiable(notes),
+       wrappedNames = List.unmodifiable(wrappedNames);
   final List<FinancialRow> rows;
+
+  /// Original words associated with each row, including attached quantity lines
+  /// and proposed wrapped descriptions. Empty for manually constructed drafts.
+  final List<List<OcrWord>> rowEvidence;
   final BigInt? printedTotal;
   final Set<ParseIssue> issues;
   final ReceiptDateResult date;
@@ -172,6 +180,7 @@ ReceiptDraft parseReceipt(
       ? footer
       : bands.length;
   final rows = <FinancialRow>[];
+  final rowEvidence = <List<OcrWord>>[];
   final notes = <String>[];
   final wrappedNames = <WrappedNameCandidate>[];
   List<OcrWord>? pendingDescription;
@@ -209,6 +218,7 @@ ReceiptDraft parseReceipt(
           Quantity(value, 6, unit),
           rate,
         );
+        rowEvidence.last.addAll(band);
         if (rows.last.quantityMatches == false)
           issues.add(ParseIssue.quantityMismatch);
       }
@@ -246,6 +256,7 @@ ReceiptDraft parseReceipt(
       issues.add(ParseIssue.discountNeedsReview);
     }
     rows.add(FinancialRow(name: name, cents: cents, kind: kind));
+    rowEvidence.add(List.of(band));
     if (preceding != null &&
         kind == LineKind.product &&
         (preceding.first.box.left - band.first.box.left).abs() <=
@@ -255,9 +266,18 @@ ReceiptDraft parseReceipt(
       wrappedNames.add(
         WrappedNameCandidate(rows.length - 1, '${label(preceding)} $name'),
       );
+      rowEvidence.last.insertAll(0, preceding);
       issues.add(ParseIssue.wrappedNameNeedsReview);
     }
     canAttachQuantity = kind == LineKind.product;
   }
-  return ReceiptDraft(rows, total, issues, notes, date, wrappedNames);
+  return ReceiptDraft(
+    rows,
+    total,
+    issues,
+    notes,
+    date,
+    wrappedNames,
+    rowEvidence: rowEvidence,
+  );
 }

@@ -41,7 +41,7 @@
   "discountSignWarning": "Alennusrivin summan pitää olla negatiivinen. Älä vähennä jo nettohintaan sisältyvää alennusta uudelleen.",
   "reviewConfirmation": "Olen tarkistanut päivämäärän, tuotteet, palautukset, alennukset ja summat kuitista",
   "reviewComplete": "Tarkistus valmis tässä kokeilussa. Tietoja ei ole tallennettu.",
-  "ocrDraftNotice": "Tekstintunnistuksen ehdotus. Vertaa rivejä kuittikuvaan ja korjaa virheet. Tarkistusta ei vielä voi vahvistaa valmiiksi: tulkintaongelmien sekä määrien ja yksikköhintojen käsittely on kesken.",
+  "ocrDraftNotice": "Tekstintunnistuksen ehdotus. Vertaa rivejä kuittikuvaan ja korjaa virheet. Tarkistusta ei vielä voi vahvistaa valmiiksi: yksittäisten tulkintaongelmien ja rivien välisten suhteiden ratkaisu on kesken.",
   "ocrIssuesPresent": "Tulkinnan tarkistuskohtia: {count}. Alkuperäiset huomiot säilyvät korjauksista huolimatta.",
   "@ocrIssuesPresent": {
     "placeholders": {
@@ -60,7 +60,7 @@
   },
   "acceptName": "Käytä nimiehdotusta",
   "keepName": "Säilytä nykyinen nimi",
-  "quantityReviewPending": "Tunnistettuja määriä tai yksikköhintoja ei vielä voi korjata tässä näkymässä. Ne säilyvät alkuperäisessä ehdotuksessa.",
+  "quantityReviewPending": "Tarkista määrät, yksikköhinnat ja niiden kohdistus oikeille tuotteille. Alkuperäinen tulkintahuomio säilyy korjausten jälkeen.",
   "ocrTotalIssue": "Kuitin loppusumma tai sen tunnistus vaatii tarkistuksen.",
   "ocrLayoutIssue": "Rivien kohdistus tai kuvan vinous vaatii tarkistuksen.",
   "ocrDiscountIssue": "Tarkista, sisältyykö alennus jo tuotteen nettohintaan.",
@@ -81,5 +81,18 @@
   "ocrItemTop": "Punainen raja: tuoterivien alku otsikon ja päivämäärän jälkeen",
   "ocrPriceLeft": "Sininen raja: rivisummien sarakkeen vasen reuna",
   "ocrUseLayout": "Muodosta riviehdotus näillä rajoilla",
-  "ocrSourceWords": "Alkuperäiset tunnistetut sanat ja sijainnit"
+  "ocrSourceWords": "Alkuperäiset tunnistetut sanat ja sijainnit",
+  "quantityDetails": "Määrä ja yksikköhinta",
+  "quantityLabel": "Määrä (enintään 6 desimaalia)",
+  "rateLabel": "Yksikköhinta (€/yksikkö, enintään 6 desimaalia)",
+  "unitLabel": "Yksikkö",
+  "unitUnknown": "Ei valittu",
+  "quantityAbsent": "Määrää ja yksikköhintaa ei ole annettu.",
+  "quantityInvalid": "Täytä määrä, yksikkö ja yksikköhinta. Määrä ei saa olla nolla eikä yksikköhinta negatiivinen.",
+  "quantityMatched": "Määrä × yksikköhinta vastaa rivisummaa senttiin pyöristettynä.",
+  "quantityMismatch": "Määrä × yksikköhinta ei vastaa rivisummaa. Tarkista myös mahdollinen alennus. Rivisummaa ei muuteta automaattisesti.",
+  "quantityInvalidSummary": "Tarkista rivien määrät, yksiköt ja yksikköhinnat.",
+  "rowEvidence": "Näytä rivin lähde",
+  "rowEvidenceHint": "Alkuperäiset tähän riviehdotukseen liitetyt sanat. Mukana voi olla ehdotettu jatkorivi. Vertaa myös koko kuittiin; rajaus ei todista tulkintaa oikeaksi.",
+  "closeEvidence": "Sulje"
 }

@@ -243,6 +243,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [ ] Build editable store/date/total/row review with independent validation states.
 - [x] Add a temporary manual review prototype with independent checks, editable signed rows, and explicit no-save messaging. Evaluate the parser against private OCR outputs; [real-layout failures remain open](review-prototype.md).
 - [ ] Support adding, removing, and correcting rows and their relationships.
+- [x] Add immutable row-level OCR evidence with image crops and editable quantities/unit prices with exact independent validation. Individual issue resolution and row relationships remain open.
 - [ ] Save only reviewed, reconciled receipts; verify atomic domain/change-log writes.
 - [ ] Test image cleanup on save, cancel, error, and startup after crashes.
 - [ ] Verify that imported original files remain untouched on both platforms.
