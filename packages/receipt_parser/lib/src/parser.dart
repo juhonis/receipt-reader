@@ -12,6 +12,9 @@ enum ParseIssue {
   quantityMismatch,
   discountNeedsReview,
   wrappedNameNeedsReview,
+  skewAdjusted,
+  totalLabelNeedsReview,
+  normalizedOcrAmount,
 }
 
 class WrappedNameCandidate {
@@ -61,6 +64,7 @@ ReceiptDraft parseReceipt(
     throw ArgumentError('Layout hints outside page');
   }
   final issues = <ParseIssue>{};
+  if (page.baselineSlope.abs() > .005) issues.add(ParseIssue.skewAdjusted);
   if (page.words.any(
     (w) =>
         (w.box.top < itemTop && w.box.bottom > itemTop) ||
@@ -73,7 +77,7 @@ ReceiptDraft parseReceipt(
   final bands = <List<OcrWord>>[];
   final ordered = page.words.toList()
     ..sort((a, b) {
-      final y = a.box.centerY.compareTo(b.box.centerY);
+      final y = page.baselineY(a).compareTo(page.baselineY(b));
       return y != 0 ? y : a.box.left.compareTo(b.box.left);
     });
   for (final word in ordered) {
@@ -82,7 +86,8 @@ ReceiptDraft parseReceipt(
       final tolerance =
           (anchor.height < word.box.height ? anchor.height : word.box.height) *
           .45;
-      return (anchor.centerY - word.box.centerY).abs() <= tolerance;
+      return (page.baselineY(band.first) - page.baselineY(word)).abs() <=
+          tolerance;
     }).toList();
     if (matches.length > 1) issues.add(ParseIssue.ambiguousGeometry);
     if (matches.isEmpty) {
@@ -103,11 +108,32 @@ ReceiptDraft parseReceipt(
       .map((w) => w.text)
       .join(' ')
       .trim();
-  String price(List<OcrWord> band) => band
-      .where((w) => w.box.left >= priceColumnLeft)
-      .map((w) => w.text)
-      .join('')
-      .trim();
+  String price(List<OcrWord> band) {
+    final tokens = band.where((w) => w.box.left >= priceColumnLeft).toList();
+    for (var i = 1; i < tokens.length; i++) {
+      if (tokens[i].box.left - tokens[i - 1].box.right > tokens[i].box.height ||
+          (RegExp(r'[0-9]$').hasMatch(tokens[i - 1].text.trim()) &&
+              RegExp(r'^[0-9]').hasMatch(tokens[i].text.trim()))) {
+        return tokens
+            .map((w) => w.text)
+            .join(' | '); // Never fuse separate amounts.
+      }
+    }
+    return tokens.map((w) => w.text).join('').trim();
+  }
+
+  BigInt? amount(String text) {
+    final strict = parseCents(text);
+    if (strict != null) return strict;
+    // Only whitespace directly beside a decimal separator is recoverable.
+    final normalized = text
+        .replaceAll(RegExp(r'(?<=[,.])\s+(?=[0-9])'), '')
+        .replaceAll(RegExp(r'(?<=[0-9])\s+(?=[,.])'), '');
+    final parsed = parseCents(normalized);
+    if (parsed != null) issues.add(ParseIssue.normalizedOcrAmount);
+    return parsed;
+  }
+
   final date = findReceiptDate(
     bands
         .where((b) => b.every((w) => w.box.bottom <= itemTop))
@@ -115,12 +141,14 @@ ReceiptDraft parseReceipt(
   );
   bands.removeWhere((b) => b.any((w) => w.box.top < itemTop));
   final totals = bands
-      .where((b) => label(b).toUpperCase() == 'YHTEENSÄ')
+      .where(
+        (b) => RegExp(r'^YHTEENS[ÄAĂÀÁÂÃÅ]$').hasMatch(label(b).toUpperCase()),
+      )
       .toList();
   // VAT and payment sections are never scanned for purchased items.
   final footer = bands.indexWhere(
     (b) => RegExp(
-      r'^(ALV|VEROTON|VISA|MASTERCARD|KÄTEINEN|MAKSETTU|PANKKIKORTTI|VAIHTORAHA)(?:\s|$)',
+      r'^(ALV|VEROTON|VISA|MASTERCARD|KÄTEINEN|MAKSETTU|PANKKIKORTTI|VAIHTORAHA|BONUSTA|JÄSENNUMERO|TID)(?:\s|:|$)',
     ).hasMatch(label(b).toUpperCase()),
   );
   final candidates = totals
@@ -132,7 +160,10 @@ ReceiptDraft parseReceipt(
   } else if (candidates.length > 1) {
     issues.add(ParseIssue.ambiguousTotal);
   } else {
-    total = parseCents(price(candidates.single));
+    total = amount(price(candidates.single));
+    if (label(candidates.single).toUpperCase() != 'YHTEENSÄ') {
+      issues.add(ParseIssue.totalLabelNeedsReview);
+    }
     if (total == null) issues.add(ParseIssue.invalidAmount);
   }
   final end = candidates.isNotEmpty
@@ -190,8 +221,8 @@ ReceiptDraft parseReceipt(
       issues.add(ParseIssue.discountNeedsReview);
       continue;
     }
-    final amount = parseCents(amountText);
-    if (name.isEmpty || amount == null) {
+    final cents = amount(amountText);
+    if (name.isEmpty || cents == null) {
       notes.add(fullText);
       issues.add(
         amountText.isNotEmpty
@@ -211,10 +242,10 @@ ReceiptDraft parseReceipt(
         : RegExp(r'^(ALENNUS|ALE)(?:\s|$)').hasMatch(upper)
         ? LineKind.discount
         : LineKind.product;
-    if (kind == LineKind.discount && !amount.isNegative) {
+    if (kind == LineKind.discount && !cents.isNegative) {
       issues.add(ParseIssue.discountNeedsReview);
     }
-    rows.add(FinancialRow(name: name, cents: amount, kind: kind));
+    rows.add(FinancialRow(name: name, cents: cents, kind: kind));
     if (preceding != null &&
         kind == LineKind.product &&
         (preceding.first.box.left - band.first.box.left).abs() <=

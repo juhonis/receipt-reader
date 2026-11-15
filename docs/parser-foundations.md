@@ -31,8 +31,17 @@ names, and geometry; no private OCR exports were copied into fixtures.
 `OcrPage.fromJson` consumes the OCR spike's version 1 word geometry contract.
 Coordinates belong to the supplied upright image, including a preprocessed
 variant if applicable. Pixel boxes must be finite, positive, and in bounds.
-Engine block/line order is ignored. The parser sorts word centers by height,
-groups nearby baselines, then orders each band from left to right. Its tolerance
+Engine block/line order does not define financial rows. Engine lines provide
+local skew evidence: endpoint word centers must span more than 10% of image
+width, with slope magnitude at most 0.15. At least five estimates are required;
+their median is accepted only when the median absolute deviation is at most
+0.025. Otherwise the parser uses zero slope. This is a conservative global
+approximation, not perspective or fold correction.
+
+The parser groups by projected baseline height (`centerY - slope * centeredX`),
+then orders each band from left to right. Original pixel boxes are untouched;
+the private evaluation records `baselineSlope`. Adjustments above 0.005 magnitude
+raise `skewAdjusted` for review. Grouping tolerance
 is 45% of the smaller word height; overlapping words are flagged. This heuristic
 is an initial single-column layout implementation, not a general layout solver.
 
@@ -54,6 +63,15 @@ Supported candidates:
 - A unique `YHTEENSÄ` before recognized payment/VAT boundaries as the total.
   Later payment and VAT amounts do not become item rows. Competing totals before
   the boundary remain ambiguous, even if one would make arithmetic match.
+- Exact whole-label variants `YHTEENSA` and `YHTEENS` followed by an A with
+  breve/acute/grave/circumflex/tilde/ring are candidates with
+  `totalLabelNeedsReview`. No general fuzzy matching or product-name rewriting
+  is applied. Footer boundaries also recognize bonus/member/payment identifiers
+  (`BONUSTA`, `JÄSENNUMERO`, `TID`) so their amounts cannot become purchases.
+- OCR-only whitespace directly beside a decimal comma/point can be removed,
+  with `normalizedOcrAmount` recorded. Manual input remains strict. Adjacent
+  digit runs in separate tokens and price tokens separated by more than a word
+  height are not fused into a fabricated amount. Letters are never replaced.
 - `NORM.`, `NORMAALIHINTA`, and `KAMPANJA` explanations retained as notes,
   excluded from the financial sum, and always flagged for discount review.
   Their semantic relationship is not automatically confirmed.

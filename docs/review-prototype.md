@@ -72,9 +72,30 @@ skew between description and price columns that exceeds the current horizontal
 band heuristic; OCR also splits decimal tokens and misreads total-label diacritics.
 Consequently some totals remain missing and footer material can reach unclassified
 notes. A manually supplied price boundary can also split long descriptions.
-The current synthetic fixture success does not demonstrate real-photo readiness.
+That initial synthetic fixture success did not demonstrate real-photo readiness.
+
+### Skew and total-label follow-up
+
+A subsequent run uses median local text-line slope to group words in projected
+baseline coordinates, without modifying source boxes. It also accepts a limited
+set of total-label diacritic variants and decimal-adjacent OCR whitespace, always
+with review issues. Bonus/member/payment footer boundaries stop item parsing.
+See [the algorithm and thresholds](parser-foundations.md).
+
+With the same expectations and layout hints, the follow-up recognizes the printed
+total in every existing baseline case. Some complete posted-amount sequences now
+match, while other cases retain missing/corrupted rows and fail reconciliation.
+Product names, quantities, and discount associations are still not fully verified.
+A global slope cannot handle all folds or local perspective variation, and the
+three-photo corpus is not grounds for a final engine choice.
+
+Synthetic regressions cover skew in both directions, missing prices, sparse and
+inconsistent slope evidence, total aliases versus product names, competing totals,
+footer exclusion, and unsafe token merging. The report retains slope diagnostics;
+all real inputs, reports, and expectations remain private.
 
 Do not wire these drafts directly into an approved save workflow. Next work is
-geometry-aware skew handling with synthetic regressions, guarded total candidates,
-and better section detection, followed by local reevaluation using unchanged
-expectations. Retain uncertainty instead of choosing rows merely to match a total.
+better section/column detection and local geometric ambiguity handling, followed
+by review controls for OCR proposals. Retain uncertainty instead of choosing rows
+merely to match a total. More varied receipt photos will be useful before engine
+selection, but are not required to implement these deterministic safeguards.

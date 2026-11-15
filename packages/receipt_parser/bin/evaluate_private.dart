@@ -29,8 +29,9 @@ void main(List<String> args) {
       if (json['inputSha256'] != hint['inputSha256']) {
         throw StateError('Layout hints belong to a different image');
       }
+      final page = OcrPage.fromJson(json);
       final draft = parseReceipt(
-        OcrPage.fromJson(json),
+        page,
         itemTop: (hint['itemTop'] as num).toDouble(),
         priceColumnLeft: (hint['priceColumnLeft'] as num).toDouble(),
       );
@@ -45,6 +46,7 @@ void main(List<String> args) {
         'engine': engine,
         'inputSha256': json['inputSha256'],
         'layoutHints': hint,
+        'baselineSlope': page.baselineSlope,
         'postedAmountsMatchInOrder':
             jsonEncode(actualAmounts) == jsonEncode(wantedAmounts),
         'printedTotalMatches':
