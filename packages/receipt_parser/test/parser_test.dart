@@ -123,7 +123,9 @@ void main() {
       expect(result.rows[2].kind, LineKind.deposit);
       expect(result.rows.last.kind, LineKind.discount);
       expect(result.totals.state, TotalState.matched);
-      expect(result.issues, isEmpty);
+      expect(result.issues, {ParseIssue.discountNeedsReview});
+      expect(result.findings.single.discountKind, DiscountFindingKind.postedDiscount);
+      expect(result.findings.single.rowIndex, 5);
       expect(result.requiresReview, isTrue);
     },
   );

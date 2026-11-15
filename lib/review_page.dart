@@ -6,6 +6,8 @@ import 'package:receipt_parser/receipt_parser.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'receipt_import.dart';
 import 'receipt_ocr.dart';
+import 'receipt_evidence_painter.dart';
+import 'relationship_dialog.dart';
 
 class ReviewPage extends StatefulWidget {
   const ReviewPage({super.key, this.draft, this.evidence, this.recognizer});
@@ -50,7 +52,76 @@ class _ReviewPageState extends State<ReviewPage> {
   final _handledNames = <int>{};
   final _resolvedFindings = <int>{};
   final _findingNotes = <int, String>{};
+  final _relationships = <int, RelationshipDecision>{};
   List<ParseFinding> _findings = [];
+
+  bool _isRelationship(ParseFinding finding) =>
+      finding.issue == ParseIssue.quantityWithoutProduct ||
+      finding.discountKind != null;
+
+  _RowFields? _relationshipTarget(RelationshipDecision decision) {
+    for (final row in _rows) {
+      if (identical(row, decision.target)) return row;
+    }
+    return null;
+  }
+
+  List<OcrWord> _rowEvidence(_RowFields row) => [
+    ...row.evidence,
+    for (final entry in _relationships.entries)
+      if (identical(entry.value.target, row)) ..._findings[entry.key].words,
+  ];
+
+  Future<void> _reviewRelationship(int index) async {
+    final finding = _findings[index];
+    final decision = await showDialog<RelationshipDecision>(
+      context: context,
+      builder: (_) => RelationshipDialog(
+        finding: finding,
+        image: widget.evidence?.image,
+        source: _findingRow(finding)?.input,
+        targets: [
+          for (var i = 0; i < _rows.length; i++)
+            if (_rows[i].kind == LineKind.product)
+              RelationshipTarget(_rows[i], _rows[i].input, i + 1),
+        ],
+        initial: _relationships[index],
+        previousTargetInput: _relationships[index] == null
+            ? null
+            : _relationshipTarget(_relationships[index]!)?.input,
+        occupiedQuantityTargets: {
+          for (final entry in _relationships.entries)
+            if (entry.key != index &&
+                entry.value.kind == ReviewRelationshipKind.quantity &&
+                entry.value.target != null)
+              entry.value.target!,
+        },
+      ),
+    );
+    if (!mounted || decision == null) return;
+    final target = _relationshipTarget(decision);
+    if (decision.kind == ReviewRelationshipKind.quantity && target == null) {
+      return;
+    }
+    setState(() {
+      if (decision.kind == ReviewRelationshipKind.quantity) {
+        if (target!.quantity.text != decision.quantity ||
+            target.rate.text != decision.rate ||
+            target.unit != decision.unit) {
+          _resolvedFindings.clear();
+        }
+        target.quantity.text = decision.quantity;
+        target.rate.text = decision.rate;
+        target.unit = decision.unit;
+      }
+      // Keep original rows/evidence intact; links are separate temporary state.
+      _relationships[index] = decision;
+      _findingNotes[index] = decision.note;
+      _resolvedFindings.add(index);
+      _reviewed = false;
+      _edited = true;
+    });
+  }
 
   _RowFields? _findingRow(ParseFinding finding) {
     final index = finding.rowIndex;
@@ -72,6 +143,10 @@ class _ReviewPageState extends State<ReviewPage> {
 
   Future<void> _reviewFinding(int index, String message) async {
     final finding = _findings[index];
+    if (_isRelationship(finding)) {
+      await _reviewRelationship(index);
+      return;
+    }
     final note = await showDialog<String>(
       context: context,
       builder: (_) => _FindingDialog(
@@ -221,7 +296,7 @@ class _ReviewPageState extends State<ReviewPage> {
   });
 
   void _showEvidence(_RowFields row) {
-    final words = row.evidence;
+    final words = _rowEvidence(row);
     final s = AppLocalizations.of(context)!;
     showDialog<void>(
       context: context,
@@ -240,7 +315,10 @@ class _ReviewPageState extends State<ReviewPage> {
                     width: 600,
                     child: CustomPaint(
                       key: const Key('row-evidence-crop'),
-                      painter: _EvidenceCrop(widget.evidence!.image, words),
+                      painter: ReceiptEvidencePainter(
+                        widget.evidence!.image,
+                        words,
+                      ),
                     ),
                   ),
                 SelectableText(words.map((word) => word.text).join(' ')),
@@ -268,7 +346,7 @@ class _ReviewPageState extends State<ReviewPage> {
       branchConfirmed: _branchConfirmed,
       reviewed: _reviewed,
       // OCR completion stays gated until evidence-based issue resolution and
-      // row relationships are implemented. Manual review remains available.
+      // all issue types and evidence coverage are implemented.
       hasUnresolvedParserIssues: _draft != null || _ocr != null,
       rows: [for (final row in _rows) row.input],
     );
@@ -292,10 +370,11 @@ class _ReviewPageState extends State<ReviewPage> {
     final wide = MediaQuery.sizeOf(context).width >= 1000;
     Widget preview() => Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Text(s.imageEvidenceHint),
-        ),
+        if (wide)
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(s.imageEvidenceHint),
+          ),
         Expanded(
           child: InteractiveViewer(
             minScale: 1,
@@ -350,8 +429,10 @@ class _ReviewPageState extends State<ReviewPage> {
                     padding: const EdgeInsets.all(20),
                     children: [
                       Text(s.reviewNotice),
-                      if (widget.evidence != null && !wide)
+                      if (widget.evidence != null && !wide) ...[
+                        Text(s.imageEvidenceHint),
                         SizedBox(height: 360, child: preview()),
+                      ],
                       if (widget.evidence != null &&
                           (supportsReceiptOcr ||
                               widget.recognizer != null)) ...[
@@ -442,6 +523,26 @@ class _ReviewPageState extends State<ReviewPage> {
                                   ),
                                   if (_findingNotes[f] != null)
                                     Text(_findingNotes[f]!),
+                                  if (_relationships[f]
+                                      case final relation?) ...[
+                                    Text(switch (relation.kind) {
+                                      ReviewRelationshipKind.quantity =>
+                                        s.linkQuantityTitle,
+                                      ReviewRelationshipKind.explanatoryPrice =>
+                                        s.relationshipExplanatory,
+                                      ReviewRelationshipKind.productDiscount =>
+                                        s.relationshipProduct,
+                                      ReviewRelationshipKind.receiptDiscount =>
+                                        s.relationshipReceipt,
+                                    }),
+                                    if (relation.target != null)
+                                      Text(
+                                        _relationshipTarget(relation)
+                                                ?.name
+                                                .text ??
+                                            s.findingRowRemoved,
+                                      ),
+                                  ],
                                   TextButton(
                                     key: ValueKey('finding-$f'),
                                     onPressed: () => _reviewFinding(
@@ -644,7 +745,7 @@ class _ReviewPageState extends State<ReviewPage> {
                                     }),
                                   ],
                                 ),
-                                if (_rows[i].evidence.isNotEmpty)
+                                if (_rowEvidence(_rows[i]).isNotEmpty)
                                   OutlinedButton(
                                     key: ValueKey('row-evidence-$i'),
                                     onPressed: () => _showEvidence(_rows[i]),
@@ -673,6 +774,7 @@ class _ReviewPageState extends State<ReviewPage> {
                                 Align(
                                   alignment: Alignment.centerRight,
                                   child: TextButton.icon(
+                                    key: ValueKey('remove-row-$i'),
                                     onPressed: () {
                                       final removed = _rows.removeAt(i);
                                       _edit();
@@ -761,40 +863,6 @@ class _ReviewPageState extends State<ReviewPage> {
   }
 }
 
-class _EvidenceCrop extends CustomPainter {
-  _EvidenceCrop(this.image, this.words);
-  final ui.Image image;
-  final List<OcrWord> words;
-  @override
-  void paint(Canvas canvas, Size size) {
-    var left = words.first.box.left, top = words.first.box.top;
-    var right = words.first.box.right, bottom = words.first.box.bottom;
-    for (final word in words.skip(1)) {
-      if (word.box.left < left) left = word.box.left;
-      if (word.box.top < top) top = word.box.top;
-      if (word.box.right > right) right = word.box.right;
-      if (word.box.bottom > bottom) bottom = word.box.bottom;
-    }
-    final source = Rect.fromLTRB(
-      (left - 12).clamp(0, image.width).toDouble(),
-      (top - 12).clamp(0, image.height).toDouble(),
-      (right + 12).clamp(0, image.width).toDouble(),
-      (bottom + 12).clamp(0, image.height).toDouble(),
-    );
-    if (source.isEmpty) return;
-    final fitted = applyBoxFit(BoxFit.contain, source.size, size);
-    final destination = Alignment.center.inscribe(
-      fitted.destination,
-      Offset.zero & size,
-    );
-    canvas.drawImageRect(image, source, destination, Paint());
-  }
-
-  @override
-  bool shouldRepaint(_EvidenceCrop oldDelegate) =>
-      image != oldDelegate.image || words != oldDelegate.words;
-}
-
 class _FindingDialog extends StatefulWidget {
   const _FindingDialog({
     required this.finding,
@@ -836,7 +904,10 @@ class _FindingDialogState extends State<_FindingDialog> {
                   height: 220,
                   width: 600,
                   child: CustomPaint(
-                    painter: _EvidenceCrop(widget.image!, widget.finding.words),
+                    painter: ReceiptEvidencePainter(
+                      widget.image!,
+                      widget.finding.words,
+                    ),
                   ),
                 ),
               SelectableText(widget.finding.words.map((w) => w.text).join(' ')),

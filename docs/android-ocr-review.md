@@ -101,15 +101,78 @@ Handling a finding does not change financial values or erase original evidence.
 
 Data edits reopen all handled findings conservatively, retaining their notes for
 rechecking. Deleted-row findings cannot be reassigned accidentally to the next
-row. Unsupported findings stay open: layout ambiguity/skew, orphan quantities,
-discount relationships, unclassified/invalid rows, and normalized total amounts
+row. Unsupported findings stay open: layout ambiguity/skew,
+unclassified/invalid rows, and normalized total amounts
 without a row association. Older manually constructed drafts without occurrence
 details retain category-level warnings and cannot invent missing row links.
 
 OCR completion and persistence remain disabled even if every currently supported
-finding has been handled. Next work is explicit orphan/discount relationships and
-the remaining issue types, followed by full evidence-coverage validation.
+finding has been handled. Orphan/discount relationships are described below;
+remaining issue types and full evidence-coverage validation are still open.
 
 Verification: 44 parser tests and 18 Flutter tests cover repeated occurrences,
 immutable source evidence, resolution prerequisites, independent handling, and
 reopening after edits. Android/Windows debug builds and analyzers pass.
+
+## Quantity and discount relationships
+
+Orphan quantity findings now retain any strictly parsed quantity/rate candidate
+alongside their original words. **Tarkista tämä huomio** opens a relationship
+dialog. Select a product using its current row number, name, and amount, then
+check or correct the quantity, rate, and unit against the image. No target is
+selected from geometry or matching arithmetic. Confirmation requires valid
+quantity arithmetic, an image comparison, and a written explanation. It copies
+the confirmed quantity fields to that product and leaves its posted cents alone.
+
+Replacing existing quantity fields requires a separate explicit checkbox. Cancel
+discards all dialog changes. A second orphan quantity line cannot be assigned to
+a product already claimed by another orphan line. To move an established link,
+first clear the old product's quantity, rate, and unit (or remove that product),
+then select and confirm the new target. Ordinary row edits reopen the review;
+rechecking an existing link starts from the product's current quantity fields.
+
+Every recognized ALE/ALENNUS financial row now has a discount relationship
+finding, including correctly negative amounts. Choose a product-specific or
+receipt-wide discount. The financial source must still exist as a named discount
+row with a strictly negative amount; deleting it or changing its type/sign leaves
+the finding unresolved. Scope does not allocate receipt-wide discounts to products
+or change any row amount.
+
+NORM/NORMAALIHINTA/KAMPANJA text remains explanatory rather than another financial
+contribution. It can be explicitly linked to a product after image comparison,
+without subtracting an amount again. The dialog does not convert explanatory text
+into a financial row or a posted discount into a non-financial note. If the parser
+chose the wrong interpretation, keep the finding open and correct the rows; that
+conversion workflow remains pending.
+
+Links refer to stable row objects during the temporary review. Removing another
+row changes the displayed position without changing the target. Removing a target
+or source reopens review and cannot silently attach the finding to another row.
+Source words from linked findings are available through the target's row-evidence
+view, including when the link needs rechecking. Original drafts remain immutable.
+Relationship decisions and notes are discarded when the review is closed.
+
+Quantity transfers that change fields reopen previously handled findings.
+Confirming metadata-only relationships or rechecking unchanged quantity fields
+does not reopen unrelated findings. All decisions reset final review confirmation.
+
+Quantity mismatches caused by discounted prices still need explicit validation
+rules; a discount link alone does not waive the quantity check. Legacy findings
+without typed discount evidence remain unresolved. Manually entered discount
+rows do not yet have the full relationship workflow. OCR completion and saving
+remain disabled while these and the remaining issue types are implemented.
+
+Verification for this step: 48 parser tests, 23 Flutter tests, clean analyzers,
+and Android/Windows debug builds. UI checks cover cancel/replace behavior,
+conflicting quantity ownership, deleted targets, independent discount handling,
+positive-discount rejection, missing-image rejection, and a 320 px screen with
+doubled text size. The enlarged-text check also fixed overflow of the receipt
+preview hint and relationship unit control.
+
+Offline emulator smoke (upgrade install, synthetic receipt only): recognized an
+orphan `2 kpl 1,00 EUR/kpl` line, a MILK row at 2,00, NORM. text at 2,50, an ALE
+row at -0,50, and a total of 1,50. Explicitly attached the quantity and explanatory
+price to MILK, then marked ALE as receipt-wide; all three finding cards showed
+handled while MILK remained 2,00 and the receipt total remained 1,50. Restored the
+emulator's original network setting. Fresh-install certification and native
+Windows picker interaction remain pending.

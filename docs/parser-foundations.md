@@ -177,6 +177,10 @@ candidates, and refusal to guess beyond the timezone database's usable range.
 
 Private OCR evaluation now documents real-layout failures in the
 [review prototype findings](review-prototype.md). Next, improve skew/section
-handling and build explicit review corrections for OCR proposals and discount relationships. Engine
-packaging and clean-machine tests remain separate
-requirements before connecting OCR to the shared review workflow.
+handling and remaining review corrections. The shared temporary review now
+supports [individual findings and quantity/discount relationships](android-ocr-review.md).
+Orphan findings preserve a typed quantity/rate candidate when the strict parser
+can produce one; mismatched units or excessive precision do not create a candidate.
+All recognized financial discount rows require an explicit relationship review,
+including negative discounts. Explanatory price text remains excluded from sums.
+Engine packaging and clean-machine tests remain separate release requirements.

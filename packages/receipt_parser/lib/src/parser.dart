@@ -23,14 +23,29 @@ class WrappedNameCandidate {
   final String proposedName;
 }
 
+enum DiscountFindingKind { explanatoryPrice, postedDiscount }
+
+class QuantityRateCandidate {
+  const QuantityRateCandidate(this.quantity, this.rateMicros);
+  final Quantity quantity;
+  final BigInt rateMicros;
+}
+
 /// One occurrence, rather than a deduplicated category. Indices refer to the
 /// immutable draft rows, never the current position in an edited row list.
 class ParseFinding {
-  ParseFinding(this.issue, {this.rowIndex, Iterable<OcrWord> words = const []})
-    : words = List.unmodifiable(words);
+  ParseFinding(
+    this.issue, {
+    this.rowIndex,
+    Iterable<OcrWord> words = const [],
+    this.quantityCandidate,
+    this.discountKind,
+  }) : words = List.unmodifiable(words);
   final ParseIssue issue;
   final int? rowIndex;
   final List<OcrWord> words;
+  final QuantityRateCandidate? quantityCandidate;
+  final DiscountFindingKind? discountKind;
 }
 
 class ReceiptDraft {
@@ -88,9 +103,21 @@ ReceiptDraft parseReceipt(
   final findings = <ParseFinding>[];
   Iterable<OcrWord> activeWords = const [];
   int? activeRow;
-  void report(ParseIssue issue) {
+  void report(
+    ParseIssue issue, {
+    QuantityRateCandidate? quantityCandidate,
+    DiscountFindingKind? discountKind,
+  }) {
     issues.add(issue);
-    findings.add(ParseFinding(issue, rowIndex: activeRow, words: activeWords));
+    findings.add(
+      ParseFinding(
+        issue,
+        rowIndex: activeRow,
+        words: activeWords,
+        quantityCandidate: quantityCandidate,
+        discountKind: discountKind,
+      ),
+    );
   }
 
   if (page.baselineSlope.abs() > .005) report(ParseIssue.skewAdjusted);
@@ -226,20 +253,26 @@ ReceiptDraft parseReceipt(
     if (quantity != null) {
       final value = parseFixed(quantity[1]!, 6);
       final rate = parseFixed(quantity[3]!, 6);
+      final unit = switch (quantity[2]!.toLowerCase()) {
+        'kg' => QuantityUnit.kg,
+        'kpl' => QuantityUnit.piece,
+        'l' => QuantityUnit.litre,
+        _ => QuantityUnit.unknown,
+      };
+      final candidate =
+          value != null &&
+              rate != null &&
+              quantity[2]!.toLowerCase() == quantity[4]!.toLowerCase()
+          ? QuantityRateCandidate(Quantity(value, 6, unit), rate)
+          : null;
       if (!canAttachQuantity ||
           rows.isEmpty ||
           value == null ||
           rate == null ||
           quantity[2]!.toLowerCase() != quantity[4]!.toLowerCase()) {
-        report(ParseIssue.quantityWithoutProduct);
+        report(ParseIssue.quantityWithoutProduct, quantityCandidate: candidate);
         notes.add(fullText);
       } else {
-        final unit = switch (quantity[2]!.toLowerCase()) {
-          'kg' => QuantityUnit.kg,
-          'kpl' => QuantityUnit.piece,
-          'l' => QuantityUnit.litre,
-          _ => QuantityUnit.unknown,
-        };
         rows[rows.length - 1] = rows.last.withQuantity(
           Quantity(value, 6, unit),
           rate,
@@ -256,7 +289,10 @@ ReceiptDraft parseReceipt(
     canAttachQuantity = false;
     if (RegExp(r'^(NORM\.?|NORMAALIHINTA|KAMPANJA)(?:\s|$)').hasMatch(upper)) {
       notes.add(fullText);
-      report(ParseIssue.discountNeedsReview);
+      report(
+        ParseIssue.discountNeedsReview,
+        discountKind: DiscountFindingKind.explanatoryPrice,
+      );
       continue;
     }
     // A valid posted row will use this index; malformed/unclassified bands
@@ -284,8 +320,11 @@ ReceiptDraft parseReceipt(
         : RegExp(r'^(ALENNUS|ALE)(?:\s|$)').hasMatch(upper)
         ? LineKind.discount
         : LineKind.product;
-    if (kind == LineKind.discount && !cents.isNegative) {
-      report(ParseIssue.discountNeedsReview);
+    if (kind == LineKind.discount) {
+      report(
+        ParseIssue.discountNeedsReview,
+        discountKind: DiscountFindingKind.postedDiscount,
+      );
     }
     rows.add(FinancialRow(name: name, cents: cents, kind: kind));
     rowEvidence.add(List.of(band));
