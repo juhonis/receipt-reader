@@ -6,7 +6,7 @@ printed total, and signed financial rows. Add/remove rows and select product,
 discount, deposit/return, or explicitly identified adjustment. All amounts use
 the pure Dart parser's integer-cent rules.
 
-This screen has **no image import, OCR population, database save, or history**.
+The home-screen workflow has **no image import, database save, or history**.
 It starts empty and holds input only in widget/controller memory. Returning to
 the home screen discards it. The screen explains this before data entry and its
 completion message explicitly says nothing was saved. It is not a backup or
@@ -30,8 +30,7 @@ durable draft. Process termination also loses the session.
 
 `ReviewValidation.complete` means only that this manual prototype's checks pass.
 It is not permission for a persistence layer to save. The validator can also
-block on unresolved parser issues, but this screen currently takes manual input
-only. Quantity/rate editing, wrapped-name proposal acceptance, discount-parent
+block on unresolved parser issues. Quantity/rate editing, discount-parent
 relationships, OCR-side evidence, and full persistence invariants remain open.
 
 Widget tests exercise correction resetting review, ephemeral route lifecycle,
@@ -99,3 +98,31 @@ better section/column detection and local geometric ambiguity handling, followed
 by review controls for OCR proposals. Retain uncertainty instead of choosing rows
 merely to match a total. More varied receipt photos will be useful before engine
 selection, but are not required to implement these deterministic safeguards.
+
+### Layout proposals and OCR-seeded review
+
+The private evaluator now records `automaticLayout` separately from the existing
+manual-hint results. The conservative detector can propose boundaries when its
+anchors agree, but abstains on most current baseline outputs due to split totals,
+insufficient aligned amount words, or ambiguous geometry. Expectations are unchanged.
+This is optional assistance, not general automatic receipt segmentation.
+
+`ReviewPage(draft: ...)` now seeds names, signed amounts, row types, date and total
+from an immutable parser draft. It shows original notes and Finnish issue messages.
+Wrapped-name proposals have explicit accept/keep controls. Acceptance changes
+only the name, preserves the amount, and resets review confirmation. Proposals
+refer to original row objects so deleting another row cannot redirect acceptance.
+Source quantities/rates remain in the original draft and cannot yet be edited.
+The current suite passes 38 Dart tests and five widget tests, including draft
+initialization, explicit name acceptance, and the OCR completion gate.
+
+Every OCR-seeded session remains blocked from completion, including drafts whose
+arithmetic matches. This intentional gate remains until image evidence, complete
+issue resolution, and quantity/rate editing exist. There is no blanket “accept all
+issues” action. Manual sessions still work as before. The home screen still opens
+only manual entry; the draft constructor is an integration point exercised with
+synthetic widget tests, not a new image import feature or embedded private sample.
+
+Next work is temporary image import with receipt evidence beside editable rows,
+followed by explicit correction and issue-resolution controls. Production OCR
+engine packaging, clean-machine verification, and persistence remain open.

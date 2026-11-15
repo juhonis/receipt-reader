@@ -39,6 +39,14 @@ void main(List<String> args) {
       final wantedAmounts = (sample['lineAmountsCents'] as List<dynamic>)
           .map((n) => n.toString())
           .toList();
+      final layout = proposeLayout(page);
+      final automatic = layout.available
+          ? parseReceipt(
+              page,
+              itemTop: layout.itemTop!,
+              priceColumnLeft: layout.priceColumnLeft!,
+            )
+          : null;
       final date = draft.date.printed;
       final wantedDate = parseReceiptDate(sample['date'] as String).printed!;
       reports.add({
@@ -47,6 +55,24 @@ void main(List<String> args) {
         'inputSha256': json['inputSha256'],
         'layoutHints': hint,
         'baselineSlope': page.baselineSlope,
+        'automaticLayout': {
+          'available': layout.available,
+          'itemTop': layout.itemTop,
+          'priceColumnLeft': layout.priceColumnLeft,
+          'issues': layout.issues.map((i) => i.name).toList(),
+          'postedAmountsMatchInOrder': automatic == null
+              ? null
+              : jsonEncode(
+                      automatic.rows.map((r) => r.cents.toString()).toList(),
+                    ) ==
+                    jsonEncode(wantedAmounts),
+          'printedTotalMatches': automatic == null
+              ? null
+              : automatic.printedTotal?.toString() ==
+                    sample['totalCents'].toString(),
+          'parserIssues': automatic?.issues.map((i) => i.name).toList(),
+          'notes': automatic?.notes,
+        },
         'postedAmountsMatchInOrder':
             jsonEncode(actualAmounts) == jsonEncode(wantedAmounts),
         'printedTotalMatches':

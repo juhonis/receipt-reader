@@ -4,7 +4,8 @@ import 'package:receipt_parser/receipt_parser.dart';
 import 'l10n/generated/app_localizations.dart';
 
 class ReviewPage extends StatefulWidget {
-  const ReviewPage({super.key});
+  const ReviewPage({super.key, this.draft});
+  final ReceiptDraft? draft;
   @override
   State<ReviewPage> createState() => _ReviewPageState();
 }
@@ -26,6 +27,37 @@ class _ReviewPageState extends State<ReviewPage> {
   final _rows = [_RowFields()];
   bool _branchConfirmed = false;
   bool _reviewed = false;
+  final _handledNames = <int>{};
+  late final List<_RowFields> _sourceRows;
+
+  @override
+  void initState() {
+    super.initState();
+    final draft = widget.draft;
+    if (draft != null) {
+      _rows.single.dispose();
+      _rows.clear();
+      for (final row in draft.rows) {
+        _rows.add(
+          _RowFields()
+            ..name.text = row.name
+            ..amount.text = formatCents(row.cents)
+            ..kind = row.kind,
+        );
+      }
+      _total.text = draft.printedTotal == null
+          ? ''
+          : formatCents(draft.printedTotal!);
+      final date = draft.date.printed;
+      if (date != null) {
+        _date.text =
+            '${date.day}.${date.month}.${date.year}'
+            '${date.hour == null ? '' : ' ${date.hour!.toString().padLeft(2, '0')}:${date.minute!.toString().padLeft(2, '0')}'}'
+            '${date.second == null ? '' : ':${date.second!.toString().padLeft(2, '0')}'}';
+      }
+    }
+    _sourceRows = List.of(_rows);
+  }
 
   @override
   void dispose() {
@@ -51,6 +83,9 @@ class _ReviewPageState extends State<ReviewPage> {
       totalText: _total.text,
       branchConfirmed: _branchConfirmed,
       reviewed: _reviewed,
+      // OCR completion stays gated until evidence-based issue resolution and
+      // quantity/rate editing are implemented. Manual review remains available.
+      hasUnresolvedParserIssues: widget.draft != null,
       rows: [
         for (final row in _rows)
           ReviewRowInput(row.name.text, row.amount.text, row.kind),
@@ -62,6 +97,17 @@ class _ReviewPageState extends State<ReviewPage> {
       LineKind.deposit: s.depositKind,
       LineKind.adjustment: s.adjustmentKind,
     };
+    String issueText(ParseIssue issue) => switch (issue) {
+      ParseIssue.missingTotal ||
+      ParseIssue.ambiguousTotal ||
+      ParseIssue.totalLabelNeedsReview => s.ocrTotalIssue,
+      ParseIssue.ambiguousGeometry ||
+      ParseIssue.skewAdjusted => s.ocrLayoutIssue,
+      ParseIssue.quantityWithoutProduct ||
+      ParseIssue.quantityMismatch => s.quantityReviewPending,
+      ParseIssue.discountNeedsReview => s.ocrDiscountIssue,
+      _ => s.ocrRowIssue,
+    };
     return Scaffold(
       appBar: AppBar(title: Text(s.reviewTitle)),
       body: SafeArea(
@@ -72,6 +118,58 @@ class _ReviewPageState extends State<ReviewPage> {
               padding: const EdgeInsets.all(20),
               children: [
                 Text(s.reviewNotice),
+                if (widget.draft case final draft?) ...[
+                  const SizedBox(height: 16),
+                  Text(s.ocrDraftNotice, key: const Key('ocr-draft-blocked')),
+                  Text(s.ocrIssuesPresent(draft.issues.length)),
+                  for (final message in draft.issues.map(issueText).toSet())
+                    Text(message),
+                  for (final note in draft.notes) Text(note),
+                  for (var n = 0; n < draft.wrappedNames.length; n++)
+                    if (!_handledNames.contains(n) &&
+                        draft.wrappedNames[n].rowIndex >= 0 &&
+                        draft.wrappedNames[n].rowIndex < _sourceRows.length &&
+                        _rows.contains(
+                          _sourceRows[draft.wrappedNames[n].rowIndex],
+                        ))
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                s.proposedName(
+                                  draft.wrappedNames[n].proposedName,
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  _sourceRows[draft.wrappedNames[n].rowIndex]
+                                          .name
+                                          .text =
+                                      draft.wrappedNames[n].proposedName;
+                                  _handledNames.add(n);
+                                  _edit();
+                                },
+                                child: Text(s.acceptName),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  _handledNames.add(n);
+                                  _edit();
+                                },
+                                child: Text(s.keepName),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  if (draft.rows.any(
+                    (r) => r.quantity != null || r.rateMicros != null,
+                  ))
+                    Text(s.quantityReviewPending),
+                ],
                 const SizedBox(height: 16),
                 TextField(
                   key: const Key('branch'),

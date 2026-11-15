@@ -6,7 +6,8 @@ native OCR or database dependency and performs no network requests. Its pinned
 `timezone` 0.11.2 dependency supplies bundled IANA 2026e timezone data; the
 parser imports the local database, not the package's loading APIs. The main app
 now uses its financial/date rules in a [manual review prototype](review-prototype.md),
-but OCR drafts are not yet connected to the UI. All committed test inputs are invented, including prices,
+and a draft can seed its gated OCR review view; image import remains unimplemented.
+All committed test inputs are invented, including prices,
 names, and geometry; no private OCR exports were copied into fixtures.
 
 ## Numeric rules
@@ -45,12 +46,31 @@ raise `skewAdjusted` for review. Grouping tolerance
 is 45% of the smaller word height; overlapping words are flagged. This heuristic
 is an initial single-column layout implementation, not a general layout solver.
 
-The caller must supply an item-section top and price-column left edge in that
-image's pixels. These are explicit layout hints. Automatic section detection,
-and store/branch recognition are not implemented. Header date candidates are
+`parseReceipt` takes an item-section top and price-column left edge in that
+image's pixels. These can remain explicit layout hints or come from the optional
+`proposeLayout` detector described below. Store/branch recognition is not
+implemented. Header date candidates are
 described below. A price
 column boundary cutting through a word or a badly skewed image can produce
 unclassified rows; tune neither hints nor expected outputs to hide failures.
+
+### Conservative layout proposals
+
+`proposeLayout` requires a unique whole-word total label before recognized footer
+markers, exactly one amount to its right on the projected baseline, a unique
+reconstructed header date, and at least two earlier amount words aligned with
+the total's right edge (within one total-word height). It rejects additional
+decimal columns and ambiguous baseline grouping. It currently requires each
+amount to be represented by one OCR word; split amounts can cause abstention.
+No sum or expected financial value is used to choose a layout.
+
+The proposed item section starts after the complete date baseline, rather than
+at the first recognized amount. Unpriced descriptions and intervening header
+material remain available for review. The price boundary is slightly left of
+the leftmost aligned amount, including the total. A proposal still requires
+review; unavailable proposals return explicit layout issues and null boundaries.
+This does not solve multi-column receipts, strong perspective variation, or
+long/incomplete captures. Explicit hints remain supported for development.
 
 Supported candidates:
 
