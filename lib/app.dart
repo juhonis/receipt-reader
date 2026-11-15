@@ -6,9 +6,11 @@ import 'package:material_ui/material_ui.dart';
 
 import 'l10n/generated/app_localizations.dart';
 import 'review_page.dart';
+import 'receipt_import.dart';
 
 class ReceiptReaderApp extends StatelessWidget {
-  const ReceiptReaderApp({super.key});
+  const ReceiptReaderApp({super.key, this.imagePicker = pickReceiptImage});
+  final Future<ReceiptEvidence?> Function() imagePicker;
 
   @override
   Widget build(BuildContext context) {
@@ -27,13 +29,65 @@ class ReceiptReaderApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
       ),
-      home: const _HomePage(),
+      home: _HomePage(imagePicker: imagePicker),
     );
   }
 }
 
-class _HomePage extends StatelessWidget {
-  const _HomePage();
+class _HomePage extends StatefulWidget {
+  const _HomePage({required this.imagePicker});
+  final Future<ReceiptEvidence?> Function() imagePicker;
+  @override
+  State<_HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<_HomePage> {
+  bool _importing = false;
+  ImportFailure? _failure;
+
+  Future<void> _import() async {
+    if (_importing) return;
+    setState(() {
+      _importing = true;
+      _failure = null;
+    });
+    try {
+      final evidence = await widget.imagePicker();
+      if (!mounted) {
+        evidence?.dispose();
+        return;
+      }
+      if (evidence != null) {
+        try {
+          await Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => ReviewPage(evidence: evidence),
+            ),
+          );
+        } finally {
+          evidence.dispose();
+        }
+      }
+    } on ReceiptImportException catch (error) {
+      if (mounted) {
+        setState(() {
+          _failure = error.failure;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _failure = ImportFailure.unreadable;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _importing = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +113,20 @@ class _HomePage extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text(strings.developmentNotice, textAlign: TextAlign.center),
                   const SizedBox(height: 20),
+                  FilledButton.icon(
+                    onPressed: _importing ? null : _import,
+                    icon: const Icon(Icons.image_outlined),
+                    label: Text(
+                      _importing ? strings.importLoading : strings.importImage,
+                    ),
+                  ),
+                  if (_failure != null)
+                    Text(switch (_failure!) {
+                      ImportFailure.tooLarge => strings.importTooLarge,
+                      ImportFailure.unsupported => strings.importUnsupported,
+                      ImportFailure.unreadable => strings.importUnreadable,
+                    }),
+                  const SizedBox(height: 12),
                   FilledButton(
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(

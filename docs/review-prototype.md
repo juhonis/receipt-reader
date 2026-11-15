@@ -6,8 +6,10 @@ printed total, and signed financial rows. Add/remove rows and select product,
 discount, deposit/return, or explicitly identified adjustment. All amounts use
 the pure Dart parser's integer-cent rules.
 
-The home-screen workflow has **no image import, database save, or history**.
-It starts empty and holds input only in widget/controller memory. Returning to
+The home-screen workflow now supports [temporary image import](image-import.md),
+but has **no OCR execution, database save, or history**. Manual entry starts empty;
+imported images provide visual evidence without populating fields. Input stays
+only in widget/controller memory. Returning to
 the home screen discards it. The screen explains this before data entry and its
 completion message explicitly says nothing was saved. It is not a backup or
 durable draft. Process termination also loses the session.
@@ -120,9 +122,9 @@ Every OCR-seeded session remains blocked from completion, including drafts whose
 arithmetic matches. This intentional gate remains until image evidence, complete
 issue resolution, and quantity/rate editing exist. There is no blanket “accept all
 issues” action. Manual sessions still work as before. The home screen still opens
-only manual entry; the draft constructor is an integration point exercised with
+manual entry or temporary image evidence; the draft constructor is an integration point exercised with
 synthetic widget tests, not a new image import feature or embedded private sample.
 
-Next work is temporary image import with receipt evidence beside editable rows,
-followed by explicit correction and issue-resolution controls. Production OCR
+Temporary image import now provides receipt evidence beside editable rows.
+Next work is explicit correction and issue-resolution controls plus OCR integration. Production OCR
 engine packaging, clean-machine verification, and persistence remain open.

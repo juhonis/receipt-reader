@@ -2,10 +2,10 @@
   "@@locale": "fi",
   "appTitle": "Kuittiseuranta",
   "welcomeTitle": "Kuitit ja ostokset yhdessä paikassa",
-  "developmentNotice": "Sovellus on kehitysvaiheessa. Kuittien tuonti ja tallennus eivät ole vielä käytettävissä.",
+  "developmentNotice": "Voit avata kuittikuvan ja kirjoittaa tiedot käsin. Automaattinen tekstintunnistus ja tallennus eivät ole vielä käytettävissä.",
   "startReview": "Kokeile kuitin tarkistusta",
   "reviewTitle": "Kuitin tarkistus",
-  "reviewNotice": "Kirjoita kokeilutiedot käsin. Tietoja ei tallenneta, ja ne poistuvat, kun palaat takaisin. Kuvan tuonti ei ole vielä käytettävissä.",
+  "reviewNotice": "Kirjoita tiedot käsin ja tarkista ne kuitista. Tietoja tai avattua kuvaa ei tallenneta sovellukseen. Ne poistuvat tästä näkymästä, kun palaat takaisin. Alkuperäinen kuvatiedosto säilyy.",
   "branchLabel": "Myymälä ja toimipiste",
   "branchConfirmation": "Olen tarkistanut myymälän toimipisteen",
   "dateLabel": "Kuitin päivämäärä ja mahdollinen kellonaika",
@@ -46,5 +46,11 @@
   "ocrTotalIssue": "Kuitin loppusumma tai sen tunnistus vaatii tarkistuksen.",
   "ocrLayoutIssue": "Rivien kohdistus tai kuvan vinous vaatii tarkistuksen.",
   "ocrDiscountIssue": "Tarkista, sisältyykö alennus jo tuotteen nettohintaan.",
-  "ocrRowIssue": "Tarkista puuttuvat, yhdistetyt tai korjatut rivit ja numerot alkuperäisestä kuitista."
+  "ocrRowIssue": "Tarkista puuttuvat, yhdistetyt tai korjatut rivit ja numerot alkuperäisestä kuitista.",
+  "importImage": "Avaa kuittikuva",
+  "importLoading": "Avataan kuvaa…",
+  "importTooLarge": "Kuva on liian suuri. Enimmäiskoko on 20 Mt ja 24 megapikseliä, pisin sivu 12 000 pikseliä.",
+  "importUnsupported": "Valitse yksi tavallinen JPEG- tai PNG-kuva. Animoituja kuvia ei tueta.",
+  "importUnreadable": "Kuvaa ei voitu avata. Valitse ehjä, paikallisesti saatavilla oleva JPEG- tai PNG-tiedosto.",
+  "imageEvidenceHint": "Vertaa tietoja kuittiin. Voit suurentaa ja siirtää kuvaa. Tarkista, että koko kuitti näkyy."
 }

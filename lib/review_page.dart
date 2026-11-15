@@ -2,10 +2,12 @@ import 'package:material_ui/material_ui.dart';
 import 'package:receipt_parser/receipt_parser.dart';
 
 import 'l10n/generated/app_localizations.dart';
+import 'receipt_import.dart';
 
 class ReviewPage extends StatefulWidget {
-  const ReviewPage({super.key, this.draft});
+  const ReviewPage({super.key, this.draft, this.evidence});
   final ReceiptDraft? draft;
+  final ReceiptEvidence? evidence;
   @override
   State<ReviewPage> createState() => _ReviewPageState();
 }
@@ -61,6 +63,7 @@ class _ReviewPageState extends State<ReviewPage> {
 
   @override
   void dispose() {
+    widget.evidence?.dispose();
     _branch.dispose();
     _date.dispose();
     _total.dispose();
@@ -108,236 +111,284 @@ class _ReviewPageState extends State<ReviewPage> {
       ParseIssue.discountNeedsReview => s.ocrDiscountIssue,
       _ => s.ocrRowIssue,
     };
+    final wide = MediaQuery.sizeOf(context).width >= 1000;
+    Widget preview() => Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text(s.imageEvidenceHint),
+        ),
+        Expanded(
+          child: InteractiveViewer(
+            minScale: 1,
+            maxScale: 8,
+            child: SizedBox.expand(
+              child: RawImage(
+                key: const Key('receipt-evidence'),
+                image: widget.evidence!.image,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
     return Scaffold(
       appBar: AppBar(title: Text(s.reviewTitle)),
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 760),
-            child: ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                Text(s.reviewNotice),
-                if (widget.draft case final draft?) ...[
-                  const SizedBox(height: 16),
-                  Text(s.ocrDraftNotice, key: const Key('ocr-draft-blocked')),
-                  Text(s.ocrIssuesPresent(draft.issues.length)),
-                  for (final message in draft.issues.map(issueText).toSet())
-                    Text(message),
-                  for (final note in draft.notes) Text(note),
-                  for (var n = 0; n < draft.wrappedNames.length; n++)
-                    if (!_handledNames.contains(n) &&
-                        draft.wrappedNames[n].rowIndex >= 0 &&
-                        draft.wrappedNames[n].rowIndex < _sourceRows.length &&
-                        _rows.contains(
-                          _sourceRows[draft.wrappedNames[n].rowIndex],
+        child: Row(
+          children: [
+            if (wide && widget.evidence != null) Expanded(child: preview()),
+            Expanded(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 760),
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      Text(s.reviewNotice),
+                      if (widget.evidence != null && !wide)
+                        SizedBox(height: 360, child: preview()),
+                      if (widget.draft case final draft?) ...[
+                        const SizedBox(height: 16),
+                        Text(
+                          s.ocrDraftNotice,
+                          key: const Key('ocr-draft-blocked'),
+                        ),
+                        Text(s.ocrIssuesPresent(draft.issues.length)),
+                        for (final message
+                            in draft.issues.map(issueText).toSet())
+                          Text(message),
+                        for (final note in draft.notes) Text(note),
+                        for (var n = 0; n < draft.wrappedNames.length; n++)
+                          if (!_handledNames.contains(n) &&
+                              draft.wrappedNames[n].rowIndex >= 0 &&
+                              draft.wrappedNames[n].rowIndex <
+                                  _sourceRows.length &&
+                              _rows.contains(
+                                _sourceRows[draft.wrappedNames[n].rowIndex],
+                              ))
+                            Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Text(
+                                      s.proposedName(
+                                        draft.wrappedNames[n].proposedName,
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        _sourceRows[draft
+                                                    .wrappedNames[n]
+                                                    .rowIndex]
+                                                .name
+                                                .text =
+                                            draft.wrappedNames[n].proposedName;
+                                        _handledNames.add(n);
+                                        _edit();
+                                      },
+                                      child: Text(s.acceptName),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        _handledNames.add(n);
+                                        _edit();
+                                      },
+                                      child: Text(s.keepName),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        if (draft.rows.any(
+                          (r) => r.quantity != null || r.rateMicros != null,
                         ))
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                s.proposedName(
-                                  draft.wrappedNames[n].proposedName,
+                          Text(s.quantityReviewPending),
+                      ],
+                      const SizedBox(height: 16),
+                      TextField(
+                        key: const Key('branch'),
+                        controller: _branch,
+                        decoration: InputDecoration(labelText: s.branchLabel),
+                        onChanged: (_) {
+                          _branchConfirmed = false;
+                          _edit();
+                        },
+                      ),
+                      CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(s.branchConfirmation),
+                        value: _branchConfirmed,
+                        onChanged: (value) => setState(() {
+                          _branchConfirmed = value ?? false;
+                          _reviewed = false;
+                        }),
+                      ),
+                      TextField(
+                        key: const Key('date'),
+                        controller: _date,
+                        decoration: InputDecoration(
+                          labelText: s.dateLabel,
+                          hintText: s.dateHint,
+                        ),
+                        onChanged: _edit,
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        key: const Key('total'),
+                        controller: _total,
+                        decoration: InputDecoration(
+                          labelText: s.totalLabel,
+                          hintText: '0,00',
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                          signed: true,
+                        ),
+                        onChanged: _edit,
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        s.rowsHeading,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      for (var i = 0; i < _rows.length; i++)
+                        Card(
+                          key: ObjectKey(_rows[i]),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                TextField(
+                                  key: ValueKey('row-name-$i'),
+                                  controller: _rows[i].name,
+                                  decoration: InputDecoration(
+                                    labelText: s.rowNameLabel,
+                                  ),
+                                  onChanged: _edit,
                                 ),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  _sourceRows[draft.wrappedNames[n].rowIndex]
-                                          .name
-                                          .text =
-                                      draft.wrappedNames[n].proposedName;
-                                  _handledNames.add(n);
-                                  _edit();
-                                },
-                                child: Text(s.acceptName),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  _handledNames.add(n);
-                                  _edit();
-                                },
-                                child: Text(s.keepName),
-                              ),
-                            ],
+                                TextField(
+                                  key: ValueKey('row-amount-$i'),
+                                  controller: _rows[i].amount,
+                                  decoration: InputDecoration(
+                                    labelText: s.rowAmountLabel,
+                                    hintText: '0,00',
+                                  ),
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                        signed: true,
+                                      ),
+                                  onChanged: _edit,
+                                ),
+                                DropdownButtonFormField<LineKind>(
+                                  initialValue: _rows[i].kind,
+                                  decoration: InputDecoration(
+                                    labelText: s.rowKindLabel,
+                                  ),
+                                  isExpanded: true,
+                                  items: [
+                                    for (final kind in kinds.entries)
+                                      DropdownMenuItem(
+                                        value: kind.key,
+                                        child: Text(kind.value),
+                                      ),
+                                  ],
+                                  onChanged: (kind) {
+                                    if (kind != null) {
+                                      _rows[i].kind = kind;
+                                      _edit();
+                                    }
+                                  },
+                                ),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton.icon(
+                                    onPressed: () {
+                                      final removed = _rows.removeAt(i);
+                                      _edit();
+                                      // Wait until its text fields have detached their listeners.
+                                      WidgetsBinding.instance
+                                          .addPostFrameCallback(
+                                            (_) => removed.dispose(),
+                                          );
+                                    },
+                                    icon: const Icon(Icons.delete_outline),
+                                    label: Text(s.removeRow),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          _rows.add(_RowFields());
+                          _edit();
+                        },
+                        icon: const Icon(Icons.add),
+                        label: Text(s.addRow),
                       ),
-                  if (draft.rows.any(
-                    (r) => r.quantity != null || r.rateMicros != null,
-                  ))
-                    Text(s.quantityReviewPending),
-                ],
-                const SizedBox(height: 16),
-                TextField(
-                  key: const Key('branch'),
-                  controller: _branch,
-                  decoration: InputDecoration(labelText: s.branchLabel),
-                  onChanged: (_) {
-                    _branchConfirmed = false;
-                    _edit();
-                  },
-                ),
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(s.branchConfirmation),
-                  value: _branchConfirmed,
-                  onChanged: (value) => setState(() {
-                    _branchConfirmed = value ?? false;
-                    _reviewed = false;
-                  }),
-                ),
-                TextField(
-                  key: const Key('date'),
-                  controller: _date,
-                  decoration: InputDecoration(
-                    labelText: s.dateLabel,
-                    hintText: s.dateHint,
-                  ),
-                  onChanged: _edit,
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  key: const Key('total'),
-                  controller: _total,
-                  decoration: InputDecoration(
-                    labelText: s.totalLabel,
-                    hintText: '0,00',
-                  ),
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                    signed: true,
-                  ),
-                  onChanged: _edit,
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  s.rowsHeading,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                for (var i = 0; i < _rows.length; i++)
-                  Card(
-                    key: ObjectKey(_rows[i]),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          TextField(
-                            key: ValueKey('row-name-$i'),
-                            controller: _rows[i].name,
-                            decoration: InputDecoration(
-                              labelText: s.rowNameLabel,
-                            ),
-                            onChanged: _edit,
-                          ),
-                          TextField(
-                            key: ValueKey('row-amount-$i'),
-                            controller: _rows[i].amount,
-                            decoration: InputDecoration(
-                              labelText: s.rowAmountLabel,
-                              hintText: '0,00',
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                              signed: true,
-                            ),
-                            onChanged: _edit,
-                          ),
-                          DropdownButtonFormField<LineKind>(
-                            initialValue: _rows[i].kind,
-                            decoration: InputDecoration(
-                              labelText: s.rowKindLabel,
-                            ),
-                            isExpanded: true,
-                            items: [
-                              for (final kind in kinds.entries)
-                                DropdownMenuItem(
-                                  value: kind.key,
-                                  child: Text(kind.value),
-                                ),
-                            ],
-                            onChanged: (kind) {
-                              if (kind != null) {
-                                _rows[i].kind = kind;
-                                _edit();
-                              }
-                            },
-                          ),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton.icon(
-                              onPressed: () {
-                                final removed = _rows.removeAt(i);
-                                _edit();
-                                // Wait until its text fields have detached their listeners.
-                                WidgetsBinding.instance.addPostFrameCallback(
-                                  (_) => removed.dispose(),
-                                );
-                              },
-                              icon: const Icon(Icons.delete_outline),
-                              label: Text(s.removeRow),
-                            ),
-                          ),
-                        ],
+                      const SizedBox(height: 16),
+                      Text(
+                        s.validationHeading,
+                        style: Theme.of(context).textTheme.titleLarge,
                       ),
-                    ),
-                  ),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    _rows.add(_RowFields());
-                    _edit();
-                  },
-                  icon: const Icon(Icons.add),
-                  label: Text(s.addRow),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  s.validationHeading,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                Text(
-                  validation.branchValid ? s.branchReady : s.branchNeedsReview,
-                ),
-                Text(
-                  validation.date.state == ReceiptDateState.valid
-                      ? s.dateReady
-                      : s.dateNeedsReview,
-                ),
-                if (validation.date.state == ReceiptDateState.ambiguous ||
-                    validation.date.state == ReceiptDateState.nonexistent ||
-                    validation.date.state ==
-                        ReceiptDateState.unsupportedTimezone)
-                  Text(s.timeNeedsReview),
-                Text(
-                  !validation.rowsValid
-                      ? s.rowsIncomplete
-                      : validation.totalsValid
-                      ? s.totalsMatch
-                      : validation.total == null
-                      ? s.totalMissing
-                      : s.totalsDifference(
-                          formatCents(validation.totals.difference!),
+                      Text(
+                        validation.branchValid
+                            ? s.branchReady
+                            : s.branchNeedsReview,
+                      ),
+                      Text(
+                        validation.date.state == ReceiptDateState.valid
+                            ? s.dateReady
+                            : s.dateNeedsReview,
+                      ),
+                      if (validation.date.state == ReceiptDateState.ambiguous ||
+                          validation.date.state ==
+                              ReceiptDateState.nonexistent ||
+                          validation.date.state ==
+                              ReceiptDateState.unsupportedTimezone)
+                        Text(s.timeNeedsReview),
+                      Text(
+                        !validation.rowsValid
+                            ? s.rowsIncomplete
+                            : validation.totalsValid
+                            ? s.totalsMatch
+                            : validation.total == null
+                            ? s.totalMissing
+                            : s.totalsDifference(
+                                formatCents(validation.totals.difference!),
+                              ),
+                      ),
+                      if (validation.positiveDiscount)
+                        Text(s.discountSignWarning),
+                      CheckboxListTile(
+                        key: const Key('review-confirmation'),
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(s.reviewConfirmation),
+                        value: _reviewed,
+                        onChanged: (value) => setState(() {
+                          _reviewed = value ?? false;
+                        }),
+                      ),
+                      if (validation.complete)
+                        Text(
+                          s.reviewComplete,
+                          key: const Key('review-complete'),
                         ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
-                if (validation.positiveDiscount) Text(s.discountSignWarning),
-                CheckboxListTile(
-                  key: const Key('review-confirmation'),
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(s.reviewConfirmation),
-                  value: _reviewed,
-                  onChanged: (value) => setState(() {
-                    _reviewed = value ?? false;
-                  }),
-                ),
-                if (validation.complete)
-                  Text(s.reviewComplete, key: const Key('review-complete')),
-                const SizedBox(height: 16),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

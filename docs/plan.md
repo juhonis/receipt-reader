@@ -238,6 +238,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [ ] Configure Drift, foreign keys, transactions, migration tests, and change logging.
 - [ ] Implement camera guidance and clear warnings for incomplete/long receipts.
 - [ ] Implement JPEG/PNG selection and offline OCR on both platforms using the normalized OCR interface.
+- [x] Add bounded, temporary JPEG/PNG import and zoomable receipt evidence on Android/Windows; originals remain read-only. See [image import](image-import.md). OCR integration and saving remain open.
 - [ ] Build editable store/date/total/row review with independent validation states.
 - [x] Add a temporary manual review prototype with independent checks, editable signed rows, and explicit no-save messaging. Evaluate the parser against private OCR outputs; [real-layout failures remain open](review-prototype.md).
 - [ ] Support adding, removing, and correcting rows and their relationships.
