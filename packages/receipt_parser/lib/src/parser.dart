@@ -16,6 +16,8 @@ enum ParseIssue {
   totalLabelNeedsReview,
   normalizedOcrAmount,
   unassignedSource,
+  geometrySource,
+  removedSource,
 }
 
 class WrappedNameCandidate {
@@ -33,6 +35,14 @@ class QuantityRateCandidate {
 }
 
 enum FindingScope { receipt, item, total }
+
+enum GeometryFindingKind {
+  sectionBoundary,
+  priceBoundary,
+  ambiguousBand,
+  wordOverlap,
+  skew,
+}
 
 class ReceiptParseContext {
   const ReceiptParseContext(this.page, this.itemTop, this.priceColumnLeft);
@@ -71,6 +81,7 @@ class ParseFinding {
     this.quantityCandidate,
     this.discountKind,
     this.scope = FindingScope.receipt,
+    this.geometryKind,
   }) : words = List.unmodifiable(words);
   final ParseIssue issue;
   final int? rowIndex;
@@ -78,6 +89,7 @@ class ParseFinding {
   final QuantityRateCandidate? quantityCandidate;
   final DiscountFindingKind? discountKind;
   final FindingScope scope;
+  final GeometryFindingKind? geometryKind;
 }
 
 class ReceiptDraft {
@@ -144,6 +156,7 @@ ReceiptDraft parseReceipt(
     ParseIssue issue, {
     QuantityRateCandidate? quantityCandidate,
     DiscountFindingKind? discountKind,
+    GeometryFindingKind? geometryKind,
   }) {
     issues.add(issue);
     findings.add(
@@ -154,26 +167,32 @@ ReceiptDraft parseReceipt(
         quantityCandidate: quantityCandidate,
         discountKind: discountKind,
         scope: activeScope,
+        geometryKind: geometryKind,
       ),
     );
   }
 
   if (page.baselineSlope.abs() > .005) {
     activeWords = page.words;
-    report(ParseIssue.skewAdjusted);
+    report(ParseIssue.skewAdjusted, geometryKind: GeometryFindingKind.skew);
   }
-  final boundaryWords = page.words
-      .where(
-        (w) =>
-            (w.box.top < itemTop && w.box.bottom > itemTop) ||
-            (w.box.top >= itemTop &&
-                w.box.left < priceColumnLeft &&
-                w.box.right > priceColumnLeft),
-      )
-      .toList();
-  if (boundaryWords.isNotEmpty) {
-    activeWords = boundaryWords;
-    report(ParseIssue.ambiguousGeometry);
+  for (final kind in [
+    GeometryFindingKind.sectionBoundary,
+    GeometryFindingKind.priceBoundary,
+  ]) {
+    final words = page.words
+        .where(
+          (w) => kind == GeometryFindingKind.sectionBoundary
+              ? w.box.top < itemTop && w.box.bottom > itemTop
+              : w.box.top >= itemTop &&
+                    w.box.left < priceColumnLeft &&
+                    w.box.right > priceColumnLeft,
+        )
+        .toList();
+    if (words.isNotEmpty) {
+      activeWords = words;
+      report(ParseIssue.ambiguousGeometry, geometryKind: kind);
+    }
   }
   final bands = <List<OcrWord>>[];
   final ordered = page.words.toList()
@@ -193,7 +212,10 @@ ReceiptDraft parseReceipt(
     }).toList();
     if (matches.length > 1) {
       activeWords = [word, ...matches.expand((band) => band)];
-      report(ParseIssue.ambiguousGeometry);
+      report(
+        ParseIssue.ambiguousGeometry,
+        geometryKind: GeometryFindingKind.ambiguousBand,
+      );
     }
     if (matches.isEmpty) {
       bands.add([word]);
@@ -206,7 +228,10 @@ ReceiptDraft parseReceipt(
     band.sort((a, b) => a.box.left.compareTo(b.box.left));
     for (var i = 1; i < band.length; i++) {
       if (band[i].box.left < band[i - 1].box.right)
-        report(ParseIssue.ambiguousGeometry);
+        report(
+          ParseIssue.ambiguousGeometry,
+          geometryKind: GeometryFindingKind.wordOverlap,
+        );
     }
   }
   String label(List<OcrWord> band) => band

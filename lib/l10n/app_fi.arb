@@ -41,7 +41,7 @@
   "discountSignWarning": "Alennusrivin summan pitää olla negatiivinen. Älä vähennä jo nettohintaan sisältyvää alennusta uudelleen.",
   "reviewConfirmation": "Olen tarkistanut päivämäärän, tuotteet, palautukset, alennukset ja summat kuitista",
   "reviewComplete": "Tarkistus valmis tässä kokeilussa. Tietoja ei ole tallennettu.",
-  "ocrDraftNotice": "Tekstintunnistuksen ehdotus. Vertaa rivejä kuittikuvaan ja korjaa virheet. Tarkistusta ei vielä voi vahvistaa valmiiksi: yksittäisten tulkintaongelmien ja rivien välisten suhteiden ratkaisu on kesken.",
+  "ocrDraftNotice": "Tekstintunnistuksen ehdotus. Vertaa rivejä kuittikuvaan ja korjaa virheet. Valmistuminen edellyttää kaikkien tuettujen tulkintahuomioiden, rivien ja koko kuittikuvan tarkistusta sekä täsmääviä summia. Tietoja ei tallenneta.",
   "ocrIssuesPresent": "Tulkinnan tarkistuskohtia: {count}. Alkuperäiset huomiot säilyvät korjauksista huolimatta.",
   "@ocrIssuesPresent": {
     "placeholders": {
@@ -157,5 +157,28 @@
   "layoutOpenFresh": "Avaa uusi tarkistus",
   "rowImageProgress": "Kuittikuvaan verrattuja rivejä: {checked}/{total}.",
   "@rowImageProgress": {"placeholders": {"checked": {"type": "int"}, "total": {"type": "int"}}},
-  "rowImageCompared": "Vertasin tämän rivin nimen, summan, tyypin ja mahdolliset määrätiedot kuittikuvaan"
+  "rowImageCompared": "Vertasin tämän rivin nimen, summan, tyypin ja mahdolliset määrätiedot kuittikuvaan",
+  "unparsedDuplicate": "Saman tiedon ylimääräinen OCR-tunnistus",
+  "pageEvidenceTitle": "Tarkista koko kuitin aineisto",
+  "pageEvidenceHint": "Vertaa koko kuittikuvaa yllä oleviin tietoihin ja riveihin. Vahvistus koskee juuri näitä tietoja ja kohdistuksia. Myöhemmät muutokset avaavat tarkistuksen uudelleen. Tämä tarkistus ei korvaa summien täsmäytystä.",
+  "pageEvidenceNeedsRows": "Täytä kelvolliset tiedot ja vertaa jokainen rivi kuittikuvaan.",
+  "pageHeaderCompared": "Tarkistin toimipisteen, päivämäärän, mahdollisen kellonajan ja painetun loppusumman kuvasta",
+  "pageFooterCompared": "Tarkistin, ettei maksu-, vaihto- tai verotietoja ole laskettu ostoksiksi",
+  "pageLayoutCompared": "Tarkistin alueiden rajat ja että kaikki raharivit ovat mukana kerran oikeine kuvauksineen ja määrätietoineen",
+  "pageImageComplete": "Kuvassa on koko kuitti ensimmäisestä rivistä loppuun; tietoja ei jää kuvan ulkopuolelle",
+  "pageEvidenceConfirm": "Vahvista aineiston tarkistus",
+  "pageEvidenceReady": "Koko kuitin aineisto on tarkistettu nykyisillä tiedoilla.",
+  "geometryEvidenceTitle": "Käsittele kohdistushuomio",
+  "geometryEvidenceHint": "Tarkista oranssien sanojen kohdistus, rivijaot ja mahdollinen vinouden korjaus koko kuittikuvasta. Päällekkäisten tai useaan riviin sopivien sanojen merkitys käsitellään erillisissä sanakohtaisissa huomioissa. Alueiden rajavirheet korjataan uudessa asettelutulkinnassa.",
+  "geometryNeedsEvidence": "Käsittele ensin kaikki sanakohtaiset ja muut tulkintahuomiot, tarkista rivit ja koko kuitin aineisto. Rajavirheitä ja puutteellisia vanhoja huomioita ei voi kuitata tästä.",
+  "geometryCompared": "Varmistin kuvasta, että korjatut rivit ja käsiteltyjen sanojen merkitykset ratkaisevat tämän kohdistus- tai vinoushuomion",
+  "evidenceAuditTitle": "OCR-aineiston tarkistuksen tila",
+  "evidenceAuditReady": "Aineiston tarkistus valmis — täsmäytä summat ja vahvista lopullinen tarkistus.",
+  "auditSourceContext": "Alkuperäinen OCR-konteksti, lähdeaineisto tai vastaava kuittikuva puuttuu tai on ristiriitainen.",
+  "auditPageReview": "Koko kuitin aineiston tarkistus on tekemättä tai tiedot ovat muuttuneet.",
+  "auditOriginalRows": "Poistetun alkuperäisen rivin lähdesanat vaativat erillisen perustellun käsittelyn.",
+  "auditOriginalQuantities": "Alkuperäisen rivin määrätietoja puuttuu tai ne eivät täsmää.",
+  "auditOpenFindings": "Avoimia tai nykyisillä tiedoilla kelpaamattomia tulkintahuomioita on jäljellä.",
+  "auditOmissions": "Käsittelyn ulkopuolisia sanoja on vielä tarkistamatta.",
+  "auditDiscountRelationships": "Alennusrivin kohdistus puuttuu tai ei ole kelvollinen. Käsin lisättyjen alennusten kohdistus on vielä kesken."
 }

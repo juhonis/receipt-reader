@@ -49,7 +49,8 @@ class _RowEvidenceDialogState extends State<RowEvidenceDialog> {
 
   bool get _needsTarget =>
       _kind == RowEvidenceKind.financialRow ||
-      _kind == RowEvidenceKind.description;
+      _kind == RowEvidenceKind.description ||
+      _kind == RowEvidenceKind.duplicateOcr;
 
   @override
   void initState() {
@@ -290,4 +291,5 @@ String rowEvidenceKindLabel(AppLocalizations s, RowEvidenceKind kind) =>
       RowEvidenceKind.headerMetadata => s.unparsedMetadata,
       RowEvidenceKind.paymentOrTax => s.unparsedPayment,
       RowEvidenceKind.explanatoryText => s.unparsedExplanatory,
+      RowEvidenceKind.duplicateOcr => s.unparsedDuplicate,
     };

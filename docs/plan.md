@@ -248,6 +248,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Add explicit orphan-quantity attachment and product/receipt-wide discount relationships with evidence-backed confirmation, overwrite protection, stable row targets, and non-financial explanatory price links. Remaining finding types and full evidence coverage still block OCR completion and saving.
 - [x] Add scoped item/total findings, explicit correction/classification of unparsed item text, and a structural source-word coverage inventory that exposes parser omissions. Geometry review, full human evidence review, and OCR completion remain open.
 - [x] Retain layout context and geometry source words, add image overlays and safe re-parsing into a separate temporary review, expose omissions as individual review items, and track per-row image comparison. Overlap/skew resolution and final OCR approval remain open.
+- [x] Add typed overlap/band/skew evidence decisions and a shared final evidence audit with stale-approval rejection, whole-page review, source/quantity preservation, and supported no-save OCR completion. Boundary repair, unsupported conversions, Windows OCR, and persistence still require work.
 - [ ] Save only reviewed, reconciled receipts; verify atomic domain/change-log writes.
 - [ ] Test image cleanup on save, cancel, error, and startup after crashes.
 - [ ] Verify that imported original files remain untouched on both platforms.

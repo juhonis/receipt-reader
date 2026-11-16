@@ -10,6 +10,7 @@ import 'receipt_evidence_painter.dart';
 import 'relationship_dialog.dart';
 import 'row_evidence_dialog.dart';
 import 'layout_review_dialog.dart';
+import 'page_evidence_dialog.dart';
 
 class ReviewPage extends StatefulWidget {
   const ReviewPage({super.key, this.draft, this.evidence, this.recognizer});
@@ -58,6 +59,123 @@ class _ReviewPageState extends State<ReviewPage> {
   final _relationships = <int, RelationshipDecision>{};
   final _rowDecisions = <int, RowEvidenceDecision>{};
   List<ParseFinding> _findings = [];
+  PageEvidenceApproval? _pageApproval;
+  final _geometryApprovals = <int, OcrReviewSnapshot>{};
+
+  OcrReviewSnapshot get _snapshot => OcrReviewSnapshot(
+    _draft!,
+    _branch.text,
+    _date.text,
+    _total.text,
+    _branchConfirmed,
+    [
+      for (final row in _rows)
+        OcrReviewRow(row, row.input, row.imageCompared, _rowEvidence(row)),
+    ],
+  );
+
+  OcrEvidenceAudit? get _evidenceAudit => _draft == null
+      ? null
+      : OcrEvidenceAudit(
+          snapshot: _snapshot,
+          findings: _findings,
+          originalRowIds: _sourceRows,
+          imageMatchesSource: _hasLayoutContext,
+          pageApproval: _pageApproval,
+          decisions: {
+            for (final index in _resolvedFindings)
+              index: FindingEvidenceDecision(
+                note: _findingNotes[index] ?? '',
+                compared: true,
+                rowKind: _rowDecisions[index]?.kind,
+                relationshipKind: _relationships[index]?.kind,
+                target:
+                    _rowDecisions[index]?.target ??
+                    _relationships[index]?.target,
+                nameHandled: _draft!.wrappedNames.asMap().entries.any(
+                  (entry) =>
+                      entry.value.rowIndex == _findings[index].rowIndex &&
+                      _handledNames.contains(entry.key),
+                ),
+                geometrySnapshot: _geometryApprovals[index],
+              ),
+          },
+        );
+
+  void _invalidatePageEvidence() {
+    _pageApproval = null;
+    _geometryApprovals.clear();
+    _resolvedFindings.removeWhere(
+      (index) => isGeometryFinding(_findings[index]),
+    );
+  }
+
+  Future<void> _reviewPageEvidence() async {
+    if (!_hasLayoutContext) return;
+    final approval = await showDialog<PageEvidenceApproval>(
+      context: context,
+      builder: (_) => PageEvidenceDialog(
+        image: widget.evidence!.image,
+        snapshot: _snapshot,
+      ),
+    );
+    if (!mounted || approval == null || !approval.validFor(_snapshot)) return;
+    setState(() {
+      _pageApproval = approval;
+      _reviewed = false;
+    });
+  }
+
+  Future<void> _reviewGeometry(int index) async {
+    if (!_hasLayoutContext) return;
+    final audit = _evidenceAudit!;
+    final note = await showDialog<String>(
+      context: context,
+      builder: (_) => GeometryEvidenceDialog(
+        image: widget.evidence!.image,
+        contextData: _draft!.parseContext!,
+        finding: _findings[index],
+        allowed: audit.resolvableGeometry.contains(index),
+        blockers: audit.blockers,
+        initialNote: _findingNotes[index] ?? '',
+      ),
+    );
+    if (!mounted ||
+        note == null ||
+        !_evidenceAudit!.resolvableGeometry.contains(index)) {
+      return;
+    }
+    setState(() {
+      _findingNotes[index] = note;
+      _geometryApprovals[index] = _snapshot;
+      _resolvedFindings.add(index);
+      _reviewed = false;
+    });
+  }
+
+  void _addRemovedSourceReviews(_RowFields row) {
+    if (!_sourceRows.contains(row)) return;
+    for (final word in row.evidence) {
+      if (!_findings.any(
+        (f) =>
+            [
+              ParseIssue.removedSource,
+              ParseIssue.geometrySource,
+              ParseIssue.unassignedSource,
+            ].contains(f.issue) &&
+            f.words.length == 1 &&
+            identical(f.words.single, word),
+      )) {
+        _findings.add(
+          ParseFinding(
+            ParseIssue.removedSource,
+            scope: FindingScope.item,
+            words: [word],
+          ),
+        );
+      }
+    }
+  }
 
   bool get _hasLayoutContext {
     final data = _draft?.parseContext;
@@ -69,6 +187,7 @@ class _ReviewPageState extends State<ReviewPage> {
   }
 
   void _resetRowComparisons() {
+    _invalidatePageEvidence();
     for (final row in _rows) {
       row.imageCompared = false;
     }
@@ -146,7 +265,8 @@ class _ReviewPageState extends State<ReviewPage> {
         ..kind = created.kind;
     }
     if ((decision.kind == RowEvidenceKind.financialRow ||
-            decision.kind == RowEvidenceKind.description) &&
+            decision.kind == RowEvidenceKind.description ||
+            decision.kind == RowEvidenceKind.duplicateOcr) &&
         target == null) {
       return;
     }
@@ -157,6 +277,7 @@ class _ReviewPageState extends State<ReviewPage> {
         _resetRowComparisons();
       }
       final previous = _rowDecisions[index];
+      _invalidatePageEvidence();
       if (previous != null) _rowDecisionTarget(previous)?.imageCompared = false;
       target?.imageCompared = false;
       _rowDecisions[index] = RowEvidenceDecision(
@@ -220,6 +341,7 @@ class _ReviewPageState extends State<ReviewPage> {
       }
       // Keep original rows/evidence intact; links are separate temporary state.
       final previous = _relationships[index];
+      _invalidatePageEvidence();
       if (previous != null) {
         _relationshipTarget(previous)?.imageCompared = false;
       }
@@ -359,7 +481,7 @@ class _ReviewPageState extends State<ReviewPage> {
 
   void _seed(ReceiptDraft draft) {
     _draft = draft;
-    _findings = reviewFindingsForDraft(draft);
+    _findings = List.of(reviewFindingsForDraft(draft));
     if (draft.parseContext case final data?) {
       _ocr = data.page;
       _itemTop = data.itemTop / data.page.height;
@@ -462,15 +584,16 @@ class _ReviewPageState extends State<ReviewPage> {
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
+    final audit = _evidenceAudit;
     final validation = ReviewValidation(
       branch: _branch.text,
       dateText: _date.text,
       totalText: _total.text,
       branchConfirmed: _branchConfirmed,
       reviewed: _reviewed,
-      // OCR completion stays gated until evidence-based issue resolution and
-      // all issue types and evidence coverage are implemented.
-      hasUnresolvedParserIssues: _draft != null || _ocr != null,
+      hasUnresolvedParserIssues: _draft != null
+          ? !(audit?.ready ?? false)
+          : _ocr != null,
       rows: [for (final row in _rows) row.input],
     );
     final kinds = {
@@ -704,6 +827,13 @@ class _ReviewPageState extends State<ReviewPage> {
                                     ),
                                     child: Text(s.reviewFinding),
                                   ),
+                                  if (_hasLayoutContext &&
+                                      isGeometryFinding(_findings[f]))
+                                    TextButton(
+                                      key: ValueKey('geometry-review-$f'),
+                                      onPressed: () => _reviewGeometry(f),
+                                      child: Text(s.geometryEvidenceTitle),
+                                    ),
                                 ],
                               ),
                             ),
@@ -806,6 +936,7 @@ class _ReviewPageState extends State<ReviewPage> {
                         value: _branchConfirmed,
                         onChanged: (value) => setState(() {
                           _branchConfirmed = value ?? false;
+                          _invalidatePageEvidence();
                           _edited = true;
                           _reviewed = false;
                         }),
@@ -946,6 +1077,7 @@ class _ReviewPageState extends State<ReviewPage> {
                                     value: _rows[i].imageCompared,
                                     onChanged: (value) => setState(() {
                                       _rows[i].imageCompared = value ?? false;
+                                      _invalidatePageEvidence();
                                       _reviewed = false;
                                     }),
                                   ),
@@ -975,6 +1107,7 @@ class _ReviewPageState extends State<ReviewPage> {
                                     key: ValueKey('remove-row-$i'),
                                     onPressed: () {
                                       final removed = _rows.removeAt(i);
+                                      _addRemovedSourceReviews(removed);
                                       _edit();
                                       // Wait until its text fields have detached their listeners.
                                       WidgetsBinding.instance
@@ -1034,14 +1167,34 @@ class _ReviewPageState extends State<ReviewPage> {
                         Text(s.quantityInvalidSummary),
                       if (validation.positiveDiscount)
                         Text(s.discountSignWarning),
+                      if (audit != null) ...[
+                        Text(s.evidenceAuditTitle),
+                        for (final blocker in audit.blockers)
+                          Text(evidenceBlockerLabel(s, blocker)),
+                        if (_hasLayoutContext)
+                          OutlinedButton(
+                            key: const Key('review-page-evidence'),
+                            onPressed: _reviewPageEvidence,
+                            child: Text(s.pageEvidenceTitle),
+                          ),
+                        if (_pageApproval?.validFor(_snapshot) ?? false)
+                          Text(s.pageEvidenceReady),
+                        if (audit.ready)
+                          Text(
+                            s.evidenceAuditReady,
+                            key: const Key('evidence-audit-ready'),
+                          ),
+                      ],
                       CheckboxListTile(
                         key: const Key('review-confirmation'),
                         contentPadding: EdgeInsets.zero,
                         title: Text(s.reviewConfirmation),
                         value: _reviewed,
-                        onChanged: (value) => setState(() {
-                          _reviewed = value ?? false;
-                        }),
+                        onChanged: audit != null && !audit.ready
+                            ? null
+                            : (value) => setState(() {
+                                _reviewed = value ?? false;
+                              }),
                       ),
                       if (validation.complete)
                         Text(

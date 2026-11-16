@@ -200,3 +200,12 @@ in geometry evidence. `reviewFindingsForDraft` adds independent review-only
 `unassignedSource` findings for omissions without mutating the parser result.
 `unreviewedOmissions` tracks their explicit review separately from the immutable
 structural inventory; resolving an unrelated geometry warning cannot clear them.
+
+`OcrEvidenceAudit` validates supported OCR evidence independently of financial
+reconciliation. Whole-page and geometry approvals retain immutable field/row/
+evidence snapshots, which must match current data. Geometry types distinguish
+boundary errors (re-parse required) from individually reviewed overlap/band/skew
+cases. Unsupported decisions, stale targets, unaccounted deleted rows, silently
+dropped quantities, and incomplete context cannot approve a receipt. A ready
+audit is combined with exact `ReviewValidation` and final confirmation to complete
+only the temporary no-save prototype; persistence remains a separate contract.

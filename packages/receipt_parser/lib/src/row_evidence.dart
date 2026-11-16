@@ -9,6 +9,7 @@ enum RowEvidenceKind {
   headerMetadata,
   paymentOrTax,
   explanatoryText,
+  duplicateOcr,
 }
 
 bool isUnparsedItemFinding(ParseFinding finding) =>
@@ -17,7 +18,9 @@ bool isUnparsedItemFinding(ParseFinding finding) =>
     (finding.issue == ParseIssue.unclassifiedRow ||
         finding.issue == ParseIssue.invalidAmount ||
         finding.issue == ParseIssue.normalizedOcrAmount ||
-        finding.issue == ParseIssue.unassignedSource);
+        finding.issue == ParseIssue.unassignedSource ||
+        finding.issue == ParseIssue.geometrySource ||
+        finding.issue == ParseIssue.removedSource);
 
 /// Review-only findings retain omissions separately from parser warnings.
 List<ParseFinding> reviewFindingsForDraft(ReceiptDraft draft) =>
@@ -32,6 +35,18 @@ List<ParseFinding> reviewFindingsForDraft(ReceiptDraft draft) =>
           scope: FindingScope.item,
           words: [word],
         ),
+      for (final word in {
+        for (final finding in draft.findings)
+          if (finding.geometryKind == GeometryFindingKind.wordOverlap ||
+              finding.geometryKind == GeometryFindingKind.ambiguousBand)
+            ...finding.words,
+      })
+        if (!(draft.evidenceCoverage?.unassignedWords.contains(word) ?? false))
+          ParseFinding(
+            ParseIssue.geometrySource,
+            scope: FindingScope.item,
+            words: [word],
+          ),
     ]);
 
 List<OcrWord> unreviewedOmissions(
@@ -63,6 +78,7 @@ bool canResolveRowEvidence(
   switch (kind) {
     case RowEvidenceKind.financialRow:
     case RowEvidenceKind.description:
+    case RowEvidenceKind.duplicateOcr:
       if (target == null ||
           target.name.trim().isEmpty ||
           parseCents(target.amount) == null)

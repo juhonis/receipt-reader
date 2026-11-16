@@ -6,9 +6,10 @@ printed total, and signed financial rows. Add/remove rows and select product,
 discount, deposit/return, or explicitly identified adjustment. All amounts use
 the pure Dart parser's integer-cent rules.
 
-The home-screen workflow now supports [temporary image import](image-import.md),
-but has **no OCR execution, database save, or history**. Manual entry starts empty;
-imported images provide visual evidence without populating fields. Input stays
+The home-screen workflow supports [temporary image import](image-import.md) and
+[experimental Android OCR review](android-ocr-review.md), with **no database save
+or history**. Manual entry starts empty; imported images provide visual evidence,
+and Android OCR can explicitly populate a draft. Input stays
 only in widget/controller memory. Returning to
 the home screen discards it. The screen explains this before data entry and its
 completion message explicitly says nothing was saved. It is not a backup or
@@ -32,8 +33,9 @@ durable draft. Process termination also loses the session.
 
 `ReviewValidation.complete` means only that this manual prototype's checks pass.
 It is not permission for a persistence layer to save. The validator can also
-block on unresolved parser issues. Quantity/rate editing, discount-parent
-relationships, OCR-side evidence, and full persistence invariants remain open.
+block on unresolved parser issues. Quantity/rate editing, supported discount
+relationships, and OCR evidence review are now implemented as documented in the
+Android OCR review guide. Full persistence invariants remain open.
 
 Widget tests exercise correction resetting review, ephemeral route lifecycle,
 row addition/removal, and a 320-pixel layout with doubled text size. Pure Dart

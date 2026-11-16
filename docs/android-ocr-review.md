@@ -19,11 +19,15 @@ its OCR packaging and distribution audit remain open.
    Original OCR words and pixel rectangles remain available in an expandable
    section, unaffected by corrections.
 
-All OCR drafts remain blocked from completion, even when their sums match.
-Complete coverage of parser issues and row relationships is still required.
-Quantity/rate editing and row evidence are now available as described below.
-Nothing is saved. Closing the review discards
-the app's temporary image and draft; the selected original is untouched.
+Supported OCR drafts can now complete the temporary review after individual
+findings, row/image comparison, whole-page evidence approval, exact financial
+validation, and final confirmation. Unsupported or incomplete evidence remains
+blocked; matching sums alone cannot approve OCR output. See the final evidence
+audit section below for current rules. Earlier milestone sections describe how
+the prototype reached this point.
+
+Nothing is saved. Closing the review discards the app's temporary image and
+draft; the selected original is untouched.
 
 ## Adapter and ownership
 
@@ -292,3 +296,67 @@ the original review, opened a preview-based fresh review with 0/2 compared rows,
 then used Back and observed the original 1/2 comparison state and findings intact.
 Restored the emulator's original network setting afterward. This does not replace
 fresh-install release checks or native Windows picker testing.
+
+## Geometry decisions and final evidence audit (2026-11-16)
+
+Geometry findings now distinguish section/price boundary crossings, competing
+baseline bands, overlapping words, and skew adjustment. Boundary crossings still
+require corrected parsing in a fresh review. They cannot be acknowledged away.
+Legacy geometry warnings without a typed source context also remain blocked.
+
+Overlap and competing-band findings generate separate source-word review items.
+Each word must be explicitly linked, classified as non-financial, or identified
+as an extra OCR recognition of an existing row. Duplicate recognition is an
+evidence relationship, never another monetary contribution. Image comparison
+and a written explanation are required for each decision. The original words
+and parser output remain immutable.
+
+After row corrections and source-word decisions, compare every row to the image.
+Then **Tarkista koko kuitin aineisto** presents the whole receipt and current
+branch/date/total/row values. Explicitly check the header fields, footer exclusions,
+section boundaries and complete row coverage, and that the entire receipt is
+visible. A written note is required. Approval captures immutable current field
+values, row identities/order, and evidence links. Changes invalidate approval;
+the domain audit also rejects stale snapshots independently of the UI.
+
+**Käsittele kohdistushuomio** allows supported overlap/band/skew confirmation only
+after valid row comparisons, whole-page approval, and all non-geometry findings
+and omissions have been reviewed. Overlap/band source words must each have their
+own valid disposition. The geometry confirmation includes the image overlay,
+an explanation, and a separate explicit comparison checkbox. It captures its own
+current-value snapshot. Reviewing another warning never resolves it implicitly.
+
+The shared `OcrEvidenceAudit` checks original source context, current valid rows,
+individual decisions and their live targets, whole-page approval, omissions,
+discount relationships, and competing orphan-quantity claims. Deleted original
+rows generate individual source review items. They require explicit duplicate
+or non-financial dispositions; a sum match cannot justify deletion. Original
+quantity/rate information cannot simply disappear, including through a duplicate
+disposition whose target lacks matching quantity data.
+
+When the evidence audit passes, the final review checkbox becomes available.
+`ReviewValidation` still independently requires branch confirmation, a valid
+printed date/time, valid quantities and signed amounts, exact total reconciliation,
+and final confirmation. Evidence can be ready while totals disagree; completion
+then stays blocked. Successful completion explicitly states that nothing was saved.
+There is still no database/history or permission for a future save layer.
+
+Unsupported cases stay open: malformed/legacy source context, unresolved boundary
+issues, unsupported date ambiguity, manual discount rows without a typed discount
+relationship, and quantity/net-discount combinations requiring additional rules.
+Converting posted discounts to explanatory text or vice versa is still pending.
+Windows OCR packaging and release certification remain separate tasks.
+
+Verification: 68 parser/domain tests and 39 Flutter tests, clean analyzers, and
+Android/Windows debug builds. Tests cover supported no-save completion, stale
+page/geometry approval, missing context/image, immutable audit results, independent
+arithmetic validation, overlap word decisions, skew confirmation, original row/
+quantity preservation, conflicting quantity claims, and enlarged narrow layouts.
+
+Offline Android emulator smoke (upgrade install, synthetic data only) completed
+the full supported flow: TEST BRANCH, date 16.11.2026, MILK 2,00, BREAD 3,00,
+printed total 5,00, no parser findings, and no omitted words. Compared both rows,
+confirmed header/footer/layout/image completeness with a note, then made the
+separate final confirmation. The screen displayed **Tarkistus valmis tässä
+kokeilussa. Tietoja ei ole tallennettu.** No database or image persistence was
+introduced. Restored airplane mode and the temporary handwriting setting afterward.
