@@ -87,15 +87,18 @@ class _HomePageState extends State<_HomePage> {
         return;
       }
       if (evidence != null) {
+        bool? saved;
         try {
-          await Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => ReviewPage(evidence: evidence),
+          saved = await Navigator.of(context).push<bool>(
+            MaterialPageRoute<bool>(
+              builder: (_) =>
+                  ReviewPage(evidence: evidence, store: widget.store),
             ),
           );
         } finally {
           evidence.dispose();
         }
+        if (saved == true && mounted && widget.store != null) await _history();
       }
     } on ReceiptImportException catch (error) {
       if (mounted) {

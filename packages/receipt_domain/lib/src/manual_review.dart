@@ -1,7 +1,7 @@
 part of '../receipt_domain.dart';
 
 /// Snapshot-bound manual checklist. The app must use this only for manual entry;
-/// an OCR-origin session must use a future live-evidence adapter, never relabel.
+/// an OCR-origin session must use the live-evidence adapter, never relabel.
 final class ManualReviewChecks {
   ManualReviewChecks({
     required ReceiptSnapshot snapshot,
@@ -59,10 +59,9 @@ final class ManualReceiptConfirmation {
   final String appVersion;
 }
 
-/// Durable assertion of manual review. Constructors stay inside this library;
-/// decoded assertions have no authority to create a local mutation command.
-final class ManualReviewRecord {
-  ManualReviewRecord._(
+/// Historical assertions are data; only live review constructors authorize writes.
+sealed class ReceiptReviewRecord {
+  ReceiptReviewRecord._(
     this.reviewedAtMs,
     this.appVersion,
     Iterable<RevisionId> heads,
@@ -73,19 +72,30 @@ final class ManualReviewRecord {
   final String appVersion;
   final List<RevisionId> expectedHeads;
   final List<DurableId> reviewedRowIds;
+  String get source;
+  int get policyVersion;
+}
+
+final class ManualReviewRecord extends ReceiptReviewRecord {
+  ManualReviewRecord._(super.at, super.app, super.heads, super.rows)
+    : super._();
+  @override
+  String get source => 'manual';
+  @override
+  int get policyVersion => 1;
 }
 
 /// Serializable structured history; decoding is not human confirmation.
 final class ReceiptDocument {
   const ReceiptDocument._(this.snapshot, this.review);
   final ReceiptSnapshot snapshot;
-  final ManualReviewRecord review;
+  final ReceiptReviewRecord review;
   String get sha256Hex =>
       sha256.convert(utf8.encode(ReceiptDocumentCodec.encode(this))).toString();
 }
 
-/// Local manual-save command. No SQL writes or event identities are assigned.
-/// A future repository must recheck catalog dependencies, expected heads and
+/// Local save command. No SQL writes or event identities are assigned.
+/// The repository rechecks catalog dependencies, expected heads and
 /// durable row ownership in its write transaction.
 final class ReviewedReceipt {
   ReviewedReceipt.manual({
@@ -94,6 +104,21 @@ final class ReviewedReceipt {
     required ManualReceiptConfirmation confirmation,
   }) : mutationId = confirmation._checks.mutationId,
        document = _build(current, expectedHeads, confirmation);
+
+  ReviewedReceipt.ocr({
+    required OcrEvidenceAudit current,
+    required ReceiptBranch branch,
+    required Map<Object, OcrRowDetails> rowDetails,
+    required Iterable<RevisionId> expectedHeads,
+    required OcrReceiptConfirmation confirmation,
+  }) : mutationId = confirmation._checks.mutationId,
+       document = _buildOcr(
+         current,
+         branch,
+         rowDetails,
+         expectedHeads,
+         confirmation,
+       );
 
   static ReceiptDocument _build(
     ReceiptSnapshot current,

@@ -184,8 +184,13 @@ final class ReceiptRepository {
   Future<void> verifyIntegrity() =>
       _guard(() => _db.transaction(_verifyIntegrity));
 
-  Future<SaveResult> saveManual(ReviewedReceipt command) => _guard(
+  Future<SaveResult> saveManual(ReviewedReceipt command) =>
+      _save(command, 'manual');
+  Future<SaveResult> saveOcr(ReviewedReceipt command) => _save(command, 'ocr');
+
+  Future<SaveResult> _save(ReviewedReceipt command, String source) => _guard(
     () => _db.transaction(() async {
+      _check(command.document.review.source == source, 'unsupportedSource');
       // Re-parse the immutable command at the storage boundary, under its policy.
       final json = ReceiptDocumentCodec.encode(command.document);
       final document = ReceiptDocumentCodec.decode(json);
@@ -221,6 +226,10 @@ final class ReceiptRepository {
         'unsupportedProductLink',
       );
       final current = await _read(snapshot.id);
+      _check(
+        current == null || current.document.review.source == source,
+        'provenanceChange',
+      );
       final expected = document.review.expectedHeads;
       _check(
         current == null
@@ -228,18 +237,19 @@ final class ReceiptRepository {
             : expected.length == 1 && expected.single == current.revision,
         'staleReceipt',
       );
-      final oldIds =
-          current?.document.snapshot.items.map((item) => item.id).toSet() ??
-          <DurableId>{};
-      for (final item in snapshot.items) {
+      final oldIds = current == null
+          ? <DurableId>{}
+          : _documentRowIds(current.document);
+      final rowIds = _documentRowIds(document);
+      for (final rowId in rowIds) {
         final owners = await _rows(
           'SELECT receipt_id FROM row_identities WHERE row_id = ?',
-          [item.id.value],
+          [rowId.value],
         );
         if (owners.isNotEmpty) {
           _check(
             owners.single['receipt_id'] == snapshot.id.value &&
-                oldIds.contains(item.id),
+                oldIds.contains(rowId),
             'rowIdentityReused',
           );
         }
@@ -339,16 +349,15 @@ final class ReceiptRepository {
         _receiptFields(document, revision, createdAt),
         current != null,
       );
+      for (final rowId in rowIds.difference(oldIds)) {
+        await _insert('row_identities', {
+          'row_id': rowId.value,
+          'receipt_id': snapshot.id.value,
+          'first_origin': revision.origin.value,
+          'first_seq': revision.sequence.toInt(),
+        });
+      }
       for (var i = 0; i < snapshot.items.length; i++) {
-        final item = snapshot.items[i];
-        if (!oldIds.contains(item.id)) {
-          await _insert('row_identities', {
-            'row_id': item.id.value,
-            'receipt_id': snapshot.id.value,
-            'first_origin': revision.origin.value,
-            'first_seq': revision.sequence.toInt(),
-          });
-        }
         await _insert('receipt_items', _itemFields(snapshot, i));
       }
       await _insert('receipt_reviews', _reviewFields(document));
@@ -645,8 +654,8 @@ Map<String, Object?> _receiptFields(
 Map<String, Object?> _reviewFields(ReceiptDocument document) => {
   'receipt_id': document.snapshot.id.value,
   'payload_version': 1,
-  'policy_version': 1,
-  'source': 'manual',
+  'policy_version': document.review.policyVersion,
+  'source': document.review.source,
   'app_version': document.review.appVersion,
   'timezone_rules_version': receiptTimezoneRulesVersion,
   'row_count': document.snapshot.items.length,
@@ -681,3 +690,9 @@ bool _sameFields(Map<String, Object?> actual, Map<String, Object?> expected) =>
     expected.keys.every(
       (key) => actual.containsKey(key) && actual[key] == expected[key],
     );
+
+Set<DurableId> _documentRowIds(ReceiptDocument document) => {
+  ...document.snapshot.items.map((row) => row.id),
+  if (document.review case final OcrReviewRecord review)
+    ...review.originalRowIds,
+};

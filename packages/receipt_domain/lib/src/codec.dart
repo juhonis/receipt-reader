@@ -14,8 +14,8 @@ final class ReceiptDocumentCodec {
     'payload_version': '1',
     'receipt': _snapshotObject(document.snapshot),
     'review': {
-      'policy_version': '1',
-      'source': 'manual',
+      'policy_version': document.review.policyVersion.toString(),
+      'source': document.review.source,
       'app_version': document.review.appVersion,
       'timezone_rules_version': receiptTimezoneRulesVersion,
       'reviewed_at_ms': document.review.reviewedAtMs.toString(),
@@ -29,6 +29,12 @@ final class ReceiptDocumentCodec {
       'reviewed_row_ids': document.review.reviewedRowIds
           .map((id) => id.value)
           .toList(),
+      if (document.review case final OcrReviewRecord ocr)
+        'ocr_evidence': _ocrEvidenceObject(
+          ocr.originalRowIds,
+          ocr.decisions,
+          ocr.originalFindingCount,
+        ),
     },
   });
 
@@ -36,6 +42,8 @@ final class ReceiptDocumentCodec {
     final root = _object(value, ['payload_version', 'receipt', 'review']);
     _require(root['payload_version'] == '1', 'payloadVersion', 'unsupported');
     final snapshot = _readSnapshot(root['receipt']);
+    _require(root['review'] is Map<String, Object?>, 'review', 'type');
+    final isOcr = (root['review'] as Map<String, Object?>)['source'] == 'ocr';
     final review = _object(root['review'], [
       'policy_version',
       'source',
@@ -48,10 +56,13 @@ final class ReceiptDocumentCodec {
       'total_reviewed',
       'reconciled',
       'reviewed_row_ids',
+      if (isOcr) 'ocr_evidence',
     ]);
     _require(
-      review['policy_version'] == '1' &&
-          review['source'] == 'manual' &&
+      ((isOcr && review['policy_version'] == '2') ||
+              (!isOcr &&
+                  review['source'] == 'manual' &&
+                  review['policy_version'] == '1')) &&
           review['timezone_rules_version'] == receiptTimezoneRulesVersion,
       'review',
       'unsupported',
@@ -81,7 +92,16 @@ final class ReceiptDocumentCodec {
     );
     return ReceiptDocument._(
       snapshot,
-      ManualReviewRecord._(at, app, heads, rows),
+      isOcr
+          ? _readOcrReview(
+              review['ocr_evidence'],
+              snapshot,
+              at,
+              app,
+              heads,
+              rows,
+            )
+          : ManualReviewRecord._(at, app, heads, rows),
     );
   }, encode);
 }
@@ -424,4 +444,250 @@ ReceiptItemSnapshot _readItem(Object? value, int position) {
     'notDerived',
   );
   return row;
+}
+
+T _ocrEnum<T extends Enum>(Object? value, List<T> choices) {
+  for (final choice in choices) {
+    if (choice.name == value) return choice;
+  }
+  throw const ReceiptDataException('review.evidence', 'unknownEnum');
+}
+
+OcrReviewRecord _readOcrReview(
+  Object? value,
+  ReceiptSnapshot snapshot,
+  BigInt at,
+  String app,
+  List<RevisionId> heads,
+  List<DurableId> rows,
+) {
+  final evidence = _object(value, [
+    'parser_version',
+    'image_matches_source',
+    'rows_compared',
+    'page_header_compared',
+    'page_footer_compared',
+    'page_layout_compared',
+    'image_complete',
+    'original_finding_count',
+    'reviewed_finding_count',
+    'source_disposition_count',
+    'unresolved_count',
+    'original_row_ids',
+    'decisions',
+  ]);
+  _require(
+    evidence['parser_version'] == receiptOcrParserVersion,
+    'review.parserVersion',
+    'unsupported',
+  );
+  final originals = _list(evidence['original_row_ids']).map(_id).toList();
+  final decisions = <OcrDecisionRecord>[];
+  for (final item in _list(evidence['decisions'])) {
+    final d = _object(item, [
+      'issue',
+      'scope',
+      'source_row_id',
+      'target_row_id',
+      'row_kind',
+      'relationship_kind',
+      'discount_kind',
+      'geometry_kind',
+      'name_handled',
+    ]);
+    _require(d['name_handled'] is bool, 'review.evidence', 'type');
+    decisions.add(
+      OcrDecisionRecord._(
+        _ocrEnum(d['issue'], ParseIssue.values),
+        _ocrEnum(d['scope'], FindingScope.values),
+        d['source_row_id'] == null ? null : _id(d['source_row_id']),
+        d['target_row_id'] == null ? null : _id(d['target_row_id']),
+        d['row_kind'] == null
+            ? null
+            : _ocrEnum(d['row_kind'], RowEvidenceKind.values),
+        d['relationship_kind'] == null
+            ? null
+            : _ocrEnum(d['relationship_kind'], ReviewRelationshipKind.values),
+        d['discount_kind'] == null
+            ? null
+            : _ocrEnum(d['discount_kind'], DiscountFindingKind.values),
+        d['geometry_kind'] == null
+            ? null
+            : _ocrEnum(d['geometry_kind'], GeometryFindingKind.values),
+        d['name_handled']! as bool,
+      ),
+    );
+  }
+  final originalCount = _smallInteger(evidence['original_finding_count']);
+  _require(
+    originalCount >= 0 &&
+        originalCount <= decisions.length &&
+        evidence['reviewed_finding_count'] == decisions.length.toString() &&
+        evidence['source_disposition_count'] ==
+            decisions
+                .where(
+                  (d) => [
+                    ParseIssue.geometrySource,
+                    ParseIssue.unassignedSource,
+                    ParseIssue.removedSource,
+                  ].contains(d.issue),
+                )
+                .length
+                .toString() &&
+        evidence['unresolved_count'] == '0' &&
+        [
+          'image_matches_source',
+          'rows_compared',
+          'page_header_compared',
+          'page_footer_compared',
+          'page_layout_compared',
+          'image_complete',
+        ].every((k) => evidence[k] == true),
+    'review.evidence',
+    'incompleteChecks',
+  );
+  _validateOcrRecord(snapshot, originals, decisions);
+  return OcrReviewRecord._(
+    at,
+    app,
+    heads,
+    rows,
+    originals,
+    decisions,
+    originalCount,
+  );
+}
+
+void _validateOcrRecord(
+  ReceiptSnapshot snapshot,
+  List<DurableId> originals,
+  List<OcrDecisionRecord> decisions,
+) {
+  final byId = {for (final item in snapshot.items) item.id: item};
+  _require(
+    originals.toSet().length == originals.length &&
+        !originals.contains(snapshot.id),
+    'review.evidence',
+    'sourceRows',
+  );
+  for (final d in decisions) {
+    _require(
+      (d.sourceRowId == null || originals.contains(d.sourceRowId)) &&
+          (d.targetRowId == null || byId.containsKey(d.targetRowId)),
+      'review.evidence',
+      'foreignRow',
+    );
+    _require(
+      d.rowKind == null || d.relationshipKind == null,
+      'review.evidence',
+      'mixedDecision',
+    );
+    final geometry =
+        d.issue == ParseIssue.ambiguousGeometry ||
+        d.issue == ParseIssue.skewAdjusted;
+    _require(
+      geometry
+          ? d.rowKind == null &&
+                d.relationshipKind == null &&
+                d.sourceRowId == null &&
+                d.targetRowId == null &&
+                (d.issue == ParseIssue.skewAdjusted
+                    ? d.geometryKind == GeometryFindingKind.skew
+                    : [
+                        GeometryFindingKind.wordOverlap,
+                        GeometryFindingKind.ambiguousBand,
+                      ].contains(d.geometryKind))
+          : d.geometryKind == null,
+      'review.evidence',
+      'geometryKind',
+    );
+    if (d.rowKind case final kind?) {
+      final finding = ParseFinding(
+        d.issue,
+        rowIndex: d.sourceRowId == null
+            ? null
+            : originals.indexOf(d.sourceRowId!),
+        scope: d.scope,
+      );
+      final target = byId[d.targetRowId];
+      _require(
+        isUnparsedItemFinding(finding) &&
+            d.discountKind == null &&
+            ([
+                  RowEvidenceKind.financialRow,
+                  RowEvidenceKind.description,
+                  RowEvidenceKind.duplicateOcr,
+                ].contains(kind)
+                ? target != null &&
+                      target.kind != LineKind.discount &&
+                      (kind != RowEvidenceKind.description ||
+                          target.kind == LineKind.product)
+                : target == null),
+        'review.evidence',
+        'rowDecision',
+      );
+    }
+    if (d.relationshipKind case final relationship?) {
+      final source = byId[d.sourceRowId], target = byId[d.targetRowId];
+      _require(
+        d.rowKind == null &&
+            (relationship == ReviewRelationshipKind.receiptDiscount
+                ? target == null
+                : target?.kind == LineKind.product),
+        'review.evidence',
+        'relationshipTarget',
+      );
+      if (relationship == ReviewRelationshipKind.productDiscount ||
+          relationship == ReviewRelationshipKind.receiptDiscount) {
+        _require(
+          d.discountKind == DiscountFindingKind.postedDiscount &&
+              d.issue == ParseIssue.discountNeedsReview &&
+              source?.kind == LineKind.discount,
+          'review.evidence',
+          'discountSource',
+        );
+      } else {
+        _require(
+          source == null && d.sourceRowId == null,
+          'review.evidence',
+          'nonfinancialSource',
+        );
+        _require(
+          relationship == ReviewRelationshipKind.quantity
+              ? d.issue == ParseIssue.quantityWithoutProduct &&
+                    d.discountKind == null &&
+                    target?.quantityValue != null
+              : d.issue == ParseIssue.discountNeedsReview &&
+                    d.discountKind == DiscountFindingKind.explanatoryPrice,
+          'review.evidence',
+          'relationshipKind',
+        );
+      }
+    }
+  }
+  for (final item in snapshot.items) {
+    _require(
+      originals.contains(item.id) == (item.rawName != null),
+      'review.evidence',
+      'rawNameSource',
+    );
+    if (item.kind != LineKind.discount) continue;
+    final links = decisions
+        .where(
+          (d) =>
+              d.sourceRowId == item.id &&
+              d.discountKind == DiscountFindingKind.postedDiscount,
+        )
+        .toList();
+    _require(
+      links.length == 1 &&
+          links.single.targetRowId == item.parentItemId &&
+          links.single.relationshipKind ==
+              (item.discountScope == DiscountScope.receipt
+                  ? ReviewRelationshipKind.receiptDiscount
+                  : ReviewRelationshipKind.productDiscount),
+      'review.evidence',
+      'discountMapping',
+    );
+  }
 }

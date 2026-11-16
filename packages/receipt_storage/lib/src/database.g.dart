@@ -5378,7 +5378,7 @@ class ReceiptReviews extends Table
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL CHECK (policy_version = 1)',
+    $customConstraints: 'NOT NULL CHECK (policy_version IN (1, 2))',
   );
   static const VerificationMeta _sourceMeta = const VerificationMeta('source');
   late final GeneratedColumn<String> source = GeneratedColumn<String>(
@@ -5387,7 +5387,7 @@ class ReceiptReviews extends Table
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL CHECK (source = \'manual\')',
+    $customConstraints: 'NOT NULL CHECK ((source = \'manual\' AND policy_version = 1)OR(source = \'ocr\' AND policy_version = 2))',
   );
   static const VerificationMeta _appVersionMeta = const VerificationMeta(
     'appVersion',

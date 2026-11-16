@@ -149,10 +149,11 @@ even though invoking plain `java` in this PC's terminal may find Java 8.
 
 ## Local application data
 
-The normal app now saves reviewed manual receipts in its platform application-
+The normal app saves reviewed manual and supported OCR receipts in its application-
 support directory, outside this checkout. See [manual saving and history](manual-saving.md)
 for paths, review/retry behaviour, native smoke commands and backup limitations.
-WSL Git commands do not move or back up this database.
+See [OCR saving](ocr-saving.md) for the separate evidence policy and schema-v2
+migration. WSL Git commands do not move or back up this database.
 
 ## Commit style
 

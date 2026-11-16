@@ -143,7 +143,8 @@ class OcrEvidenceAudit {
     required bool imageMatchesSource,
     required PageEvidenceApproval? pageApproval,
   }) : findings = List.unmodifiable(findings),
-       decisions = Map.unmodifiable(decisions) {
+       decisions = Map.unmodifiable(decisions),
+       originalRowIds = List.unmodifiable(originalRowIds) {
     final draft = snapshot.draft;
     final context = draft.parseContext, coverage = draft.evidenceCoverage;
     final source = context?.page.words ?? <OcrWord>[];
@@ -352,6 +353,7 @@ class OcrEvidenceAudit {
     if (_unresolved.isNotEmpty) _blockers.add(OcrEvidenceBlocker.openFindings);
   }
   final OcrReviewSnapshot snapshot;
+  final List<Object> originalRowIds;
   final List<ParseFinding> findings;
   final Map<int, FindingEvidenceDecision> decisions;
   final _blockers = <OcrEvidenceBlocker>{};

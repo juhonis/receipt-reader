@@ -1,9 +1,10 @@
 # receipt_storage
 
-Drift/SQLite repository for reviewed local manual receipts. The Flutter app
-depends on the package for native packaging checks but does not open a database
-or offer saving yet. See [storage implementation](../../docs/local-storage.md)
-and the [contract](../../docs/local-storage-contract.md).
+Drift/SQLite repository for reviewed local manual and supported OCR receipts.
+The Flutter app owns an application-support database and provides explicit saving
+and read-only history. Schema 2 migrates released manual data without rewriting
+its event history. See [storage implementation](../../docs/local-storage.md),
+[OCR saving](../../docs/ocr-saving.md) and the [contract](../../docs/local-storage-contract.md).
 
 Run with Windows-native Dart:
 

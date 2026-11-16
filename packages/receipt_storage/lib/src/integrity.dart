@@ -132,16 +132,21 @@ extension _Integrity on ReceiptRepository {
             'pendingBranchDependency',
           );
         }
+        _check(
+          documents[id] == null ||
+              documents[id]!.review.source == document.review.source,
+          'historicalProvenanceChange',
+        );
         final before = activeRows[id] ?? <DurableId>{};
-        for (final item in snapshot.items) {
-          final owner = rowOwners[item.id];
+        for (final rowId in _documentRowIds(document)) {
+          final owner = rowOwners[rowId];
           _check(
-            owner == null || (owner.$1 == id && before.contains(item.id)),
+            owner == null || (owner.$1 == id && before.contains(rowId)),
             'historicalRowReuse',
           );
-          rowOwners.putIfAbsent(item.id, () => (id, revision));
+          rowOwners.putIfAbsent(rowId, () => (id, revision));
         }
-        activeRows[id] = snapshot.items.map((row) => row.id).toSet();
+        activeRows[id] = _documentRowIds(document);
         documents[id] = document;
         firstReceiptTimes.putIfAbsent(id, () => event['audit_at_ms']! as int);
       }

@@ -2,8 +2,8 @@
 
 Implemented on 2026-11-16 for Android and Windows. Manual entry now saves reviewed
 structured receipts to the local repository and opens read-only history. Image
-import and OCR continue through the temporary evidence review; neither can be
-relabelled as manual entry or saved through this screen.
+import and OCR use the separate [reviewed OCR save path](ocr-saving.md); neither
+can be relabelled as manual entry or saved through this screen.
 
 ## Storage location and ownership
 

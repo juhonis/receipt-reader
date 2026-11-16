@@ -38,6 +38,8 @@ class FakeStore implements LocalStore {
   }
 
   @override
+  Future<SaveResult> saveOcr(ReviewedReceipt command) => saveManual(command);
+  @override
   Future<void> close() async {
     closeCount++;
   }

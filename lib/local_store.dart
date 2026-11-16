@@ -9,6 +9,7 @@ abstract interface class LocalStore {
   Future<List<ReceiptBranch>> branches();
   Future<List<StoredReceipt>> history({int limit = 30, int offset = 0});
   Future<SaveResult> saveManual(ReviewedReceipt command);
+  Future<SaveResult> saveOcr(ReviewedReceipt command);
   Future<void> close();
 }
 
@@ -24,6 +25,9 @@ final class RepositoryStore implements LocalStore {
   @override
   Future<SaveResult> saveManual(ReviewedReceipt command) =>
       repository.saveManual(command);
+  @override
+  Future<SaveResult> saveOcr(ReviewedReceipt command) =>
+      repository.saveOcr(command);
   @override
   Future<void> close() => repository.close();
 }

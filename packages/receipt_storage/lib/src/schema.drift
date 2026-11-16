@@ -1,4 +1,4 @@
--- Local manual receipts only. New workflows require explicit migrations.
+-- Reviewed local manual/OCR receipts. Other workflows require migrations.
 CREATE TABLE dataset_state (
   singleton INTEGER NOT NULL PRIMARY KEY CHECK (singleton = 1),
   dataset_id TEXT NOT NULL UNIQUE CHECK (length(dataset_id) = 36 AND dataset_id GLOB '????????-????-4???-[89ab]???-????????????' AND length("replace"(dataset_id, '-', '')) = 32 AND "replace"(dataset_id, '-', '') NOT GLOB '*[^0-9a-f]*'),
@@ -159,8 +159,9 @@ CREATE INDEX receipt_items_parent ON receipt_items(receipt_id, parent_item_id);
 CREATE TABLE receipt_reviews (
   receipt_id TEXT NOT NULL PRIMARY KEY REFERENCES receipts(id),
   payload_version INTEGER NOT NULL CHECK (payload_version = 1),
-  policy_version INTEGER NOT NULL CHECK (policy_version = 1),
-  source TEXT NOT NULL CHECK (source = 'manual'),
+  policy_version INTEGER NOT NULL CHECK (policy_version IN (1, 2)),
+  source TEXT NOT NULL CHECK ((source = 'manual' AND policy_version = 1)
+      OR (source = 'ocr' AND policy_version = 2)),
   app_version TEXT NOT NULL CHECK (length(trim(app_version)) > 0 AND app_version = trim(app_version)),
   timezone_rules_version TEXT NOT NULL,
   row_count INTEGER NOT NULL CHECK (row_count > 0),

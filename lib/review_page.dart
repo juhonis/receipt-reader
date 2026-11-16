@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:receipt_parser/receipt_parser.dart';
+import 'package:receipt_domain/receipt_domain.dart';
 
 import 'l10n/generated/app_localizations.dart';
 import 'receipt_import.dart';
@@ -11,10 +12,20 @@ import 'relationship_dialog.dart';
 import 'row_evidence_dialog.dart';
 import 'layout_review_dialog.dart';
 import 'page_evidence_dialog.dart';
+import 'local_store.dart';
+import 'ocr_save_dialog.dart';
+import 'manual_receipt_page.dart' show receiptAppVersion;
 
 class ReviewPage extends StatefulWidget {
-  const ReviewPage({super.key, this.draft, this.evidence, this.recognizer});
+  const ReviewPage({
+    super.key,
+    this.draft,
+    this.evidence,
+    this.recognizer,
+    this.store,
+  });
   final Future<OcrPage> Function(ReceiptEvidence)? recognizer;
+  final LocalStore? store;
   final ReceiptDraft? draft;
   final ReceiptEvidence? evidence;
   @override
@@ -26,6 +37,9 @@ class _RowFields {
   final amount = TextEditingController();
   final quantity = TextEditingController();
   final rate = TextEditingController();
+  final reason = TextEditingController();
+  Object? depositParent;
+  bool standaloneDeposit = false;
   QuantityUnit unit = QuantityUnit.unknown;
   bool imageCompared = false;
   List<OcrWord> evidence = const [];
@@ -43,6 +57,7 @@ class _RowFields {
     amount.dispose();
     quantity.dispose();
     rate.dispose();
+    reason.dispose();
   }
 }
 
@@ -53,6 +68,146 @@ class _ReviewPageState extends State<ReviewPage> {
   final _rows = [_RowFields()];
   bool _branchConfirmed = false;
   bool _reviewed = false;
+  final _receiptId = DurableId.generate();
+  final _newBranchId = DurableId.generate();
+  final _rowIds = ReviewRowIds();
+  List<ReceiptBranch>? _branches;
+  String? _branchChoice;
+  bool _branchLoadFailed = false, _savePreparationFailed = false;
+
+  ReceiptBranch? get _selectedBranch => _branchChoice == 'new'
+      ? (_branch.text.trim().isEmpty
+            ? null
+            : ReceiptBranch(id: _newBranchId, name: _branch.text.trim()))
+      : _branches?.where((b) => b.id.value == _branchChoice).firstOrNull;
+
+  Map<Object, OcrRowDetails> get _rowDetails => {
+    for (final row in _rows)
+      row: OcrRowDetails(
+        depositParent: row.kind == LineKind.deposit ? row.depositParent : null,
+        standaloneDeposit:
+            row.kind == LineKind.deposit && row.standaloneDeposit,
+        adjustmentReason: row.kind == LineKind.adjustment
+            ? row.reason.text.trim()
+            : null,
+      ),
+  };
+
+  Future<void> _loadBranches() async {
+    if (widget.store == null) return;
+    setState(() => _branchLoadFailed = false);
+    try {
+      final branches = await widget.store!.branches();
+      if (mounted) setState(() => _branches = branches);
+    } catch (_) {
+      if (mounted) setState(() => _branchLoadFailed = true);
+    }
+  }
+
+  Future<void> _saveOcr() async {
+    final approved = _evidenceAudit, branch = _selectedBranch;
+    if (approved == null || !approved.ready || branch == null || !_reviewed) {
+      return;
+    }
+    final approvedDetails = Map<Object, OcrRowDetails>.unmodifiable(
+      _rowDetails,
+    );
+    final s = AppLocalizations.of(context)!;
+    var dateChecked = false, totalChecked = false;
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, update) => AlertDialog(
+          title: Text(s.ocrSaveFinalTitle),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(branch.name),
+                Text(approved.snapshot.date),
+                Text(approved.snapshot.total),
+                Text(s.ocrSaveFinalNotice),
+                CheckboxListTile(
+                  key: const Key('ocr-save-date'),
+                  title: Text(s.manualDateReviewed),
+                  value: dateChecked,
+                  onChanged: (v) => update(() => dateChecked = v ?? false),
+                ),
+                CheckboxListTile(
+                  key: const Key('ocr-save-total'),
+                  title: Text(s.manualTotalReviewed),
+                  value: totalChecked,
+                  onChanged: (v) => update(() => totalChecked = v ?? false),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(s.cancelAction),
+            ),
+            FilledButton(
+              key: const Key('ocr-confirm-save'),
+              onPressed: dateChecked && totalChecked
+                  ? () => Navigator.pop(context, true)
+                  : null,
+              child: Text(s.saveReceipt),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || yes != true) return;
+    ReviewedReceipt command;
+    try {
+      if (!_reviewed ||
+          !_hasLayoutContext ||
+          _selectedBranch == null ||
+          _evidenceAudit == null) {
+        throw const ReceiptDataException('review', 'staleEvidence');
+      }
+      final checks = OcrReviewChecks(
+        audit: approved,
+        branch: branch,
+        receiptId: _receiptId,
+        rowIds: _rowIds,
+        rowDetails: approvedDetails,
+        expectedHeads: const [],
+        mutationId: DurableId.generate(),
+        dateReviewed: dateChecked,
+        totalReviewed: totalChecked,
+      );
+      command = ReviewedReceipt.ocr(
+        current: _evidenceAudit!,
+        branch: _selectedBranch!,
+        rowDetails: _rowDetails,
+        expectedHeads: const [],
+        confirmation: checks.confirm(
+          reviewedAtMs: BigInt.from(
+            DateTime.now().toUtc().millisecondsSinceEpoch,
+          ),
+          appVersion: receiptAppVersion,
+        ),
+      );
+      ReceiptDocumentCodec.decode(
+        ReceiptDocumentCodec.encode(command.document),
+      );
+    } on ReceiptDataException {
+      setState(() {
+        _savePreparationFailed = true;
+        _reviewed = false;
+      });
+      return;
+    }
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => OcrSaveDialog(store: widget.store!, command: command),
+    );
+    if (mounted) Navigator.pop(context, true);
+  }
+
   final _handledNames = <int>{};
   final _resolvedFindings = <int>{};
   final _findingNotes = <int, String>{};
@@ -179,7 +334,9 @@ class _ReviewPageState extends State<ReviewPage> {
 
   bool get _hasLayoutContext {
     final data = _draft?.parseContext;
-    final image = widget.evidence?.image;
+    final image = widget.evidence?.isDisposed == false
+        ? widget.evidence!.image
+        : null;
     return data != null &&
         image != null &&
         data.page.width == image.width &&
@@ -206,11 +363,13 @@ class _ReviewPageState extends State<ReviewPage> {
     if (!mounted || fresh == null) return;
     final evidence = widget.evidence!.clone();
     try {
-      await Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => ReviewPage(draft: fresh, evidence: evidence),
+      final saved = await Navigator.of(context).push<bool>(
+        MaterialPageRoute<bool>(
+          builder: (_) =>
+              ReviewPage(draft: fresh, evidence: evidence, store: widget.store),
         ),
       );
+      if (saved == true && mounted) Navigator.pop(context, true);
     } finally {
       evidence.dispose();
     }
@@ -472,6 +631,7 @@ class _ReviewPageState extends State<ReviewPage> {
   @override
   void initState() {
     super.initState();
+    _loadBranches();
     if (widget.draft != null) {
       _rows.single.dispose();
       _rows.clear();
@@ -531,6 +691,7 @@ class _ReviewPageState extends State<ReviewPage> {
   }
 
   void _edit([String? _]) => setState(() {
+    _savePreparationFailed = false;
     _reviewed = false;
     _edited = true;
     _resolvedFindings.clear();
@@ -678,7 +839,11 @@ class _ReviewPageState extends State<ReviewPage> {
                   child: ListView(
                     padding: const EdgeInsets.all(20),
                     children: [
-                      Text(s.reviewNotice),
+                      Text(
+                        widget.store == null
+                            ? s.reviewNotice
+                            : s.ocrSaveReviewNotice,
+                      ),
                       if (widget.evidence != null && !wide) ...[
                         Text(s.imageEvidenceHint),
                         SizedBox(height: 360, child: preview()),
@@ -920,8 +1085,56 @@ class _ReviewPageState extends State<ReviewPage> {
                             ),
                       ],
                       const SizedBox(height: 16),
+                      if (widget.store != null) ...[
+                        if (_branches == null && !_branchLoadFailed)
+                          const LinearProgressIndicator(),
+                        if (_branchLoadFailed) ...[
+                          Text(s.branchLoadFailed),
+                          TextButton(
+                            onPressed: _loadBranches,
+                            child: Text(s.retryAction),
+                          ),
+                        ],
+                        if (_branches != null)
+                          DropdownButtonFormField<String>(
+                            key: const Key('ocr-branch'),
+                            initialValue: _branchChoice,
+                            isExpanded: true,
+                            itemHeight: null,
+                            decoration: InputDecoration(
+                              labelText: s.branchLabel,
+                            ),
+                            items: [
+                              for (final branch in _branches!)
+                                DropdownMenuItem(
+                                  value: branch.id.value,
+                                  child: Text(
+                                    branch.name,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              DropdownMenuItem(
+                                value: 'new',
+                                child: Text(s.newBranch),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              _branchChoice = value;
+                              _branch.text = value == 'new'
+                                  ? ''
+                                  : _branches!
+                                        .firstWhere((b) => b.id.value == value)
+                                        .name;
+                              _branchConfirmed = false;
+                              _edit();
+                            },
+                          ),
+                        if (_branchChoice == 'new') Text(s.newBranchNotice),
+                      ],
                       TextField(
-                        enabled: !_recognizing,
+                        enabled:
+                            !_recognizing &&
+                            (widget.store == null || _branchChoice == 'new'),
                         key: const Key('branch'),
                         controller: _branch,
                         decoration: InputDecoration(labelText: s.branchLabel),
@@ -1096,17 +1309,92 @@ class _ReviewPageState extends State<ReviewPage> {
                                   ],
                                   onChanged: (kind) {
                                     if (kind != null) {
-                                      _rows[i].kind = kind;
+                                      final changed = _rows[i];
+                                      changed.kind = kind;
+                                      changed.depositParent = null;
+                                      changed.standaloneDeposit = false;
+                                      for (final row in _rows) {
+                                        if (identical(
+                                          row.depositParent,
+                                          changed,
+                                        )) {
+                                          row.depositParent = null;
+                                        }
+                                      }
                                       _edit();
                                     }
                                   },
                                 ),
+                                if (widget.store != null &&
+                                    _rows[i].kind == LineKind.adjustment)
+                                  TextField(
+                                    key: ValueKey('ocr-adjustment-reason-$i'),
+                                    controller: _rows[i].reason,
+                                    decoration: InputDecoration(
+                                      labelText: s.adjustmentReason,
+                                    ),
+                                    onChanged: _edit,
+                                  ),
+                                if (widget.store != null &&
+                                    _rows[i].kind == LineKind.deposit)
+                                  DropdownButtonFormField<Object>(
+                                    key: ValueKey(
+                                      'ocr-deposit-$i-${_rows[i].depositParent}-${_rows[i].standaloneDeposit}',
+                                    ),
+                                    initialValue: _rows[i].standaloneDeposit
+                                        ? 'standalone'
+                                        : _rows.contains(
+                                                _rows[i].depositParent,
+                                              ) &&
+                                              (_rows[i].depositParent
+                                                          as _RowFields?)
+                                                      ?.kind ==
+                                                  LineKind.product
+                                        ? _rows[i].depositParent
+                                        : null,
+                                    isExpanded: true,
+                                    itemHeight: null,
+                                    decoration: InputDecoration(
+                                      labelText: s.manualRelationship,
+                                    ),
+                                    items: [
+                                      DropdownMenuItem(
+                                        value: 'standalone',
+                                        child: Text(s.standaloneDeposit),
+                                      ),
+                                      for (final product in _rows.where(
+                                        (r) => r.kind == LineKind.product,
+                                      ))
+                                        DropdownMenuItem(
+                                          value: product,
+                                          child: Text(
+                                            product.name.text,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                    ],
+                                    onChanged: (value) {
+                                      _rows[i].standaloneDeposit =
+                                          value == 'standalone';
+                                      _rows[i].depositParent =
+                                          value == 'standalone' ? null : value;
+                                      _edit();
+                                    },
+                                  ),
                                 Align(
                                   alignment: Alignment.centerRight,
                                   child: TextButton.icon(
                                     key: ValueKey('remove-row-$i'),
                                     onPressed: () {
                                       final removed = _rows.removeAt(i);
+                                      for (final row in _rows) {
+                                        if (identical(
+                                          row.depositParent,
+                                          removed,
+                                        )) {
+                                          row.depositParent = null;
+                                        }
+                                      }
                                       _addRemovedSourceReviews(removed);
                                       _edit();
                                       // Wait until its text fields have detached their listeners.
@@ -1196,7 +1484,22 @@ class _ReviewPageState extends State<ReviewPage> {
                                 _reviewed = value ?? false;
                               }),
                       ),
-                      if (validation.complete)
+                      if (widget.store != null && _draft != null) ...[
+                        if (_savePreparationFailed)
+                          Text(
+                            s.ocrSaveDetailsInvalid,
+                            key: const Key('ocr-save-preparation-error'),
+                          ),
+                        FilledButton(
+                          key: const Key('ocr-save'),
+                          onPressed:
+                              validation.complete && _selectedBranch != null
+                              ? _saveOcr
+                              : null,
+                          child: Text(s.saveReceipt),
+                        ),
+                      ],
+                      if (validation.complete && widget.store == null)
                         Text(
                           s.reviewComplete,
                           key: const Key('review-complete'),

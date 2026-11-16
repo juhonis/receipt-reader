@@ -154,7 +154,11 @@ class ReceiptDetailPage extends StatelessWidget {
                 ),
                 Text(receiptDateText(snapshot.date)),
                 Text('${formatCents(snapshot.totalCents)} €'),
-                Text(s.savedManualNotice),
+                Text(
+                  receipt.document.review.source == 'ocr'
+                      ? s.savedOcrNotice
+                      : s.savedManualNotice,
+                ),
                 for (var i = 0; i < snapshot.items.length; i++)
                   Card(
                     child: Padding(

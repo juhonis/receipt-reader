@@ -16,9 +16,22 @@ class ReceiptDatabase extends _$ReceiptDatabase {
   );
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   Future<void> createInitialSchema(Migrator migrator) => migrator.createAll();
+
+  /// Rebuild only the review projection. Existing canonical bytes and events
+  /// remain unchanged; rollback must retain schema v1 on any failure.
+  Future<void> upgradeReviewPolicy(Migrator migrator) async {
+    await customStatement(
+      'ALTER TABLE receipt_reviews RENAME TO receipt_reviews_v1',
+    );
+    await migrator.createTable(receiptReviews);
+    await customStatement(
+      'INSERT INTO receipt_reviews SELECT * FROM receipt_reviews_v1',
+    );
+    await customStatement('DROP TABLE receipt_reviews_v1');
+  }
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -26,9 +39,15 @@ class ReceiptDatabase extends _$ReceiptDatabase {
       await createInitialSchema(m);
       // Keep schema and version atomic, including a crash before Drift's own
       // redundant version assignment after this callback returns.
-      await customStatement('PRAGMA user_version = 1');
+      await customStatement('PRAGMA user_version = 2');
     }),
-    onUpgrade: (_, from, to) async => throw StateError('unsupported_schema'),
+    onUpgrade: (m, from, to) async {
+      if (from != 1 || to != 2) throw StateError('unsupported_schema');
+      await transaction(() async {
+        await upgradeReviewPolicy(m);
+        await customStatement('PRAGMA user_version = 2');
+      });
+    },
     beforeOpen: (_) async {
       final fk = await customSelect('PRAGMA foreign_keys').getSingle();
       final mode = await customSelect('PRAGMA journal_mode').getSingle();
@@ -45,7 +64,7 @@ class ReceiptDatabase extends _$ReceiptDatabase {
 void configureSqlite(sqlite.Database database) {
   // Reject future databases before Drift can run any version migration.
   if ((database.select('PRAGMA user_version').single['user_version'] as int) >
-      1) {
+      2) {
     throw StateError('unsupported_schema');
   }
   database.execute('PRAGMA foreign_keys = ON');

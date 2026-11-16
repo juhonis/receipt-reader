@@ -75,6 +75,8 @@ void main() {
         find.byKey(const Key('history-more')),
         500,
       );
+      await tester.ensureVisible(find.byKey(const Key('history-more')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('history-more')));
       await tester.pumpAndSettle();
       expect(store.historyOffsets, [0, 0, 30]);

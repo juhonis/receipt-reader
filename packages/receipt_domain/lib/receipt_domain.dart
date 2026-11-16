@@ -11,3 +11,5 @@ part 'src/values.dart';
 part 'src/snapshot.dart';
 part 'src/codec.dart';
 part 'src/manual_review.dart';
+
+part 'src/ocr_review.dart';

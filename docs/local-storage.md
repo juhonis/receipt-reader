@@ -2,11 +2,11 @@
 
 `packages/receipt_storage` implements the first local-only slice of the
 [storage contract](local-storage-contract.md), using the checked values and
-manual commands from [receipt foundations](storage-foundations.md).
+source-specific review commands from [receipt foundations](storage-foundations.md).
 
 The normal Flutter app now owns an application-support database and provides
 [explicit manual saving and basic history](manual-saving.md) on Android and
-Windows. OCR/image reviews remain temporary and cannot use the manual save path.
+Windows. [Reviewed OCR saving](ocr-saving.md) uses a separate command/API and cannot use the manual save path.
 Native integration tests create and remove isolated synthetic databases; real
 receipt images/exports are unused.
 
@@ -19,14 +19,14 @@ repository/connection owns the normal application lifecycle. Queries currently
 return futures; reactive history queries and update notifications are later work.
 
 Opening creates dataset/device UUIDs only for a new empty dataset. Normal
-close/reopen preserves them. `identity`, `branches`, `read`, `history`, `saveManual`, and
+close/reopen preserves them. `identity`, `branches`, `read`, `history`, `saveManual`, `saveOcr`, and
 `verifyIntegrity` expose the current supported operations. No receiving, pairing,
 restore, catalog mutation, receipt deletion, or conflict-resolution API exists.
 Product links are explicitly rejected until catalog workflows and constraints
-exist. Receipt edits currently apply only to the manual history this repository
-can create; OCR/correction provenance is not inferred from existing UI flags.
+exist. The UI currently creates receipts and reads history. The repository supports
+reviewed revisions with the same source; provenance is never inferred from UI flags.
 
-Each save validates the canonical manual command again and atomically:
+Each save validates the canonical source-specific command again and atomically:
 
 1. Checks the mutation UUID for an already committed identical command, then
    validates the receipt's expected head, confirmed branch revision/fields and
@@ -58,7 +58,7 @@ Pinned dependencies are Drift 2.35.4 and sqlite3 3.9.1, with Drift's generator
 download is needed when the installed app opens SQLite. Builds may download
 their dependencies/assets on the development PC.
 
-Schema v1 uses strict SQLite tables, foreign keys on every connection, WAL,
+Schema v2 uses strict SQLite tables, foreign keys on every connection, WAL,
 `synchronous = FULL`, and a bounded busy timeout. It stores the dataset identity,
 local change log, causal parents/dependencies, heads, stores, live receipts,
 items, review documents, historical row identities, committed cursors and
@@ -76,13 +76,14 @@ The committed Drift schema snapshot and generated migration helpers verify the
 creation baseline. Creation explicitly wraps DDL and schema-version assignment
 in one transaction; a failed creation leaves neither partial tables nor a newer
 version marker. Future/unsupported schemas fail without resetting data. This
-step has no v1-to-v2 migration yet; every future released change needs one.
+step adds a tested v1-to-v2 review-projection migration; populated migration
+and injected-failure tests preserve all existing values and event bytes.
 
 On open, a full local-history audit checks SQLite integrity/foreign keys, event
 digests, contiguous sequences, ancestry/dependencies, complete mutation groups,
 heads, selected projections, original row ownership and retry records. It
 rejects inconsistent data instead of regenerating approvals or guessing a winner.
-The v1 audit accepts only the installation's local origin; incoming histories,
+The current audit accepts only the installation's local origin; incoming histories,
 tombstones, products/aliases, conflicts and peer state require explicit later
 schema/API work. The full design contract is not implemented merely because
 schema v1 exists. Keep all events; no compaction or restore-by-copy is supported.
@@ -116,8 +117,8 @@ real receipt or source image is written by the tests.
 
 ## Next integration
 
-Keep OCR saves blocked until a separate adapter validates live image evidence and
-translates structured decisions into a provenance-preserving command. Extend the
-schema/codec deliberately for that source; do not relabel OCR as manual. History
-filters, UI corrections/deletion, product/alias management, sync conflicts and
-tested structured backup/restore remain later work.
+[Reviewed OCR saving](ocr-saving.md) now validates live evidence, preserves typed
+provenance and uses schema 2. History filters, UI corrections/deletion,
+product/alias management, sync conflicts and tested structured backup/restore
+remain later work. Existing verification counts above describe the manual-saving
+baseline; current OCR-specific tests and limits are documented separately.

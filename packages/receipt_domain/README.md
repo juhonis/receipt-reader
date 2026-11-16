@@ -1,7 +1,8 @@
 # receipt_domain
 
-Pure Dart storage-facing receipt values and manual review commands. Experimental;
-the local storage repository now uses it. The Flutter app still offers no save UI.
+Pure Dart storage-facing receipt values and source-specific review commands.
+The Flutter app uses them for manual and supported OCR saving through the local
+repository. See [reviewed OCR saving](../../docs/ocr-saving.md) for policy 2.
 
 See [storage foundations](../../docs/storage-foundations.md) for the API boundary,
 canonical fixtures, checks performed, and remaining work. The

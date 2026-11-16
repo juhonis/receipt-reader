@@ -235,11 +235,11 @@ Restore must assign a fresh local device identity and preserve imported event id
 ### Phase 2: Shared Import → Review → Save, Plus Android Capture
 - [x] Initialize one Flutter project with Android and Windows targets and externalized Finnish UI strings.
 - [ ] Separate platform services from shared domain code and adaptive workflows as the OCR spike establishes the adapter contracts.
-- [x] Configure a local manual-receipt Drift schema, strict constraints, foreign keys, atomic transactions, schema baseline/failure tests, and immutable change logging. See [local storage implementation](local-storage.md); the broader catalog/delete/conflict/sync schema and app save integration remain open.
+- [x] Configure a local manual-receipt Drift schema, strict constraints, foreign keys, atomic transactions, schema baseline/failure tests, and immutable change logging. See [local storage implementation](local-storage.md); the broader catalog/delete/conflict/sync schema remains open.
 - [ ] Implement camera guidance and clear warnings for incomplete/long receipts.
 - [ ] Implement JPEG/PNG selection and offline OCR on both platforms using the normalized OCR interface.
-- [x] Add bounded, temporary JPEG/PNG import and zoomable receipt evidence on Android/Windows; originals remain read-only. See [image import](image-import.md). OCR integration and saving remain open.
-- [x] Connect the experimental bundled Android OCR candidate to temporary image review with explicit layout confirmation and manual boundary fallback. See [Android OCR review](android-ocr-review.md); Windows OCR, issue resolution, and saving remain open.
+- [x] Add bounded, temporary JPEG/PNG import and zoomable receipt evidence on Android/Windows; originals remain read-only. See [image import](image-import.md). Android OCR and reviewed saving now use the separate workflows below; Windows OCR remains open.
+- [x] Connect the experimental bundled Android OCR candidate to temporary image review with explicit layout confirmation and manual boundary fallback. See [Android OCR review](android-ocr-review.md); Windows OCR remains open; supported issue review and saving are documented below.
 - [ ] Build editable store/date/total/row review with independent validation states.
 - [x] Add a temporary manual review prototype with independent checks, editable signed rows, and explicit no-save messaging. Evaluate the parser against private OCR outputs; [real-layout failures remain open](review-prototype.md).
 - [ ] Support adding, removing, and correcting rows and their relationships.
@@ -248,10 +248,10 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Add explicit orphan-quantity attachment and product/receipt-wide discount relationships with evidence-backed confirmation, overwrite protection, stable row targets, and non-financial explanatory price links. Remaining finding types and full evidence coverage still block OCR completion and saving.
 - [x] Add scoped item/total findings, explicit correction/classification of unparsed item text, and a structural source-word coverage inventory that exposes parser omissions. Geometry review, full human evidence review, and OCR completion remain open.
 - [x] Retain layout context and geometry source words, add image overlays and safe re-parsing into a separate temporary review, expose omissions as individual review items, and track per-row image comparison. Overlap/skew resolution and final OCR approval remain open.
-- [x] Add typed overlap/band/skew evidence decisions and a shared final evidence audit with stale-approval rejection, whole-page review, source/quantity preservation, and supported no-save OCR completion. Boundary repair, unsupported conversions, Windows OCR, and persistence still require work.
-- [x] Add independently tested durable UUIDs, range-checked receipt snapshots, canonical JSON/digest fixtures, and snapshot-bound manual confirmation commands. See [storage foundations](storage-foundations.md); the OCR evidence adapter remains open.
+- [x] Add typed overlap/band/skew evidence decisions and a shared final evidence audit with stale-approval rejection, whole-page review, source/quantity preservation, and supported no-save OCR completion. Boundary repair, unsupported conversions and Windows OCR remain open; supported persistence is documented below.
+- [x] Add independently tested durable UUIDs, range-checked receipt snapshots, canonical JSON/digest fixtures, and snapshot-bound manual confirmation commands. See [storage foundations](storage-foundations.md); the separate OCR evidence adapter is now implemented below.
 - [x] Connect explicit manual review and reconciled saving to atomic domain/change-log writes, with private database ownership and basic read-only history on both platforms. See [manual saving](manual-saving.md).
-- [ ] Add the separate live OCR evidence adapter before enabling image/OCR receipt saving.
+- [x] Add the separate live OCR evidence adapter and reviewed OCR saving, with typed provenance, schema-v2 migration/rollback tests, stable source-row ownership and native save/reopen smoke checks. See [OCR saving](ocr-saving.md). Windows OCR packaging remains open.
 - [ ] Test image cleanup on save, cancel, error, and startup after crashes.
 - [ ] Verify that imported original files remain untouched on both platforms.
 

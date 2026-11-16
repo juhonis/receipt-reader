@@ -2,12 +2,12 @@
 
 Status: design baseline, 2026-11-16. This specifies the first Drift/SQLite
 implementation. The normal app now supports [reviewed manual saving and basic
-history](manual-saving.md); image/OCR review remains temporary.
+history](manual-saving.md) and separate [reviewed OCR saving](ocr-saving.md).
 
 The first [durable value and manual-command foundation](storage-foundations.md)
 is implemented as a standalone Dart package. A [local manual-receipt repository](local-storage.md)
-now implements schema v1, atomic saves/edits and local event integrity checks.
-The OCR adapter and broader catalog/delete/conflict/sync and recovery rules below
+now implements schema v2, source-specific atomic saves/edits and local event integrity checks.
+The broader catalog/delete/conflict/sync and recovery rules below
 remain open; this contract exceeds the current schema.
 
 This document makes the [plan's data and sync rules](plan.md#3-data-architecture--financial-rules)
@@ -26,7 +26,9 @@ transport, pairing, backup UI, and product matching remain separate work.
   Transactions serialize repository mutations. No UI or plugin writes SQL.
 - SQLite schema version starts at 1. Event payload version, review-policy
   version, and future wire-protocol version are independent integers, initially
-  1. A schema migration must not rewrite historical event payloads or identities.
+  1. The current implementation uses schema 2 and OCR review policy 2 while
+  preserving manual policy 1 and receipt/event payload 1. A schema migration
+  must not rewrite historical event payloads or identities.
 - Opening a newer, unsupported schema is a visible error, never a reset. A
   failed migration rolls back; keep the original database recoverable and never
   delete it to make startup succeed. Do not offer destructive downgrade.
@@ -205,8 +207,9 @@ prior review history in immutable events, and explicitly records whether a new
 image was compared. Do not pretend the discarded image remains available.
 
 Only show save success after commit. Then release app-owned temporary evidence.
-A failed save leaves the review available to retry/cancel; cancel never writes a
-draft. Imported originals remain untouched on every path.
+A failed save holds the immutable command for retry or explicit exit to history;
+it must not offer editable content under an uncertain command. Cancel never writes
+a draft. Imported originals remain untouched on every path.
 
 ## 6. Atomic mutations and durable event identities
 
