@@ -192,3 +192,11 @@ correction; see [review behavior](android-ocr-review.md). A structural
 words outside header/row/finding/total/footer evidence. This detects omissions,
 including bands crossing the item boundary and text between competing totals;
 it does not claim correct classification or completed human review.
+
+Parsed drafts retain `ReceiptParseContext` (the immutable source page and chosen
+boundaries). Geometry/skew findings retain relevant original words for inspection,
+but those words do not count as structurally assigned merely because they appear
+in geometry evidence. `reviewFindingsForDraft` adds independent review-only
+`unassignedSource` findings for omissions without mutating the parser result.
+`unreviewedOmissions` tracks their explicit review separately from the immutable
+structural inventory; resolving an unrelated geometry warning cannot clear them.

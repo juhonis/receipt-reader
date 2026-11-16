@@ -9,6 +9,7 @@ import 'receipt_ocr.dart';
 import 'receipt_evidence_painter.dart';
 import 'relationship_dialog.dart';
 import 'row_evidence_dialog.dart';
+import 'layout_review_dialog.dart';
 
 class ReviewPage extends StatefulWidget {
   const ReviewPage({super.key, this.draft, this.evidence, this.recognizer});
@@ -25,6 +26,7 @@ class _RowFields {
   final quantity = TextEditingController();
   final rate = TextEditingController();
   QuantityUnit unit = QuantityUnit.unknown;
+  bool imageCompared = false;
   List<OcrWord> evidence = const [];
   ReviewRowInput get input => ReviewRowInput(
     name.text,
@@ -56,6 +58,44 @@ class _ReviewPageState extends State<ReviewPage> {
   final _relationships = <int, RelationshipDecision>{};
   final _rowDecisions = <int, RowEvidenceDecision>{};
   List<ParseFinding> _findings = [];
+
+  bool get _hasLayoutContext {
+    final data = _draft?.parseContext;
+    final image = widget.evidence?.image;
+    return data != null &&
+        image != null &&
+        data.page.width == image.width &&
+        data.page.height == image.height;
+  }
+
+  void _resetRowComparisons() {
+    for (final row in _rows) {
+      row.imageCompared = false;
+    }
+  }
+
+  Future<void> _inspectLayout([List<OcrWord> highlights = const []]) async {
+    if (!_hasLayoutContext) return;
+    final fresh = await showDialog<ReceiptDraft>(
+      context: context,
+      builder: (_) => LayoutReviewDialog(
+        contextData: _draft!.parseContext!,
+        image: widget.evidence!.image,
+        highlights: highlights,
+      ),
+    );
+    if (!mounted || fresh == null) return;
+    final evidence = widget.evidence!.clone();
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => ReviewPage(draft: fresh, evidence: evidence),
+        ),
+      );
+    } finally {
+      evidence.dispose();
+    }
+  }
 
   bool _isRelationship(ParseFinding finding) =>
       finding.issue == ParseIssue.quantityWithoutProduct ||
@@ -114,7 +154,11 @@ class _ReviewPageState extends State<ReviewPage> {
       if (created != null) {
         _rows.add(target!);
         _resolvedFindings.clear();
+        _resetRowComparisons();
       }
+      final previous = _rowDecisions[index];
+      if (previous != null) _rowDecisionTarget(previous)?.imageCompared = false;
+      target?.imageCompared = false;
       _rowDecisions[index] = RowEvidenceDecision(
         decision.kind,
         target,
@@ -168,12 +212,18 @@ class _ReviewPageState extends State<ReviewPage> {
             target.rate.text != decision.rate ||
             target.unit != decision.unit) {
           _resolvedFindings.clear();
+          _resetRowComparisons();
         }
         target.quantity.text = decision.quantity;
         target.rate.text = decision.rate;
         target.unit = decision.unit;
       }
       // Keep original rows/evidence intact; links are separate temporary state.
+      final previous = _relationships[index];
+      if (previous != null) {
+        _relationshipTarget(previous)?.imageCompared = false;
+      }
+      target?.imageCompared = false;
       _relationships[index] = decision;
       _findingNotes[index] = decision.note;
       _resolvedFindings.add(index);
@@ -202,6 +252,12 @@ class _ReviewPageState extends State<ReviewPage> {
 
   Future<void> _reviewFinding(int index, String message) async {
     final finding = _findings[index];
+    if ((finding.issue == ParseIssue.ambiguousGeometry ||
+            finding.issue == ParseIssue.skewAdjusted) &&
+        _hasLayoutContext) {
+      await _inspectLayout(finding.words);
+      return;
+    }
     if (isUnparsedItemFinding(finding)) {
       await _reviewUnparsedRow(index);
       return;
@@ -303,12 +359,12 @@ class _ReviewPageState extends State<ReviewPage> {
 
   void _seed(ReceiptDraft draft) {
     _draft = draft;
-    _findings = [
-      ...draft.findings,
-      for (final issue in draft.issues)
-        if (!draft.findings.any((finding) => finding.issue == issue))
-          ParseFinding(issue),
-    ];
+    _findings = reviewFindingsForDraft(draft);
+    if (draft.parseContext case final data?) {
+      _ocr = data.page;
+      _itemTop = data.itemTop / data.page.height;
+      _priceLeft = data.priceColumnLeft / data.page.width;
+    }
     for (final row in draft.rows) {
       _rows.add(
         _RowFields()
@@ -356,6 +412,7 @@ class _ReviewPageState extends State<ReviewPage> {
     _reviewed = false;
     _edited = true;
     _resolvedFindings.clear();
+    _resetRowComparisons();
   });
 
   void _showEvidence(_RowFields row) {
@@ -573,6 +630,19 @@ class _ReviewPageState extends State<ReviewPage> {
                             _findings.length - _resolvedFindings.length,
                           ),
                         ),
+                        Text(
+                          s.rowImageProgress(
+                            _rows.where((row) => row.imageCompared).length,
+                            _rows.length,
+                          ),
+                          key: const Key('row-image-progress'),
+                        ),
+                        if (_hasLayoutContext)
+                          OutlinedButton(
+                            key: const Key('inspect-layout'),
+                            onPressed: () => _inspectLayout(),
+                            child: Text(s.layoutReviewTitle),
+                          ),
                         for (var f = 0; f < _findings.length; f++)
                           Card(
                             child: Padding(
@@ -651,6 +721,15 @@ class _ReviewPageState extends State<ReviewPage> {
                             ),
                             children: [
                               Text(s.coverageHint),
+                              Text(
+                                s.coverageReviewRemaining(
+                                  unreviewedOmissions(
+                                    coverage,
+                                    _findings,
+                                    _resolvedFindings,
+                                  ).length,
+                                ),
+                              ),
                               if (!coverage.complete) ...[
                                 Text(s.coverageMissing),
                                 for (final word in coverage.unassignedWords)
@@ -859,6 +938,16 @@ class _ReviewPageState extends State<ReviewPage> {
                                     key: ValueKey('row-evidence-$i'),
                                     onPressed: () => _showEvidence(_rows[i]),
                                     child: Text(s.rowEvidence),
+                                  ),
+                                if (_draft != null && widget.evidence != null)
+                                  CheckboxListTile(
+                                    key: ValueKey('row-image-compared-$i'),
+                                    title: Text(s.rowImageCompared),
+                                    value: _rows[i].imageCompared,
+                                    onChanged: (value) => setState(() {
+                                      _rows[i].imageCompared = value ?? false;
+                                      _reviewed = false;
+                                    }),
                                   ),
                                 DropdownButtonFormField<LineKind>(
                                   initialValue: _rows[i].kind,

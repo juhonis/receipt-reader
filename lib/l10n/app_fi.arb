@@ -142,5 +142,20 @@
   "@coverageSummary": {"placeholders": {"count": {"type": "int"}, "missing": {"type": "int"}}},
   "coverageHint": "Sanojen mukanaolo rivissä, tarkistuskohdassa tai kuitin muussa osassa ei takaa oikeaa tulkintaa. Tarkista myös koko kuitti ja kaikki avoimet huomiot.",
   "coverageMissing": "Näitä sanoja ei ole liitetty mihinkään käsittelyn osaan. Kuitin asettelu tai tulkinta vaatii korjausta ennen valmistumista.",
-  "coverageShowMissing": "Näytä käsittelyn ulkopuolelle jäänyt teksti"
+  "coverageShowMissing": "Näytä käsittelyn ulkopuolelle jäänyt teksti",
+  "coverageReviewRemaining": "Alkuperäisistä puuttuvista sanoista vielä tarkistamatta: {count}. Jokaisella on oma tarkistuskohta. Alkuperäinen kattavuusluettelo säilyy.",
+  "@coverageReviewRemaining": {"placeholders": {"count": {"type": "int"}}},
+  "layoutReviewTitle": "Tarkista kuitin asettelu",
+  "layoutReviewHint": "Vertaa koko kuittia riviehdotuksiin. Punainen raja on tuotealueen alku ja sininen rivisummien sarakkeen vasen reuna. Oranssit laatikot näyttävät tämän asetteluhuomion sanat. Voit suurentaa kuvaa. Tämä näkymä ei merkitse asetteluongelmaa käsitellyksi.",
+  "layoutWordBoxes": "Näytä kaikkien OCR-sanojen rajat",
+  "layoutPreview": "Esikatsele tulkintaa näillä rajoilla",
+  "layoutPreviewSummary": "Riviehdotuksia: {rows}, tulkintahuomioita: {issues}, käsittelyn ulkopuolisia sanoja: {missing}.",
+  "@layoutPreviewSummary": {"placeholders": {"rows": {"type": "int"}, "issues": {"type": "int"}, "missing": {"type": "int"}}},
+  "layoutPreviewTotal": "Tulkittu loppusumma: {total} €",
+  "@layoutPreviewTotal": {"placeholders": {"total": {"type": "String"}}},
+  "layoutFreshReviewHint": "Avaa uusi väliaikainen tarkistus esikatselun pohjalta. Nykyiset korjaukset, kohdistukset ja merkinnät säilyvät tässä tarkistuksessa; palaat niihin Takaisin-painikkeella. Uuden tarkistuksen tiedot ja rivit tarkistetaan alusta.",
+  "layoutOpenFresh": "Avaa uusi tarkistus",
+  "rowImageProgress": "Kuittikuvaan verrattuja rivejä: {checked}/{total}.",
+  "@rowImageProgress": {"placeholders": {"checked": {"type": "int"}, "total": {"type": "int"}}},
+  "rowImageCompared": "Vertasin tämän rivin nimen, summan, tyypin ja mahdolliset määrätiedot kuittikuvaan"
 }

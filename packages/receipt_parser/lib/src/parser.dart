@@ -15,6 +15,7 @@ enum ParseIssue {
   skewAdjusted,
   totalLabelNeedsReview,
   normalizedOcrAmount,
+  unassignedSource,
 }
 
 class WrappedNameCandidate {
@@ -32,6 +33,12 @@ class QuantityRateCandidate {
 }
 
 enum FindingScope { receipt, item, total }
+
+class ReceiptParseContext {
+  const ReceiptParseContext(this.page, this.itemTop, this.priceColumnLeft);
+  final OcrPage page;
+  final double itemTop, priceColumnLeft;
+}
 
 /// Structural source coverage, not proof that text was read or classified
 /// correctly. Word identities are preserved, including identical OCR strings.
@@ -84,6 +91,7 @@ class ReceiptDraft {
     Iterable<Iterable<OcrWord>> rowEvidence = const [],
     Iterable<ParseFinding> findings = const [],
     this.evidenceCoverage,
+    this.parseContext,
   }) : rowEvidence = List.unmodifiable(
          rowEvidence.map((words) => List<OcrWord>.unmodifiable(words)),
        ),
@@ -94,6 +102,7 @@ class ReceiptDraft {
        findings = List.unmodifiable(findings);
   final List<ParseFinding> findings;
   final ReceiptEvidenceCoverage? evidenceCoverage;
+  final ReceiptParseContext? parseContext;
   final List<FinancialRow> rows;
 
   /// Original words associated with each row, including attached quantity lines
@@ -149,14 +158,21 @@ ReceiptDraft parseReceipt(
     );
   }
 
-  if (page.baselineSlope.abs() > .005) report(ParseIssue.skewAdjusted);
-  if (page.words.any(
-    (w) =>
-        (w.box.top < itemTop && w.box.bottom > itemTop) ||
-        (w.box.top >= itemTop &&
-            w.box.left < priceColumnLeft &&
-            w.box.right > priceColumnLeft),
-  )) {
+  if (page.baselineSlope.abs() > .005) {
+    activeWords = page.words;
+    report(ParseIssue.skewAdjusted);
+  }
+  final boundaryWords = page.words
+      .where(
+        (w) =>
+            (w.box.top < itemTop && w.box.bottom > itemTop) ||
+            (w.box.top >= itemTop &&
+                w.box.left < priceColumnLeft &&
+                w.box.right > priceColumnLeft),
+      )
+      .toList();
+  if (boundaryWords.isNotEmpty) {
+    activeWords = boundaryWords;
     report(ParseIssue.ambiguousGeometry);
   }
   final bands = <List<OcrWord>>[];
@@ -175,7 +191,10 @@ ReceiptDraft parseReceipt(
       return (page.baselineY(band.first) - page.baselineY(word)).abs() <=
           tolerance;
     }).toList();
-    if (matches.length > 1) report(ParseIssue.ambiguousGeometry);
+    if (matches.length > 1) {
+      activeWords = [word, ...matches.expand((band) => band)];
+      report(ParseIssue.ambiguousGeometry);
+    }
     if (matches.isEmpty) {
       bands.add([word]);
     } else {
@@ -383,11 +402,20 @@ ReceiptDraft parseReceipt(
     wrappedNames,
     rowEvidence: rowEvidence,
     findings: findings,
+    parseContext: ReceiptParseContext(page, itemTop, priceColumnLeft),
     evidenceCoverage: ReceiptEvidenceCoverage(
       sourceWords: page.words,
       header: page.words.where((word) => word.box.bottom <= itemTop),
       rows: rowEvidence.expand((words) => words),
-      findings: findings.expand((finding) => finding.words),
+      // Geometry evidence locates a problem; it does not classify its words.
+      // Whole-page skew evidence must not conceal section omissions.
+      findings: findings
+          .where(
+            (finding) =>
+                finding.issue != ParseIssue.ambiguousGeometry &&
+                finding.issue != ParseIssue.skewAdjusted,
+          )
+          .expand((finding) => finding.words),
       totals: candidates.expand((words) => words),
       footer: footer < 0
           ? const []

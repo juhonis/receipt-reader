@@ -290,6 +290,31 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('row-evidence-crop')), findsOneWidget);
       expect(find.byKey(const Key('review-complete')), findsNothing);
+      await tester.tap(find.text('Sulje'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('finding-0')));
+      await tester.pumpAndSettle();
+      await action(tester, 'Otsikko tai muu metatieto');
+      await tester.tap(find.byKey(const Key('row-evidence-non-financial')));
+      await compare(tester);
+      await tester.tap(find.byKey(const Key('confirm-row-evidence')));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining(
+          'Alkuperäisistä puuttuvista sanoista vielä tarkistamatta: 0.',
+        ),
+        findsOneWidget,
+      );
+      expect(value.evidenceCoverage!.unassignedWords, source);
+      await tester.enterText(find.byKey(const Key('total')), '2,01');
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining(
+          'Alkuperäisistä puuttuvista sanoista vielä tarkistamatta: 1.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('review-complete')), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );

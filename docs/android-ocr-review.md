@@ -236,3 +236,59 @@ The separate STORE NOTE finding remained open. The coverage inventory counted
 15 source words and no structural omissions without clearing that finding.
 Original structured OCR output remained unchanged. No private images were used.
 Restored airplane mode and the temporary handwriting-input setting afterward.
+
+## Layout inspection, fresh interpretation, and row comparison
+
+Parsed drafts now retain their original OCR page and the explicit item/price
+boundaries. **Tarkista kuitin asettelu** opens a zoomable full-image view with
+red/blue section boundaries and optional OCR word rectangles. Opening a geometry
+finding highlights its affected words in orange, using the original upright
+pixel coordinates. Boundary-crossing and competing-band findings retain their
+word context; skew findings retain the page words.
+
+Adjust the boundaries and explicitly preview the interpretation. The preview
+shows proposed rows, total, findings, and omissions; changing a slider invalidates
+that preview. **Avaa uusi tarkistus** opens a separate temporary review from the
+preview. Existing edits, row relationships, notes, and comparison marks stay in
+the previous review and can be reached with Back. The new review starts from
+the parser output with no inherited approvals or branch selection. No native
+OCR rerun or arithmetic-driven layout search occurs.
+
+Each review owns a separate handle to the same immutable image pixels. Closing
+the new review releases its handle without invalidating the old preview. No
+image files or global image-cache entries are created. Layout inspection is
+available only with retained parser context and matching image dimensions.
+
+Geometry evidence is now explicitly excluded from structural word accounting:
+highlighting a word does not explain its role. This is especially important for
+whole-page skew evidence, which must not hide words lost across a section boundary.
+Every structurally omitted word gets its own review-only finding and can be
+linked, corrected, or explicitly classified with the existing image-backed flow.
+The original inventory remains immutable; a separate count reports which
+omissions still need review. Editing data reopens those reviews.
+
+OCR draft rows now have an explicit image-comparison checkbox covering name,
+amount, type, and quantity/rate fields. The progress count includes manually
+added rows. Data edits reset all row comparisons; evidence/relationship changes
+reset affected rows, and adding a row resets the existing comparisons as well.
+These marks are temporary review progress, not a completion/persistence grant.
+
+Opening or closing layout inspection does not resolve geometry findings.
+Correcting boundaries may remove a boundary issue in the new parser output,
+while the old review retains its original warning. Overlap/skew and split/merged
+row cases still need explicit resolution rules; final header/footer/field evidence
+approval is also pending. OCR completion and saving remain disabled even with
+matching totals, all currently supported findings handled, or all row boxes checked.
+
+Verification: 56 parser tests and 35 Flutter tests; both analyzers and Android/
+Windows debug builds pass. Tests cover preserved geometry, independent omitted
+word reviews, preview invalidation, corrected fresh layouts, parent-edit retention,
+image-handle lifetime, row-comparison invalidation, and narrow enlarged layouts.
+
+Offline Android emulator smoke (upgrade install, synthetic receipt only) confirmed
+the full-image layout inspector and preview: two proposed rows, total 6,00, two
+unresolved findings, and zero structural omissions. Marked one row compared in
+the original review, opened a preview-based fresh review with 0/2 compared rows,
+then used Back and observed the original 1/2 comparison state and findings intact.
+Restored the emulator's original network setting afterward. This does not replace
+fresh-install release checks or native Windows picker testing.

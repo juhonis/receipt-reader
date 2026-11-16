@@ -18,6 +18,13 @@ class ReceiptEvidence {
   final ui.Image image;
   bool _disposed = false;
   bool get isDisposed => _disposed;
+
+  /// Another route-owned handle to the same immutable pixels. No file copy.
+  ReceiptEvidence clone() {
+    if (_disposed) throw StateError('Receipt evidence already disposed');
+    return ReceiptEvidence._(image.clone());
+  }
+
   void dispose() {
     if (!_disposed) {
       image.dispose();

@@ -1,6 +1,7 @@
 import 'finance.dart';
 import 'parser.dart';
 import 'review.dart';
+import 'geometry.dart';
 
 enum RowEvidenceKind {
   financialRow,
@@ -15,7 +16,41 @@ bool isUnparsedItemFinding(ParseFinding finding) =>
     finding.rowIndex == null &&
     (finding.issue == ParseIssue.unclassifiedRow ||
         finding.issue == ParseIssue.invalidAmount ||
-        finding.issue == ParseIssue.normalizedOcrAmount);
+        finding.issue == ParseIssue.normalizedOcrAmount ||
+        finding.issue == ParseIssue.unassignedSource);
+
+/// Review-only findings retain omissions separately from parser warnings.
+List<ParseFinding> reviewFindingsForDraft(ReceiptDraft draft) =>
+    List.unmodifiable([
+      ...draft.findings,
+      for (final issue in draft.issues)
+        if (!draft.findings.any((finding) => finding.issue == issue))
+          ParseFinding(issue),
+      for (final word in draft.evidenceCoverage?.unassignedWords ?? <OcrWord>[])
+        ParseFinding(
+          ParseIssue.unassignedSource,
+          scope: FindingScope.item,
+          words: [word],
+        ),
+    ]);
+
+List<OcrWord> unreviewedOmissions(
+  ReceiptEvidenceCoverage coverage,
+  List<ParseFinding> findings,
+  Set<int> handled,
+) {
+  final accounted = {
+    for (final index in handled)
+      if (index >= 0 &&
+          index < findings.length &&
+          findings[index].issue == ParseIssue.unassignedSource &&
+          findings[index].scope == FindingScope.item)
+        ...findings[index].words,
+  };
+  return List.unmodifiable(
+    coverage.unassignedWords.where((word) => !accounted.contains(word)),
+  );
+}
 
 /// Field prerequisites only; image comparison and an explanation are required
 /// by the review workflow. No arithmetic-based inference of missing rows.
