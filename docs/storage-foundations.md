@@ -2,9 +2,9 @@
 
 Implemented in `packages/receipt_domain`, following the
 [local storage contract](local-storage-contract.md). This is a standalone Dart
-package with no Flutter, SQLite, image, or network integration of its own. The app still
-performs temporary reviews and saves nothing. No emulator restart is needed for
-this library-only step.
+package with no Flutter, SQLite, image, or network integration of its own. The app
+now uses it for [manual saving and history](manual-saving.md); image/OCR reviews
+remain temporary until a separate evidence-to-storage adapter is implemented.
 
 ## Values and receipt validation
 
@@ -99,12 +99,13 @@ evolve; a future migration must not fabricate a new review of old data.
 signed rounding, row identity retention, relationship/branch constraints, date
 precision and DST, immutable inputs, golden serialization/hashes, malformed
 payloads, unsupported OCR assertions, and stale manual confirmation. All pass,
-as do 68 parser tests and 39 Flutter tests. Domain/parser/app analyzers are clean.
-No native build or emulator smoke was run for this library-only change.
+as do 68 parser tests, 40 storage tests and 53 Flutter tests. All package/app
+analyzers are clean. Native save/reopen verification on Android and Windows is
+documented in [manual saving](manual-saving.md).
 
 The [local manual-receipt repository](local-storage.md) now adds Drift schema v1
-and transactional writes, with constraint/migration/failure tests. Before enabling app saves,
-add Android automatic-backup/transfer exclusions, branch selection and explicit
-manual row review controls. Then add the OCR evidence adapter through the same
-storage boundary; preserve the no-save behaviour until each path is complete.
-History, correction/deletion, backup/restore and networking remain later steps.
+and transactional writes, with constraint/migration/failure tests. The app has
+private database ownership, Android backup/transfer exclusions, explicit manual
+field/row/relationship checks, saving and basic read-only history. Add the separate
+OCR evidence adapter through the same storage boundary next. UI correction and
+deletion, backup/restore and networking remain later steps.

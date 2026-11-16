@@ -180,5 +180,65 @@
   "auditOriginalQuantities": "Alkuperäisen rivin määrätietoja puuttuu tai ne eivät täsmää.",
   "auditOpenFindings": "Avoimia tai nykyisillä tiedoilla kelpaamattomia tulkintahuomioita on jäljellä.",
   "auditOmissions": "Käsittelyn ulkopuolisia sanoja on vielä tarkistamatta.",
-  "auditDiscountRelationships": "Alennusrivin kohdistus puuttuu tai ei ole kelvollinen. Käsin lisättyjen alennusten kohdistus on vielä kesken."
+  "auditDiscountRelationships": "Alennusrivin kohdistus puuttuu tai ei ole kelvollinen. Käsin lisättyjen alennusten kohdistus on vielä kesken.",
+  "localStorageNotice": "Voit tallentaa käsin syötetyn ja tarkistetun kuitin tälle laitteelle. Kuittikuvan ja tekstintunnistuksen kokeilu ei vielä tallenna tietoja.",
+  "manualEntryTitle": "Lisää kuitti käsin",
+  "manualEntryNotice": "Syötä tiedot alkuperäisestä kuitista. Tarkista toimipiste, päivämäärä, loppusumma ja jokainen rivi erikseen. Vahvistuksen jälkeen tiedot tallennetaan vain tälle laitteelle. Kuvat eivät sisälly tallennukseen.",
+  "newBranch": "Luo uusi toimipiste",
+  "newBranchNotice": "Valitse olemassa oleva toimipiste, jos se on sama. Uusi toimipiste luodaan omalla tunnisteellaan, vaikka nimi olisi sama. Kirjoita nimi ja sijainti niin, että erotat toimipisteet.",
+  "branchLoadFailed": "Toimipisteiden lukeminen epäonnistui. Yritä uudelleen ennen tietojen syöttämistä.",
+  "manualDateReviewed": "Olen tarkistanut päivämäärän ja mahdollisen kellonajan kuitista",
+  "manualTotalReviewed": "Olen tarkistanut painetun loppusumman kuitista",
+  "manualRowReviewed": "Olen tarkistanut rivin tiedot, määrän ja mahdollisen kohdistuksen kuitista",
+  "manualRowNumber": "Rivi {number}",
+  "@manualRowNumber": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "manualRelationship": "Rivin kohdistus",
+  "receiptDiscount": "Koko kuitin alennus",
+  "standaloneDeposit": "Erillinen pantti tai pantin palautus",
+  "parentProduct": "Tuoterivi {number}: {name}",
+  "@parentProduct": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "adjustmentReason": "Oikaisun perustelu",
+  "adjustmentReasonRequired": "Kirjoita oikaisurivin perustelu. Oikaisu ei saa peittää puuttuvaa tuotetta.",
+  "manualRelationshipInvalid": "Valitse alennuksen tai pantin kohdistus. Alennussumman pitää olla negatiivinen, ja tuotekohdistuksen pitää viitata olemassa olevaan tuoteriviin.",
+  "manualDateInvalid": "Tarkista päivämäärä ja mahdollinen kellonaika. Epäselvää tai puuttuvaa Helsingin kellonaikaa ei voi tallentaa. Älä poista kellonaikaa vain ohittaaksesi virheen.",
+  "manualTotalInvalid": "Täytä loppusumma kahdella desimaalilla ja tarkista, että rivien summa vastaa sitä. Summien pitää mahtua tallennuksen lukurajoihin.",
+  "manualRowsInvalid": "Täytä vähintään yksi rivi, sen kuvaus ja summa kahdella desimaalilla. Tarkista myös lukujen sallitut rajat.",
+  "manualValid": "Tiedot ovat kelvollisia ja summat täsmäävät. Vahvista vielä kaikki tarkistukset.",
+  "manualRecheckNotice": "Tietojen muuttaminen poistaa kaikki tarkistusmerkinnät. Tarkista muuttunut kuitti uudelleen ennen tallentamista.",
+  "manualFinalTitle": "Vahvista kuitin tallennus",
+  "manualFinalNotice": "Olet tarkistanut toimipisteen, päivämäärän, tuotteet, palautukset, alennukset, kohdistukset ja summat alkuperäisestä kuitista. Tallennus ei vielä sisällä varmuuskopiointia tai synkronointia.",
+  "saveReceipt": "Tallenna tarkistettu kuitti",
+  "savingReceipt": "Tallennetaan…",
+  "retrySave": "Yritä samaa tallennusta uudelleen",
+  "pendingSaveNotice": "Tarkistettu tallennus on lukittu. Uudelleenyritys käyttää samaa tallennustunnistetta eikä luo uutta kuittia.",
+  "manualSaveFailed": "Tallennusta ei voitu vahvistaa. Yritä samaa tallennusta uudelleen. Jos suljet näkymän, tarkista historiasta, tallentuiko kuitti, ennen kuin syötät sen uudelleen.",
+  "closeToHistory": "Sulje ja tarkista historia",
+  "cancelAction": "Peruuta",
+  "retryAction": "Yritä uudelleen",
+  "historyTitle": "Kuittihistoria",
+  "historyNotice": "Käsin tallennetut kuitit uusimmasta painetusta päivämäärästä alkaen. Historia on vain tällä laitteella. Muokkaus, poisto ja varmuuskopiointi lisätään myöhemmin.",
+  "historyEmpty": "Ei vielä tallennettuja kuitteja.",
+  "historyFailed": "Historian lukeminen epäonnistui. Tietoja ei ole nollattu. Yritä uudelleen.",
+  "refreshHistory": "Päivitä historia",
+  "moreHistory": "Näytä lisää kuitteja",
+  "savedReceiptTitle": "Tallennettu kuitti",
+  "savedManualNotice": "Käsin syötetty ja tarkistettu kuitti. Luvut ja rivien kohdistukset on tallennettu; kuittikuvaa ei ole tallennettu.",
+  "storageOpening": "Avataan paikallista kuittitietokantaa…",
+  "storageOpenFailed": "Kuittitietokantaa ei voitu avata. Tietoja ei ole poistettu tai nollattu. Yritä uudelleen. Jos virhe toistuu, säilytä sovelluksen tiedot selvitystä varten.",
+  "manualPrepareFailed": "Tallennuksen valmistelu epäonnistui. Tiedot voivat olla liian laajat tai muuttuneet tarkistuksen jälkeen. Tarkista ja tarvittaessa lyhennä tietoja ennen uutta tarkistusta."
 }

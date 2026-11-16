@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cupertino_ui/cupertino_ui.dart'
     show GlobalCupertinoLocalizations;
 import 'package:flutter_localizations/flutter_localizations.dart'
@@ -7,9 +9,17 @@ import 'package:material_ui/material_ui.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'review_page.dart';
 import 'receipt_import.dart';
+import 'local_store.dart';
+import 'manual_receipt_page.dart';
+import 'history_page.dart';
 
 class ReceiptReaderApp extends StatelessWidget {
-  const ReceiptReaderApp({super.key, this.imagePicker = pickReceiptImage});
+  const ReceiptReaderApp({
+    super.key,
+    this.imagePicker = pickReceiptImage,
+    this.storageOpener,
+  });
+  final Future<LocalStore> Function()? storageOpener;
   final Future<ReceiptEvidence?> Function() imagePicker;
 
   @override
@@ -29,13 +39,16 @@ class ReceiptReaderApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
       ),
-      home: _HomePage(imagePicker: imagePicker),
+      home: storageOpener == null
+          ? _HomePage(imagePicker: imagePicker)
+          : _StorageGate(opener: storageOpener!, imagePicker: imagePicker),
     );
   }
 }
 
 class _HomePage extends StatefulWidget {
-  const _HomePage({required this.imagePicker});
+  const _HomePage({required this.imagePicker, this.store});
+  final LocalStore? store;
   final Future<ReceiptEvidence?> Function() imagePicker;
   @override
   State<_HomePage> createState() => _HomePageState();
@@ -44,6 +57,22 @@ class _HomePage extends StatefulWidget {
 class _HomePageState extends State<_HomePage> {
   bool _importing = false;
   ImportFailure? _failure;
+
+  Future<void> _manual() async {
+    final store = widget.store;
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => store == null
+            ? const ReviewPage()
+            : ManualReceiptPage(store: store),
+      ),
+    );
+    if (saved == true && mounted && store != null) await _history();
+  }
+
+  Future<void> _history() => Navigator.of(context).push<void>(
+    MaterialPageRoute(builder: (_) => HistoryPage(store: widget.store!)),
+  );
 
   Future<void> _import() async {
     if (_importing) return;
@@ -111,7 +140,12 @@ class _HomePageState extends State<_HomePage> {
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 12),
-                  Text(strings.developmentNotice, textAlign: TextAlign.center),
+                  Text(
+                    widget.store == null
+                        ? strings.developmentNotice
+                        : strings.localStorageNotice,
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: 20),
                   FilledButton.icon(
                     onPressed: _importing ? null : _import,
@@ -128,16 +162,94 @@ class _HomePageState extends State<_HomePage> {
                     }),
                   const SizedBox(height: 12),
                   FilledButton(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const ReviewPage(),
-                      ),
+                    onPressed: _manual,
+                    child: Text(
+                      widget.store == null
+                          ? strings.startReview
+                          : strings.manualEntryTitle,
                     ),
-                    child: Text(strings.startReview),
                   ),
+                  if (widget.store != null)
+                    TextButton.icon(
+                      key: const Key('open-history'),
+                      onPressed: _history,
+                      icon: const Icon(Icons.history),
+                      label: Text(strings.historyTitle),
+                    ),
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Opens once, retains the connection across routes, and closes even when the
+/// widget is disposed before the asynchronous open completes. No reset fallback.
+class _StorageGate extends StatefulWidget {
+  const _StorageGate({required this.opener, required this.imagePicker});
+  final Future<LocalStore> Function() opener;
+  final Future<ReceiptEvidence?> Function() imagePicker;
+  @override
+  State<_StorageGate> createState() => _StorageGateState();
+}
+
+class _StorageGateState extends State<_StorageGate> {
+  LocalStore? _store;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _open();
+  }
+
+  Future<void> _open() async {
+    setState(() => _failed = false);
+    try {
+      final store = await widget.opener();
+      if (!mounted) {
+        await store.close();
+        return;
+      }
+      setState(() => _store = store);
+    } catch (_) {
+      if (mounted) setState(() => _failed = true);
+    }
+  }
+
+  @override
+  void dispose() {
+    final store = _store;
+    if (store != null) unawaited(store.close().catchError((Object _) {}));
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_store case final store?) {
+      return _HomePage(imagePicker: widget.imagePicker, store: store);
+    }
+    final s = AppLocalizations.of(context)!;
+    return Scaffold(
+      appBar: AppBar(title: Text(s.appTitle)),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!_failed) const CircularProgressIndicator(),
+              Text(_failed ? s.storageOpenFailed : s.storageOpening),
+              if (_failed)
+                TextButton(
+                  key: const Key('retry-storage'),
+                  onPressed: _open,
+                  child: Text(s.retryAction),
+                ),
+            ],
           ),
         ),
       ),

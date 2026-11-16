@@ -100,6 +100,30 @@ final class ReceiptRepository {
     return List.unmodifiable(rows.map(_branch));
   });
 
+  /// One consistent, bounded page, ordered by printed Helsinki civil date.
+  /// Date-only receipts precede earlier days without inventing an instant.
+  /// Ties use the durable ID so pagination is deterministic.
+  Future<List<StoredReceipt>> history({int limit = 30, int offset = 0}) {
+    if (limit < 1 || limit > 200 || offset < 0) {
+      throw ArgumentError('invalid_history_page');
+    }
+    return _guard(
+      () => _db.transaction(() async {
+        final rows = await _rows(
+          'SELECT id FROM receipts ORDER BY printed_year DESC, printed_month DESC, '
+          'printed_day DESC, COALESCE(printed_hour, -1) DESC, '
+          'COALESCE(printed_minute, -1) DESC, COALESCE(printed_second, -1) DESC, '
+          'id ASC LIMIT ? OFFSET ?',
+          [limit, offset],
+        );
+        return List.unmodifiable([
+          for (final row in rows)
+            (await _read(DurableId.parse(row['id']! as String)))!,
+        ]);
+      }),
+    );
+  }
+
   Future<StoredReceipt?> read(DurableId id) =>
       _guard(() => _db.transaction(() => _read(id)));
 

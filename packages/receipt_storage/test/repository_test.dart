@@ -17,6 +17,63 @@ void main() {
   setUp(() async => h = await Harness.create());
   tearDown(() => h.dispose());
 
+  test(
+    'history pages use civil dates, stable ties and exact signed amounts',
+    () async {
+      final total = BigInt.parse('-9223372036854775808');
+      await h.repository.saveManual(
+        command(
+          snapshot(
+            number: 10,
+            date: '17.11.2026',
+            total: total,
+            items: [row(number: 11, cents: total)],
+          ),
+          mutation: 12,
+        ),
+      );
+      final branch = (await h.repository.branches()).single;
+      for (final entry in [
+        (20, '16.11.2026 23:59'),
+        (30, '17.11.2026'),
+        (40, '17.11.2026 00:01'),
+      ]) {
+        await h.repository.saveManual(
+          command(
+            snapshot(
+              number: entry.$1,
+              date: entry.$2,
+              branch: branch,
+              items: [row(number: entry.$1 + 1)],
+            ),
+            mutation: entry.$1 + 2,
+          ),
+        );
+      }
+      await h.reopen();
+      final first = await h.repository.history(limit: 2);
+      final second = await h.repository.history(limit: 2, offset: 2);
+      expect([...first, ...second].map((r) => r.document.snapshot.id), [
+        id(40),
+        id(10),
+        id(30),
+        id(20),
+      ]);
+      expect(first.last.document.snapshot.totalCents, total);
+      expect(first.last.document.snapshot.date.utcInstantMs, isNull);
+      expect(await h.repository.history(offset: 4), isEmpty);
+      for (final limit in [0, -1, 201]) {
+        expect(() => h.repository.history(limit: limit), throwsArgumentError);
+      }
+      expect(() => h.repository.history(offset: -1), throwsArgumentError);
+      // A history query must still check canonical documents and projections.
+      h.raw.execute('UPDATE receipts SET total_amount_cents = 0 WHERE id = ?', [
+        id(10).value,
+      ]);
+      await expectLater(h.repository.history(), fails('receiptProjection'));
+    },
+  );
+
   test('canonical event envelope matches independent bytes and SHA-256', () async {
     h.raw.execute('UPDATE dataset_state SET dataset_id = ?, device_id = ?', [
       id(90).value,

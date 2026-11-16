@@ -249,8 +249,9 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Add scoped item/total findings, explicit correction/classification of unparsed item text, and a structural source-word coverage inventory that exposes parser omissions. Geometry review, full human evidence review, and OCR completion remain open.
 - [x] Retain layout context and geometry source words, add image overlays and safe re-parsing into a separate temporary review, expose omissions as individual review items, and track per-row image comparison. Overlap/skew resolution and final OCR approval remain open.
 - [x] Add typed overlap/band/skew evidence decisions and a shared final evidence audit with stale-approval rejection, whole-page review, source/quantity preservation, and supported no-save OCR completion. Boundary repair, unsupported conversions, Windows OCR, and persistence still require work.
-- [x] Add independently tested durable UUIDs, range-checked receipt snapshots, canonical JSON/digest fixtures, and snapshot-bound manual confirmation commands. See [storage foundations](storage-foundations.md); app integration and the OCR evidence adapter remain open.
-- [ ] Save only reviewed, reconciled receipts; verify atomic domain/change-log writes.
+- [x] Add independently tested durable UUIDs, range-checked receipt snapshots, canonical JSON/digest fixtures, and snapshot-bound manual confirmation commands. See [storage foundations](storage-foundations.md); the OCR evidence adapter remains open.
+- [x] Connect explicit manual review and reconciled saving to atomic domain/change-log writes, with private database ownership and basic read-only history on both platforms. See [manual saving](manual-saving.md).
+- [ ] Add the separate live OCR evidence adapter before enabling image/OCR receipt saving.
 - [ ] Test image cleanup on save, cancel, error, and startup after crashes.
 - [ ] Verify that imported original files remain untouched on both platforms.
 
@@ -286,8 +287,25 @@ Restore must assign a fresh local device identity and preserve imported event id
 
 ## 8. Immediate Next Step
 
-The temporary Android OCR review supports evidence-backed completion, with explicit no-save messaging. The [durable receipt foundation](storage-foundations.md) and [transactional local repository](local-storage.md) are implemented and independently tested. The normal app still opens no database or saved history; backup/restore, Windows OCR packaging and final engine selection remain open.
+The [manual save and basic history workflow](manual-saving.md) is implemented on
+Android and Windows, using the [durable receipt foundation](storage-foundations.md)
+and [transactional local repository](local-storage.md). The normal app opens one
+application-support database; Android backup/transfer exclusions are configured.
+Native UI save/reopen tests pass on both platforms, including airplane mode on
+Android. The temporary Android OCR review still supports evidence-backed
+completion with explicit no-save messaging.
 
-Next, add Android backup/transfer exclusions and an application-support database lifecycle adapter, confirmed branch selection, and manual field/row/relationship controls matching the command contract. Then connect explicit manual saving and basic history to the repository, followed by the separate live OCR evidence adapter. A matching total or the prototype's completion flag alone cannot authorize a save.
+Next, build the separate live OCR evidence-to-storage adapter: preserve source
+provenance and typed row/relationship/quantity decisions, validate the live
+snapshot-bound evidence audit, and add a versioned domain command/codec plus
+repository validation. Only then expose OCR saving through the same transactional
+boundary. A matching total, prototype completion flag, decoded assertion or
+relabelled manual command cannot authorize it.
 
-Keep representative S-kaupat images and OCR exports in ignored `localreceipts/`; committed fixtures remain synthetic or explicitly anonymized. Complete standalone import/review/save/edit workflows on both platforms and tested recovery before implementing bidirectional sync. Broader parser fixtures, clean-install OCR checks, privacy/permission audits, and native Windows picker verification remain required.
+After that, add history filters/corrections/deletion and tested structured
+backup/restore. Windows OCR packaging and final engine selection remain open.
+Keep representative S-kaupat images and OCR exports in ignored `localreceipts/`;
+committed fixtures remain synthetic or explicitly anonymized. Complete standalone
+workflows and tested recovery before bidirectional sync. Broader parser fixtures,
+clean-install OCR checks, privacy/permission audits, manufacturer transfer tests,
+and native Windows picker verification remain required.

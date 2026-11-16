@@ -139,9 +139,20 @@ step without changing the app's NDK requirement:
 & "$env:ANDROID_HOME\cmdline-tools\latest\bin\android.exe" --sdk "$env:ANDROID_HOME" sdk install ndk/28.2.13676358
 ```
 
+The application-support path plugin also uses Android SDK Platform **35**
+(revision 2), installed alongside platform 36 by Gradle on 2026-11-16. Keep both
+platforms available; Gradle used the already accepted SDK licenses.
+
 The first Android build downloads Gradle and build dependencies. Subsequent
 builds reuse the local caches. Flutter uses Android Studio's bundled JDK 21,
 even though invoking plain `java` in this PC's terminal may find Java 8.
+
+## Local application data
+
+The normal app now saves reviewed manual receipts in its platform application-
+support directory, outside this checkout. See [manual saving and history](manual-saving.md)
+for paths, review/retry behaviour, native smoke commands and backup limitations.
+WSL Git commands do not move or back up this database.
 
 ## Commit style
 

@@ -4,21 +4,22 @@
 [storage contract](local-storage-contract.md), using the checked values and
 manual commands from [receipt foundations](storage-foundations.md).
 
-The normal Flutter app still opens no database and offers no save action. Its
-dependencies now include the repository so native SQLite packaging is checked
-on Android and Windows. The integration test explicitly opens and removes a
-temporary database using invented data; real receipt images/exports are unused.
+The normal Flutter app now owns an application-support database and provides
+[explicit manual saving and basic history](manual-saving.md) on Android and
+Windows. OCR/image reviews remain temporary and cannot use the manual save path.
+Native integration tests create and remove isolated synthetic databases; real
+receipt images/exports are unused.
 
 ## Supported repository behaviour
 
 `ReceiptRepository.open(File)` explicitly opens a caller-selected private file.
-The future app adapter must provide its application-support path; this package
+The app adapter provides its application-support path; this package
 does not choose Downloads, the checkout, or an imported source path. One
 repository/connection owns the normal application lifecycle. Queries currently
 return futures; reactive history queries and update notifications are later work.
 
 Opening creates dataset/device UUIDs only for a new empty dataset. Normal
-close/reopen preserves them. `identity`, `branches`, `read`, `saveManual`, and
+close/reopen preserves them. `identity`, `branches`, `read`, `history`, `saveManual`, and
 `verifyIntegrity` expose the current supported operations. No receiving, pairing,
 restore, catalog mutation, receipt deletion, or conflict-resolution API exists.
 Product links are explicitly rejected until catalog workflows and constraints
@@ -93,28 +94,30 @@ code. A caller keeps its immutable pending command to retry or cancel.
 
 ## Verification
 
-- 39 storage tests pass: schema baseline/strictness, constraints, golden event
+- 40 storage tests pass: schema baseline/strictness, constraints, golden event
   bytes/hash, save/reopen/edit/retry, numeric limits, preserved row ownership,
   stale catalog/receipt checks, concurrent writers, corrupted projections/events,
   future-version refusal, DDL rollback, injected failures at every write boundary,
-  actual SQLite disk-full rollback/retry, and sanitized failures.
-- 18 domain tests, 68 parser tests and 39 Flutter tests pass; analyzers are clean.
+  actual SQLite disk-full rollback/retry, sanitized failures, and bounded civil-date
+  history pages with exact values and integrity checks.
+- 18 domain tests, 68 parser tests and 53 Flutter tests pass; analyzers are clean.
 - Windows and Android debug builds pass. The Windows build bundles `sqlite3.dll`.
 - The Android integration test passes with airplane mode enabled: explicitly
   save synthetic branch/row data, close/reopen, verify identity/content/sequence,
   retry without duplicates, check integrity and remove the temporary directory.
   The prior airplane setting and normal debug app were restored afterward.
 
-This does not certify fresh-install releases, backup/transfer exclusion policy,
-power-loss durability on physical hardware, or backup/restore. The test database
-is temporary; no real receipt or source image is written by these tests.
+The [manual UI integration](manual-saving.md) additionally passes on native Android
+(in airplane mode) and Windows, including save, close/reopen and history details.
+Android automatic-backup/transfer exclusion XML is configured and packaged. These
+checks do not certify fresh-install releases, manufacturer transfer tools,
+power-loss durability on physical hardware, or structured backup/restore. No
+real receipt or source image is written by the tests.
 
 ## Next integration
 
-Before enabling real saves, configure Android automatic-backup/device-transfer
-exclusions for the database, sidecars, identity and temporary captures. Add the
-application-support path/lifecycle adapter, explicit branch selection and manual
-field/row/relationship controls, then connect the reviewed command to save and
-basic history. Keep OCR saves blocked until a separate adapter validates live
-image evidence and translates structured decisions. Product/alias management,
-deletion, sync conflicts and tested structured backup/restore remain later work.
+Keep OCR saves blocked until a separate adapter validates live image evidence and
+translates structured decisions into a provenance-preserving command. Extend the
+schema/codec deliberately for that source; do not relabel OCR as manual. History
+filters, UI corrections/deletion, product/alias management, sync conflicts and
+tested structured backup/restore remain later work.
