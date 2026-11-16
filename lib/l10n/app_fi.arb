@@ -269,5 +269,14 @@
   "manualCorrectionFinalNotice": "Olet verrannut kaikki tiedot alkuperäiseen kuittiin. Korjaus tallentuu saman kuitin uutena versiona ja säilyttää aiemman version muutoshistoriassa. Varmuuskopiointi ja synkronointi eivät vielä ole käytössä.",
   "saveCorrection": "Tallenna tarkistettu korjaus",
   "manualCorrectionStale": "Kuitti tai toimipiste on muuttunut tarkistuksen aikana. Tätä korjausta ei tallennettu. Sulje näkymä historiaan ja avaa ajantasainen kuitti ennen uutta tarkistusta.",
-  "ocrCorrectionUnavailable": "Tekstintunnistuksesta tallennetun kuitin korjaus ei ole vielä käytettävissä. Se tarvitsee oman tarkistuksen alkuperäistä kuittikuvaa vasten."
+  "correctOcrReceipt": "Korjaa kuvasta tallennettua kuittia",
+  "ocrCorrectionNotice": "Valitse tämän tallennetun kuitin alkuperäinen kuva ja tarkista se kokonaan uudelleen. Uusi tunnistus aloittaa tarkistukset alusta. Aiemmat nimet, määrät ja kohdistukset näkyvät historiassa, mutta niitä ei kopioida uuteen tarkistukseen. Valitse jokaiselle tarkistetulle riville vastaava tallennettu rivi tai uusi rivi. Korjaus säilyttää kuitin ja säilytettyjen rivien tunnisteet sekä aiemman version muutoshistoriassa.",
+  "ocrCorrectionOriginal": "Vahvistan valitsevani juuri tämän kuitin alkuperäisen kuvan.",
+  "ocrCorrectionRow": "Vastaava tallennettu rivi",
+  "ocrCorrectionNewRow": "Uusi rivi",
+  "ocrCorrectionMappingRequired": "Valitse jokaiselle riville vastaava tallennettu rivi tai uusi rivi. Sama tallennettu rivi voi vastata vain yhtä tarkistettua riviä. Valitsematta jääneet tallennetut rivit poistuvat uudesta versiosta.",
+  "ocrCorrectionRemoved": "Uudesta versiosta poistuvat tallennetut rivit:",
+  "ocrCorrectionNoRemoved": "Kaikki tallennetut rivit säilyvät uudessa versiossa.",
+  "ocrCorrectionIdentitiesReviewed": "Tarkistin rivien vastaavuudet ja poistot.",
+  "ocrCorrectionFinal": "Vahvistan rivien vastaavuudet ja lueteltujen rivien poistamisen sekä sen, että olen verrannut kaikki tiedot tämän kuitin alkuperäiseen kuvaan."
 }

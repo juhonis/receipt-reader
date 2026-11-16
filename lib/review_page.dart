@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:material_ui/material_ui.dart';
 import 'package:receipt_parser/receipt_parser.dart';
 import 'package:receipt_domain/receipt_domain.dart';
+import 'package:receipt_storage/receipt_storage.dart' show StoredReceipt;
 
 import 'l10n/generated/app_localizations.dart';
 import 'receipt_import.dart';
@@ -23,7 +24,36 @@ class ReviewPage extends StatefulWidget {
     this.evidence,
     this.recognizer,
     this.store,
-  });
+  }) : _initial = null;
+  factory ReviewPage.correction({
+    Key? key,
+    required LocalStore store,
+    required StoredReceipt receipt,
+    required ReceiptEvidence evidence,
+    ReceiptDraft? draft,
+    Future<OcrPage> Function(ReceiptEvidence)? recognizer,
+  }) {
+    if (receipt.document.review is! OcrReviewRecord) {
+      throw ArgumentError.value(receipt, 'receipt', 'OCR receipt required');
+    }
+    return ReviewPage._correction(
+      key: key,
+      store: store,
+      receipt: receipt,
+      evidence: evidence,
+      draft: draft,
+      recognizer: recognizer,
+    );
+  }
+  const ReviewPage._correction({
+    super.key,
+    required this.store,
+    required StoredReceipt receipt,
+    required this.evidence,
+    this.draft,
+    this.recognizer,
+  }) : _initial = receipt;
+  final StoredReceipt? _initial;
   final Future<OcrPage> Function(ReceiptEvidence)? recognizer;
   final LocalStore? store;
   final ReceiptDraft? draft;
@@ -42,6 +72,7 @@ class _RowFields {
   bool standaloneDeposit = false;
   QuantityUnit unit = QuantityUnit.unknown;
   bool imageCompared = false;
+  String? savedRowChoice;
   List<OcrWord> evidence = const [];
   ReviewRowInput get input => ReviewRowInput(
     name.text,
@@ -68,9 +99,26 @@ class _ReviewPageState extends State<ReviewPage> {
   final _rows = [_RowFields()];
   bool _branchConfirmed = false;
   bool _reviewed = false;
-  final _receiptId = DurableId.generate();
+  late final _receiptId =
+      widget._initial?.document.snapshot.id ?? DurableId.generate();
   final _newBranchId = DurableId.generate();
-  final _rowIds = ReviewRowIds();
+  List<RevisionId> get _expectedHeads => [
+    if (widget._initial case final initial?) initial.revision,
+  ];
+  bool get _mappingReady =>
+      widget._initial == null ||
+      (_rows.every((r) => r.savedRowChoice != null) &&
+          _rows
+                  .where((r) => r.savedRowChoice != 'new')
+                  .map((r) => r.savedRowChoice)
+                  .toSet()
+                  .length ==
+              _rows.where((r) => r.savedRowChoice != 'new').length);
+  String _savedRowLabel(ReceiptItemSnapshot item) {
+    final items = widget._initial!.document.snapshot.items;
+    return '${items.indexOf(item) + 1}. ${item.name} (${formatCents(item.cents)} €)';
+  }
+
   List<ReceiptBranch>? _branches;
   String? _branchChoice;
   bool _branchLoadFailed = false, _savePreparationFailed = false;
@@ -106,7 +154,11 @@ class _ReviewPageState extends State<ReviewPage> {
 
   Future<void> _saveOcr() async {
     final approved = _evidenceAudit, branch = _selectedBranch;
-    if (approved == null || !approved.ready || branch == null || !_reviewed) {
+    if (approved == null ||
+        !approved.ready ||
+        branch == null ||
+        !_reviewed ||
+        !_mappingReady) {
       return;
     }
     final approvedDetails = Map<Object, OcrRowDetails>.unmodifiable(
@@ -114,33 +166,96 @@ class _ReviewPageState extends State<ReviewPage> {
     );
     final s = AppLocalizations.of(context)!;
     var dateChecked = false, totalChecked = false;
+    var identitiesChecked = widget._initial == null;
+    final mapping = {for (final row in _rows) row: row.savedRowChoice};
+    final rowIds = ReviewRowIds();
+    for (final row in _rows) {
+      if (row.savedRowChoice != null && row.savedRowChoice != 'new') {
+        rowIds.retain(row, DurableId.parse(row.savedRowChoice!));
+      }
+    }
+    late final OcrReviewChecks checks;
+    try {
+      checks = OcrReviewChecks(
+        audit: approved,
+        branch: branch,
+        receiptId: _receiptId,
+        rowIds: rowIds,
+        rowDetails: approvedDetails,
+        expectedHeads: _expectedHeads,
+        mutationId: DurableId.generate(),
+        // Capture content before the modal. Confirmation is issued only after
+        // the dialog has collected the separate date and total checks.
+        dateReviewed: true,
+        totalReviewed: true,
+      );
+    } on ReceiptDataException {
+      setState(() {
+        _savePreparationFailed = true;
+        _reviewed = false;
+      });
+      return;
+    }
+    final removed =
+        widget._initial?.document.snapshot.items
+            .where(
+              (item) => !_rows.any((r) => r.savedRowChoice == item.id.value),
+            )
+            .toList() ??
+        <ReceiptItemSnapshot>[];
+    final matchedLabels = widget._initial == null
+        ? <String>[]
+        : [
+            for (final row in _rows)
+              '${row.name.text}: ${row.savedRowChoice == 'new' ? s.ocrCorrectionNewRow : _savedRowLabel(widget._initial!.document.snapshot.items.firstWhere((item) => item.id.value == row.savedRowChoice))}',
+          ];
     final yes = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, update) => AlertDialog(
-          title: Text(s.ocrSaveFinalTitle),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(branch.name),
-                Text(approved.snapshot.date),
-                Text(approved.snapshot.total),
-                Text(s.ocrSaveFinalNotice),
-                CheckboxListTile(
-                  key: const Key('ocr-save-date'),
-                  title: Text(s.manualDateReviewed),
-                  value: dateChecked,
-                  onChanged: (v) => update(() => dateChecked = v ?? false),
+          title: Text(
+            widget._initial == null
+                ? s.ocrSaveFinalTitle
+                : s.manualCorrectionFinalTitle,
+          ),
+          scrollable: true,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(branch.name),
+              Text(approved.snapshot.date),
+              Text(approved.snapshot.total),
+              Text(s.ocrSaveFinalNotice),
+              if (widget._initial != null) ...[
+                for (final label in matchedLabels) Text(label),
+                Text(
+                  removed.isEmpty
+                      ? s.ocrCorrectionNoRemoved
+                      : s.ocrCorrectionRemoved,
                 ),
+                for (final item in removed) Text(_savedRowLabel(item)),
+                Text(s.ocrCorrectionFinal),
                 CheckboxListTile(
-                  key: const Key('ocr-save-total'),
-                  title: Text(s.manualTotalReviewed),
-                  value: totalChecked,
-                  onChanged: (v) => update(() => totalChecked = v ?? false),
+                  key: const Key('ocr-save-identities'),
+                  title: Text(s.ocrCorrectionIdentitiesReviewed),
+                  value: identitiesChecked,
+                  onChanged: (v) =>
+                      update(() => identitiesChecked = v ?? false),
                 ),
               ],
-            ),
+              CheckboxListTile(
+                key: const Key('ocr-save-date'),
+                title: Text(s.manualDateReviewed),
+                value: dateChecked,
+                onChanged: (v) => update(() => dateChecked = v ?? false),
+              ),
+              CheckboxListTile(
+                key: const Key('ocr-save-total'),
+                title: Text(s.manualTotalReviewed),
+                value: totalChecked,
+                onChanged: (v) => update(() => totalChecked = v ?? false),
+              ),
+            ],
           ),
           actions: [
             TextButton(
@@ -149,7 +264,7 @@ class _ReviewPageState extends State<ReviewPage> {
             ),
             FilledButton(
               key: const Key('ocr-confirm-save'),
-              onPressed: dateChecked && totalChecked
+              onPressed: dateChecked && totalChecked && identitiesChecked
                   ? () => Navigator.pop(context, true)
                   : null,
               child: Text(s.saveReceipt),
@@ -158,31 +273,32 @@ class _ReviewPageState extends State<ReviewPage> {
         ),
       ),
     );
-    if (!mounted || yes != true) return;
+    if (!mounted ||
+        yes != true ||
+        !dateChecked ||
+        !totalChecked ||
+        !identitiesChecked) {
+      return;
+    }
     ReviewedReceipt command;
     try {
       if (!_reviewed ||
           !_hasLayoutContext ||
           _selectedBranch == null ||
-          _evidenceAudit == null) {
+          _evidenceAudit == null ||
+          !_mappingReady ||
+          _rows.length != mapping.length ||
+          !_rows.every(
+            (row) =>
+                mapping.containsKey(row) && mapping[row] == row.savedRowChoice,
+          )) {
         throw const ReceiptDataException('review', 'staleEvidence');
       }
-      final checks = OcrReviewChecks(
-        audit: approved,
-        branch: branch,
-        receiptId: _receiptId,
-        rowIds: _rowIds,
-        rowDetails: approvedDetails,
-        expectedHeads: const [],
-        mutationId: DurableId.generate(),
-        dateReviewed: dateChecked,
-        totalReviewed: totalChecked,
-      );
       command = ReviewedReceipt.ocr(
         current: _evidenceAudit!,
         branch: _selectedBranch!,
         rowDetails: _rowDetails,
-        expectedHeads: const [],
+        expectedHeads: _expectedHeads,
         confirmation: checks.confirm(
           reviewedAtMs: BigInt.from(
             DateTime.now().toUtc().millisecondsSinceEpoch,
@@ -365,8 +481,18 @@ class _ReviewPageState extends State<ReviewPage> {
     try {
       final saved = await Navigator.of(context).push<bool>(
         MaterialPageRoute<bool>(
-          builder: (_) =>
-              ReviewPage(draft: fresh, evidence: evidence, store: widget.store),
+          builder: (_) => widget._initial == null
+              ? ReviewPage(
+                  draft: fresh,
+                  evidence: evidence,
+                  store: widget.store,
+                )
+              : ReviewPage.correction(
+                  draft: fresh,
+                  evidence: evidence,
+                  store: widget.store!,
+                  receipt: widget._initial!,
+                ),
         ),
       );
       if (saved == true && mounted) Navigator.pop(context, true);
@@ -1180,6 +1306,8 @@ class _ReviewPageState extends State<ReviewPage> {
                         onChanged: _edit,
                       ),
                       const SizedBox(height: 20),
+                      if (widget._initial != null)
+                        Text(s.ocrCorrectionMappingRequired),
                       Text(
                         s.rowsHeading,
                         style: Theme.of(context).textTheme.titleLarge,
@@ -1192,6 +1320,46 @@ class _ReviewPageState extends State<ReviewPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
+                                if (widget._initial != null)
+                                  DropdownButtonFormField<String>(
+                                    key: ValueKey('ocr-row-identity-$i'),
+                                    initialValue: _rows[i].savedRowChoice,
+                                    isExpanded: true,
+                                    decoration: InputDecoration(
+                                      labelText: s.ocrCorrectionRow,
+                                    ),
+                                    items: [
+                                      DropdownMenuItem(
+                                        value: 'new',
+                                        child: Text(s.ocrCorrectionNewRow),
+                                      ),
+                                      for (final item
+                                          in widget
+                                              ._initial!
+                                              .document
+                                              .snapshot
+                                              .items)
+                                        if (_rows[i].savedRowChoice ==
+                                                item.id.value ||
+                                            !_rows.any(
+                                              (row) =>
+                                                  row.savedRowChoice ==
+                                                  item.id.value,
+                                            ))
+                                          DropdownMenuItem(
+                                            value: item.id.value,
+                                            child: Text(
+                                              _savedRowLabel(item),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                    ],
+                                    onChanged: (value) {
+                                      _rows[i].savedRowChoice = value;
+                                      _edit();
+                                    },
+                                  ),
                                 TextField(
                                   enabled: !_recognizing,
                                   key: ValueKey('row-name-$i'),
@@ -1493,10 +1661,16 @@ class _ReviewPageState extends State<ReviewPage> {
                         FilledButton(
                           key: const Key('ocr-save'),
                           onPressed:
-                              validation.complete && _selectedBranch != null
+                              validation.complete &&
+                                  _selectedBranch != null &&
+                                  _mappingReady
                               ? _saveOcr
                               : null,
-                          child: Text(s.saveReceipt),
+                          child: Text(
+                            widget._initial == null
+                                ? s.saveReceipt
+                                : s.saveCorrection,
+                          ),
                         ),
                       ],
                       if (validation.complete && widget.store == null)

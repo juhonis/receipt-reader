@@ -372,10 +372,7 @@ void main() {
       await tester.tap(find.text(ocr.snapshot.branch.name));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('edit-manual-receipt')), findsNothing);
-      expect(
-        find.textContaining('korjaus ei ole vielä käytettävissä.'),
-        findsOneWidget,
-      );
+      expect(find.byKey(const Key('edit-ocr-receipt')), findsOneWidget);
     },
   );
 

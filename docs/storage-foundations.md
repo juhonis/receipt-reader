@@ -108,5 +108,6 @@ and transactional writes, with constraint/migration/failure tests. The app has
 private database ownership, Android backup/transfer exclusions, explicit manual
 field/row/relationship checks, saving and basic read-only history. The separate
 OCR evidence adapter is now implemented through the same storage boundary;
-see [OCR saving](ocr-saving.md) for policy 2 and current verification. UI correction and
-deletion, backup/restore and networking remain later steps.
+see [OCR saving](ocr-saving.md) for policy 2 and current verification.
+[Manual corrections](manual-corrections.md) and [OCR corrections](ocr-corrections.md)
+now use that boundary. Deletion, backup/restore and networking remain later steps.

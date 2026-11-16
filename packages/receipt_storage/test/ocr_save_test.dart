@@ -121,6 +121,102 @@ void main() {
     );
     expect(h.count('change_log'), 2);
   });
+  test('fresh OCR corrections retain selected row identities, append history, and reject retired IDs and stale heads', () async {
+    final source = parseReceipt(
+      OcrPage(500, 500, [
+        OcrWord('16.11.2026', PixelBox(10, 10, 150, 26)),
+        OcrWord('MILK', PixelBox(10, 70, 150, 86)),
+        OcrWord('2,00', PixelBox(400, 70, 480, 86)),
+        OcrWord('BREAD', PixelBox(10, 120, 150, 136)),
+        OcrWord('2,00', PixelBox(400, 120, 480, 136)),
+        OcrWord('YHTEENSÄ', PixelBox(10, 220, 200, 236)),
+        OcrWord('4,00', PixelBox(400, 220, 480, 236)),
+      ]),
+      itemTop: 40,
+      priceColumnLeft: 350,
+    );
+    final first = OcrFixture(source: source).save();
+    final firstResult = await h.repository.saveOcr(first);
+    final branch = (await h.repository.branches()).single;
+    ReviewedReceipt correction(
+      OcrFixture f,
+      RevisionId head,
+      List<DurableId?> retained,
+    ) {
+      final ids = ReviewRowIds();
+      for (var i = 0; i < f.rows.length; i++) {
+        if (retained[i] case final id?) ids.retain(f.rows[i].id, id);
+      }
+      final audit = f.audit();
+      final checks = OcrReviewChecks(
+        audit: audit,
+        branch: branch,
+        receiptId: first.document.snapshot.id,
+        rowIds: ids,
+        rowDetails: const {},
+        expectedHeads: [head],
+        mutationId: DurableId.generate(),
+        dateReviewed: true,
+        totalReviewed: true,
+      );
+      return ReviewedReceipt.ocr(
+        current: audit,
+        branch: branch,
+        rowDetails: const {},
+        expectedHeads: [head],
+        confirmation: checks.confirm(
+          reviewedAtMs: BigInt.from(456),
+          appVersion: 'correction-test',
+        ),
+      );
+    }
+
+    final oldRows = first.document.snapshot.items;
+    final second = correction(OcrFixture(), firstResult.revision, [
+      oldRows.last.id,
+    ]);
+    final secondResult = await h.repository.saveOcr(second);
+    expect(h.count('receipts'), 1);
+    expect(h.count('row_identities'), 2);
+    expect(h.count('change_log'), 3);
+    expect(second.document.snapshot.items.single.id, oldRows.last.id);
+    expect((second.document.review as OcrReviewRecord).originalRowIds, [
+      oldRows.last.id,
+    ]);
+    final third = correction(
+      OcrFixture(source: source),
+      secondResult.revision,
+      [oldRows.last.id, null],
+    );
+    await h.repository.saveOcr(third);
+    expect(h.count('row_identities'), 3);
+    expect(h.count('change_log'), 4);
+    await expectLater(
+      h.repository.saveOcr(
+        correction(OcrFixture(), firstResult.revision, [oldRows.last.id]),
+      ),
+      fails('staleReceipt'),
+    );
+    final current = (await h.repository.read(first.document.snapshot.id))!;
+    await expectLater(
+      h.repository.saveOcr(
+        correction(OcrFixture(), current.revision, [oldRows.first.id]),
+      ),
+      fails('rowIdentityReused'),
+    );
+    await h.reopen();
+    expect(
+      (await h.repository.read(first.document.snapshot.id))!.document.sha256Hex,
+      third.document.sha256Hex,
+    );
+    expect(
+      (await h.repository.saveOcr(second)).revision,
+      secondResult.revision,
+    );
+    expect((await h.repository.saveOcr(second)).replayed, isTrue);
+    expect(h.count('change_log'), 4);
+    await h.repository.verifyIntegrity();
+  });
   test('manual commands cannot use OCR API', () async {
     await expectLater(
       h.repository.saveOcr(command(snapshot())),

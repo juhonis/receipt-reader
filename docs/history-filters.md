@@ -26,8 +26,9 @@ all branches. The applied bounds appear above the results.
   failed first page cannot show rows from the previous query. Changes to filters
   and refresh are disabled during a read to prevent overlapping requests.
 - Filters last for the current history screen only. Closing and reopening history
-  starts unfiltered. [Reviewed manual corrections](manual-corrections.md) are
-  available from receipt details; OCR details remain read-only.
+  starts unfiltered. [Reviewed manual corrections](manual-corrections.md) and
+  [fresh-image OCR corrections](ocr-corrections.md) are available from receipt
+  details; completing either refreshes the active filtered result.
 
 ## Repository contract
 
@@ -81,5 +82,5 @@ flutter test integration_test/history_filter_test.dart -d windows
 Native checks install a test entry point. Rebuild the normal Android/Windows app
 when done and reinstall the normal debug APK on the emulator. See
 [Windows environment setup](windows-development.md) for the SDK and emulator
-commands. OCR correction, deletion, structured backup/restore, products/aliases, sync and
+commands. Deletion, structured backup/restore, products/aliases, sync and
 Windows OCR packaging remain open.

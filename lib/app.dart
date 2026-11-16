@@ -71,7 +71,10 @@ class _HomePageState extends State<_HomePage> {
   }
 
   Future<void> _history() => Navigator.of(context).push<void>(
-    MaterialPageRoute(builder: (_) => HistoryPage(store: widget.store!)),
+    MaterialPageRoute(
+      builder: (_) =>
+          HistoryPage(store: widget.store!, imagePicker: widget.imagePicker),
+    ),
   );
 
   Future<void> _import() async {

@@ -29,7 +29,9 @@ synthetic pixels and seeded OCR geometry.
 Changing content or unchecking comparison invalidates approval. Reading a saved
 review document never creates permission to perform another local save. The
 repository rejects using the wrong source API or changing an existing receipt's
-manual/OCR provenance. History remains read-only.
+manual/OCR provenance. Saved receipts have separate
+[manual](manual-corrections.md) and [fresh-image OCR](ocr-corrections.md) correction
+paths; stored assertions never authorize a new correction.
 
 ## Retained metadata and privacy
 
@@ -76,7 +78,7 @@ changes, removed-source ownership and write rollback. Populated released-schema
 migration tests compare every stored row value before/after and inject a failure
 after DDL to verify rollback of data, schema and version.
 
-The current suites contain 26 domain, 68 parser, 46 storage and 58 app tests.
+The current suites contain 26 domain, 68 parser, 50 storage and 87 app tests.
 Widget tests cover review gates, final checks, uncertain retries of the identical
 command, explicit exit and evidence disposal. Native Android (airplane mode) and
 Windows synthetic UI smoke tests save, close/reopen, verify exact structured
@@ -92,7 +94,6 @@ Restore the normal app entry point after native tests: rebuild Android/Windows,
 reinstall the normal debug APK, and restore the emulator's prior airplane setting.
 See [Windows environment setup](windows-development.md), [local storage](local-storage.md)
 and [manual saving](manual-saving.md) for paths and commands.
-[History filters](history-filters.md) are now implemented. Backup/restore,
-OCR correction, deletion, products/aliases and synchronization remain open.
-[Manual corrections](manual-corrections.md) are now available without changing
-OCR provenance.
+[History filters](history-filters.md), [manual corrections](manual-corrections.md)
+and [fresh-image OCR corrections](ocr-corrections.md) are available. Backup/restore,
+deletion, products/aliases and synchronization remain open.

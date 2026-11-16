@@ -189,3 +189,18 @@ flutter test integration_test/manual_correction_test.dart -d windows
 
 Restore the normal app entry points and prior emulator airplane setting after
 integration tests. The smoke preserves the normal application-support database.
+
+## OCR correction verification
+
+[Fresh-image OCR corrections](ocr-corrections.md) preserve receipt/row identity
+and OCR provenance using the existing schema. The synthetic native correction,
+reopen and concurrent stale-write test runs on both platforms:
+
+```powershell
+flutter test integration_test/ocr_correction_test.dart -d emulator-5554
+flutter test integration_test/ocr_correction_test.dart -d windows
+```
+
+Restore the normal app builds and prior emulator airplane setting afterwards.
+The test uses isolated synthetic data. Windows production OCR recognition and
+packaging remain pending; this verifies shared review/storage, not that adapter.

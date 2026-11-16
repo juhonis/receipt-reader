@@ -7,6 +7,8 @@ history](manual-saving.md) and separate [reviewed OCR saving](ocr-saving.md).
 The first [durable value and manual-command foundation](storage-foundations.md)
 is implemented as a standalone Dart package. A [local manual-receipt repository](local-storage.md)
 now implements schema v2, source-specific atomic saves/edits and local event integrity checks.
+[OCR corrections](ocr-corrections.md) use fresh scans and explicit row identity
+matching; earlier source identities and decisions remain in immutable events.
 The broader catalog/delete/conflict/sync and recovery rules below
 remain open; this contract exceeds the current schema.
 

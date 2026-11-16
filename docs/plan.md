@@ -258,7 +258,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 ### Phase 3: History, Product Identity & Recovery
 - [x] Add read-only receipt history with inclusive branch/date/amount filters, exact signed cents, pagination/retry tests and native offline smoke checks on both platforms. See [history filters](history-filters.md).
 - [x] Add reviewed correction of saved manual receipts on both platforms, preserving row metadata and causal revisions, with stale-write rejection and native reopen checks. See [manual corrections](manual-corrections.md).
-- [ ] Add original-image-backed correction of saved OCR receipts without relabelling provenance.
+- [x] Add original-image-backed correction of saved OCR receipts with explicit row matching, preserved provenance/identity and native synthetic correction/reopen/stale-write checks. See [OCR corrections](ocr-corrections.md). Production Windows recognition remains pending.
 - [ ] Add reviewed receipt deletion with immutable tombstone events on both platforms.
 - [ ] Add store-scoped products, aliases, and explicit match correction.
 - [ ] Build price trends with unit comparability, discount semantics, and deposit exclusion.
@@ -292,17 +292,17 @@ Restore must assign a fresh local device identity and preserve imported event id
 
 [Manual saving](manual-saving.md), [reviewed OCR saving](ocr-saving.md),
 [history filters](history-filters.md) and
-[reviewed manual corrections](manual-corrections.md) are implemented on Android
-and Windows. The normal app owns one application-support database with schema-v2
+[reviewed manual corrections](manual-corrections.md) and
+[fresh-image OCR corrections](ocr-corrections.md) share reviewed persistence on
+Android and Windows. Production recognition is currently Android-only. The normal app owns one application-support database with schema-v2
 migration and preserved source provenance. Native synthetic save/reopen,
 filtered-history and correction/stale-write checks pass on both platforms,
 including Android airplane mode.
 
-Next, define and add the fresh original-image evidence flow for correcting saved
-OCR receipts. Preserve source provenance, original OCR row ownership and causal
-revision checks. A stored/decoded OCR assertion cannot stand in for fresh review
-authorization; OCR receipts remain read-only until that path is available.
-Then add explicit receipt deletion with immutable event/tombstone semantics.
+Next, add explicit receipt deletion with immutable event/tombstone semantics.
+Preserve prior snapshots, row ownership and causal revision checks; require a
+separate reviewed deletion action and reject stale screens. Define how history
+excludes deleted receipts and how retries/reopening retain the tombstone.
 
 Follow with tested structured backup/restore before relying on the app as the
 only copy of financial history. Windows OCR packaging and final engine selection

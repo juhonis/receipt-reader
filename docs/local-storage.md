@@ -122,6 +122,7 @@ provenance and uses schema 2. [History filters](history-filters.md) now apply
 validated branch/civil-date/exact-cent bounds before pagination without a schema
 change. [Manual corrections](manual-corrections.md) now use the existing
 source-specific reviewed command and expected-head transaction from history.
-OCR correction, deletion, product/alias management, sync conflicts and tested
+[OCR corrections](ocr-corrections.md) now add fresh image review and explicit row
+matching without changing source policy. Deletion, product/alias management, sync conflicts and tested
 structured backup/restore remain later work. Existing verification counts above describe the manual-saving
 baseline; current OCR-specific tests and limits are documented separately.

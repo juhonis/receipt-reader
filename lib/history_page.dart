@@ -8,10 +8,17 @@ import 'local_store.dart';
 import 'history_filter_dialog.dart';
 import 'manual_receipt_page.dart';
 import 'receipt_format.dart';
+import 'receipt_import.dart';
+import 'ocr_correction_page.dart';
 
 class HistoryPage extends StatefulWidget {
-  const HistoryPage({super.key, required this.store});
+  const HistoryPage({
+    super.key,
+    required this.store,
+    this.imagePicker = pickReceiptImage,
+  });
   final LocalStore store;
+  final Future<ReceiptEvidence?> Function() imagePicker;
   @override
   State<HistoryPage> createState() => _HistoryPageState();
 }
@@ -160,6 +167,7 @@ class _HistoryPageState extends State<HistoryPage> {
                           builder: (_) => ReceiptDetailPage(
                             receipt: receipt,
                             store: widget.store,
+                            imagePicker: widget.imagePicker,
                           ),
                         ),
                       );
@@ -190,9 +198,11 @@ class ReceiptDetailPage extends StatelessWidget {
     super.key,
     required this.receipt,
     required this.store,
+    this.imagePicker = pickReceiptImage,
   });
   final StoredReceipt receipt;
   final LocalStore store;
+  final Future<ReceiptEvidence?> Function() imagePicker;
 
   @override
   Widget build(BuildContext context) {
@@ -247,7 +257,26 @@ class ReceiptDetailPage extends StatelessWidget {
                     label: Text(s.correctManualReceipt),
                   )
                 else
-                  Text(s.ocrCorrectionUnavailable),
+                  OutlinedButton.icon(
+                    key: const Key('edit-ocr-receipt'),
+                    onPressed: () async {
+                      final changed = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute<bool>(
+                          builder: (_) => OcrCorrectionPage(
+                            store: store,
+                            receipt: receipt,
+                            imagePicker: imagePicker,
+                          ),
+                        ),
+                      );
+                      if (context.mounted && changed == true) {
+                        Navigator.pop(context, true);
+                      }
+                    },
+                    icon: const Icon(Icons.edit_outlined),
+                    label: Text(s.correctOcrReceipt),
+                  ),
                 for (var i = 0; i < snapshot.items.length; i++)
                   Card(
                     child: Padding(

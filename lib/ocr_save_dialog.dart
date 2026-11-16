@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:receipt_domain/receipt_domain.dart';
+import 'package:receipt_storage/receipt_storage.dart' show StorageFailure;
 
 import 'l10n/generated/app_localizations.dart';
 import 'local_store.dart';
@@ -15,7 +16,7 @@ class OcrSaveDialog extends StatefulWidget {
 }
 
 class _OcrSaveDialogState extends State<OcrSaveDialog> {
-  bool _saving = false, _failed = false;
+  bool _saving = false, _failed = false, _stale = false;
   @override
   void initState() {
     super.initState();
@@ -31,6 +32,13 @@ class _OcrSaveDialogState extends State<OcrSaveDialog> {
     try {
       await widget.store.saveOcr(widget.command);
       if (mounted) Navigator.pop(context);
+    } on StorageFailure catch (error) {
+      if (mounted) {
+        setState(() {
+          _failed = true;
+          _stale = error.code == 'staleReceipt' || error.code == 'staleBranch';
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _failed = true);
     } finally {
@@ -50,8 +58,14 @@ class _OcrSaveDialogState extends State<OcrSaveDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (_saving) const LinearProgressIndicator(),
-              Text(_failed ? s.manualSaveFailed : s.savingReceipt),
-              Text(s.pendingSaveNotice),
+              Text(
+                _stale
+                    ? s.manualCorrectionStale
+                    : _failed
+                    ? s.manualSaveFailed
+                    : s.savingReceipt,
+              ),
+              if (!_stale) Text(s.pendingSaveNotice),
             ],
           ),
         ),
@@ -62,7 +76,7 @@ class _OcrSaveDialogState extends State<OcrSaveDialog> {
               onPressed: () => Navigator.pop(context),
               child: Text(s.closeToHistory),
             ),
-          if (_failed)
+          if (_failed && !_stale)
             FilledButton(
               key: const Key('ocr-retry-save'),
               onPressed: _saving ? null : _save,

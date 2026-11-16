@@ -55,16 +55,15 @@ only preloads data; it does not authorize another save.
 
 ## Current boundary
 
-OCR receipts remain read-only and explain why no edit action is available.
-Their factory guard also rejects manual correction in release builds. OCR
-correction needs its own fresh original-image evidence flow and authorization;
-old stored assertions cannot authorize it and the source must never be relabelled.
+OCR receipts use a separate [fresh-image correction flow](ocr-corrections.md).
+The manual factory guard rejects OCR receipts in release builds too. Old stored
+assertions cannot authorize a new OCR save and the source must never be relabelled.
 Deletion/tombstones, version browsing/revert, products/aliases, structured
 backup/restore and synchronization remain open.
 
 ## Verification
 
-The app suite contains 73 passing unit/widget tests. Ten correction tests cover
+The app suite now contains 87 passing unit/widget tests. Ten correction tests cover
 no-op/fresh review, retained metadata, removed parents/new IDs, cancellation,
 receipt/catalog staleness, identical-command retries and uncertain exits,
 source guards, filtered-history refresh and a 320-pixel screen with 2× text and
