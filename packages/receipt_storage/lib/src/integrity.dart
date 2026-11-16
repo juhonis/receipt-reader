@@ -1,8 +1,8 @@
 part of 'repository.dart';
 
 extension _Integrity on ReceiptRepository {
-  /// V1 has one local origin and no incoming-history API. Validate that complete
-  /// history before exposing projections; future sync needs its own validator.
+  /// Audits complete local/recovered history. Multiple historical origins are
+  /// supported for explicit restore; there is no incoming sync/conflict API.
   Future<void> _verifyIntegrity() async {
     final integrity = await _rows('PRAGMA integrity_check');
     _check(
@@ -11,7 +11,8 @@ extension _Integrity on ReceiptRepository {
     );
     _check((await _rows('PRAGMA foreign_key_check')).isEmpty, 'foreignKeys');
     final state = await _identity();
-    final events = await _rows('SELECT * FROM change_log ORDER BY origin_seq');
+    final events = await _orderedEvents();
+    final sequences = <DurableId, BigInt>{};
     final latest = <String, RevisionId>{};
     final documents = <DurableId, ReceiptDocument>{};
     final deletions = <DurableId, ReceiptTombstone>{};
@@ -28,11 +29,12 @@ extension _Integrity on ReceiptRepository {
         BigInt.from(event['origin_seq']! as int),
       );
       _check(
-        revision.origin == state.deviceId &&
-            revision.sequence == BigInt.from(i + 1) &&
+        revision.sequence ==
+                (sequences[revision.origin] ?? BigInt.zero) + BigInt.one &&
             event['dataset_id'] == state.datasetId.value,
         'eventContinuity',
       );
+      sequences[revision.origin] = revision.sequence;
       final id = DurableId.parse(event['entity_id']! as String);
       final kind = event['entity_kind']! as String;
       final parents = await _references('revision_parents', 'parent', revision);
@@ -183,16 +185,22 @@ extension _Integrity on ReceiptRepository {
       groups.putIfAbsent(mutation.value, () => []).add(event);
     }
     _check(
-      state.nextLocalSequence == BigInt.from(events.length) + BigInt.one,
+      state.nextLocalSequence ==
+          (sequences[state.deviceId] ?? BigInt.zero) + BigInt.one,
       'nextSequence',
     );
     final cursors = await _rows('SELECT * FROM received_cursors');
-    _check(
-      cursors.length == 1 &&
-          cursors.single['origin_device_id'] == state.deviceId.value &&
-          cursors.single['committed_seq'] == events.length,
-      'committedCursor',
-    );
+    final expectedCursors = {state.deviceId: BigInt.zero, ...sequences};
+    _check(cursors.length == expectedCursors.length, 'committedCursor');
+    for (final cursor in cursors) {
+      _check(
+        expectedCursors[DurableId.parse(
+              cursor['origin_device_id']! as String,
+            )] ==
+            BigInt.from(cursor['committed_seq']! as int),
+        'committedCursor',
+      );
+    }
     final allHeads = await _rows('SELECT * FROM entity_heads');
     _check(allHeads.length == latest.length, 'headCount');
     for (final head in allHeads) {
@@ -258,7 +266,8 @@ extension _Integrity on ReceiptRepository {
       );
       for (var i = 0; i < members.length; i++) {
         _check(
-          members[i]['mutation_index'] == i &&
+          members[i]['origin_device_id'] == members.first['origin_device_id'] &&
+              members[i]['mutation_index'] == i &&
               members[i]['mutation_count'] == members.length &&
               members[i]['origin_seq'] ==
                   (members.first['origin_seq']! as int) + i,
@@ -288,6 +297,62 @@ extension _Integrity on ReceiptRepository {
         );
       }
     }
+  }
+
+  /// Stable topological order includes the implicit previous sequence on every
+  /// origin stream. Neither row insertion order nor audit clocks choose heads.
+  Future<List<Map<String, Object?>>> _orderedEvents() async {
+    final rows = await _rows('SELECT * FROM change_log');
+    final nodes = <RevisionId, Map<String, Object?>>{};
+    final needs = <RevisionId, Set<RevisionId>>{};
+    for (final row in rows) {
+      final revision = RevisionId(
+        DurableId.parse(row['origin_device_id']! as String),
+        BigInt.from(row['origin_seq']! as int),
+      );
+      nodes[revision] = row;
+      needs[revision] = {
+        if (revision.sequence > BigInt.one)
+          RevisionId(revision.origin, revision.sequence - BigInt.one),
+      };
+    }
+    for (final pair in [
+      ('revision_parents', 'parent'),
+      ('event_dependencies', 'dependency'),
+    ]) {
+      for (final row in await _rows('SELECT * FROM ${pair.$1}')) {
+        final child = RevisionId(
+          DurableId.parse(row['child_origin']! as String),
+          BigInt.from(row['child_seq']! as int),
+        );
+        final target = RevisionId(
+          DurableId.parse(row['${pair.$2}_origin']! as String),
+          BigInt.from(row['${pair.$2}_seq']! as int),
+        );
+        _check(needs.containsKey(child), 'missingHistory');
+        needs[child]!.add(target);
+      }
+    }
+    final dependents = <RevisionId, List<RevisionId>>{};
+    final ready = SplayTreeMap<RevisionId, Map<String, Object?>>();
+    for (final entry in needs.entries) {
+      for (final target in entry.value) {
+        _check(nodes.containsKey(target), 'missingHistory');
+        dependents.putIfAbsent(target, () => []).add(entry.key);
+      }
+      if (entry.value.isEmpty) ready[entry.key] = nodes[entry.key]!;
+    }
+    final ordered = <Map<String, Object?>>[];
+    while (ready.isNotEmpty) {
+      final revision = ready.firstKey()!;
+      ordered.add(ready.remove(revision)!);
+      for (final child in dependents[revision] ?? <RevisionId>[]) {
+        needs[child]!.remove(revision);
+        if (needs[child]!.isEmpty) ready[child] = nodes[child]!;
+      }
+    }
+    _check(ordered.length == rows.length, 'cyclicHistory');
+    return ordered;
   }
 
   Future<List<RevisionId>> _references(

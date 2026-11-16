@@ -13,8 +13,10 @@ SQLite. [Manual saving](docs/manual-saving.md),
 [fresh-image OCR corrections](docs/ocr-corrections.md) and
 [reviewed receipt deletion](docs/receipt-deletion.md) have synthetic native
 integration checks on both platforms. SQLite schema 3 migrates existing data
-from schemas 1 and 2 without changing prior event bytes. Structured backup/restore
-is next; the Windows OCR adapter/packaging and sync also remain open.
+from schemas 1 and 2 without changing prior event bytes. The
+[structured backup/recovery core](docs/backup-recovery.md) has native checks too;
+backup file encryption, UI and safe activation remain pending. The Windows OCR
+adapter/packaging and sync also remain open.
 
 See [the project plan](docs/plan.md) for the next milestone and
 [OCR spike findings](docs/ocr-spike.md) for engine evidence and remaining

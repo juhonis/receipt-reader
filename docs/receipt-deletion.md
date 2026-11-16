@@ -95,8 +95,9 @@ app data, and launch the normal app. See [Windows setup](windows-development.md)
 
 ## Next milestone
 
-Implement structured backup/export and tested restore before relying on this app
-as the only copy of financial history. Backups must preserve tombstones, event
-identities and row ownership, with a fresh device identity on restore. Receipt
+The [structured backup/recovery core](backup-recovery.md) now preserves tombstones,
+event identities and row ownership with a fresh device identity on restore.
+Complete the encryption decision, user-facing export/import and safe activation
+before relying on this app as the only copy of financial history. Receipt
 undo, incoming sync/conflict resolution, and whole-dataset erasure are separate
 workflows; this deletion API does not implement them.

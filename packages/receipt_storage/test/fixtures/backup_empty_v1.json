@@ -1,0 +1,1 @@
+{"format":"receipt_reader_backup","format_version":"1","content_sha256":"ebe565d2b33711933c63400cb59917281ef7f1ffe09cf118cf96eaaeedc9ad97","content":{"dataset_id":"00000000-0000-4000-8000-000000000090","event_version":"1","counts":{"events":"0","stores":"0","receipts":"0","deleted_receipts":"0","row_identities":"0","heads":"0"},"events":[],"heads":[]}}

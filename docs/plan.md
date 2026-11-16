@@ -262,7 +262,8 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Add reviewed receipt deletion with immutable tombstone events, schema-3 migration, stale-write rejection, exact retries and native reopen checks on both platforms. See [receipt deletion](receipt-deletion.md).
 - [ ] Add store-scoped products, aliases, and explicit match correction.
 - [ ] Build price trends with unit comparability, discount semantics, and deposit exclusion.
-- [ ] Implement structured backup/export and restore tests on both platforms, including fresh device identity and preserved event identities after restore.
+- [x] Implement the versioned structured backup/isolated recovery core on both platforms, including strict validation, preserved event/tombstone/row identities, fresh device identity and repeated restore/write tests. See [backup recovery](backup-recovery.md).
+- [ ] Choose backup privacy/encryption policy, then add native export/import UI, explicit replacement confirmation and atomic activation/crash recovery with the old dataset recoverable on both platforms.
 - [ ] Test migrations and data integrity before using real financial history as the only copy.
 
 ### Phase 4: Adaptive UI & Standalone Feature Parity
@@ -302,12 +303,18 @@ correction/stale-write and deletion/tombstone checks pass on both platforms,
 including Android airplane mode. Deletion retains prior structured snapshots;
 it is not secure erasure and receipt undo is not implemented.
 
-Next, implement structured backup/export and restore with a versioned format,
-complete event/tombstone and row-ownership preservation, strict validation,
-atomic failure handling and fresh device identity. Test both platforms before
-relying on the app as the only copy of financial history. Keep exports
-user-initiated and explain that backups retain financial records, including
-previously deleted receipts in immutable history.
+The [structured backup/recovery core](backup-recovery.md) now exports a consistent
+versioned package and validates/rebuilds it in an isolated database with a fresh
+device identity. Event/tombstone bytes, row ownership and retry identities survive
+repeated restore/write cycles. Synthetic native recovery passes on both platforms.
+
+Next, choose password protection versus explicitly plaintext user-facing files,
+then implement native export/import UI, validated preview, explicit replacement
+confirmation and atomic activation/crash recovery. Preserve the old dataset until
+activation succeeds. The core does not yet replace the active database or expose
+a file picker. Finish and test that workflow before relying on the app as the
+only copy of financial history. Exports must be user-initiated and explain that
+backups retain financial records, including deleted receipts in immutable history.
 
 Windows OCR packaging and final engine selection remain open. Keep representative
 S-kaupat images and OCR exports in ignored `localreceipts/`; committed fixtures

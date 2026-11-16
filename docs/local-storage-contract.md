@@ -6,11 +6,14 @@ history](manual-saving.md) and separate [reviewed OCR saving](ocr-saving.md).
 
 The first [durable value and manual-command foundation](storage-foundations.md)
 is implemented as a standalone Dart package. A [local manual-receipt repository](local-storage.md)
-now implements schema v2, source-specific atomic saves/edits and local event integrity checks.
+now implements schema v3, source-specific atomic saves/edits, reviewed deletion
+and event integrity checks.
 [OCR corrections](ocr-corrections.md) use fresh scans and explicit row identity
 matching; earlier source identities and decisions remain in immutable events.
-The broader catalog/delete/conflict/sync and recovery rules below
-remain open; this contract exceeds the current schema.
+[Structured backup/isolated recovery](backup-recovery.md) now preserves event
+history with fresh installation identity. Backup UI/encryption/activation and
+the broader catalog/conflict/sync rules below remain open; this contract exceeds
+the current implementation.
 
 This document makes the [plan's data and sync rules](plan.md#3-data-architecture--financial-rules)
 concrete. Implement local persistence first on Android and Windows. Network
@@ -28,7 +31,7 @@ transport, pairing, backup UI, and product matching remain separate work.
   Transactions serialize repository mutations. No UI or plugin writes SQL.
 - SQLite schema version starts at 1. Event payload version, review-policy
   version, and future wire-protocol version are independent integers, initially
-  1. The current implementation uses schema 2 and OCR review policy 2 while
+  1. The current implementation uses schema 3 and OCR review policy 2 while
   preserving manual policy 1 and receipt/event payload 1. A schema migration
   must not rewrite historical event payloads or identities.
 - Opening a newer, unsupported schema is a visible error, never a reset. A
@@ -353,16 +356,19 @@ tombstones in v1; compaction needs a later bootstrap/history contract.
 Do not present the app as the only copy of financial history before tested
 structured backup/restore exists. Sync propagates deletions and is not backup.
 
-A future versioned backup contains the dataset ID, all canonical events with
-parents/dependencies, heads/conflict information, and a manifest with versions,
-counts and checksums. Projections can be rebuilt. It contains no receipt images,
+The [implemented core format](backup-recovery.md) contains the dataset ID, all
+canonical events with parents/dependencies, selected heads, and a manifest with
+versions, counts and checksums. Conflicted history remains unsupported until
+conflict workflows exist. Projections can be rebuilt. It contains no receipt images,
 OCR dumps, credentials, private keys, peer trust, or an active-device assignment.
 Historical origin device IDs remain attached to their events.
 Checksums detect corruption, not an authenticated publisher. Export privacy and
 password/encryption policy require a separate user-visible decision before UI.
 
-Restore must validate a complete package in isolated temporary storage, rebuild
-and check it, then atomically activate it while the old dataset remains recoverable.
+The core validates a complete package in isolated temporary storage and rebuilds
+its projections with a fresh device identity. Activation remains pending.
+The complete restore workflow must validate a package, rebuild and check it, then
+atomically activate it while the old dataset remains recoverable.
 Do not restore over a populated active dataset without explicit user choice.
 Assign a new device UUID and `next_local_seq = 1`; preserve imported origin IDs,
 events, and contiguous history. Old local-origin events become historical foreign

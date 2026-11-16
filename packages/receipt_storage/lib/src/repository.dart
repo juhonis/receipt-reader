@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
@@ -11,6 +12,7 @@ import 'database.dart';
 import 'history_filter.dart';
 
 part 'integrity.dart';
+part 'backup.dart';
 
 final class StorageFailure implements Exception {
   const StorageFailure(this.code);
@@ -87,6 +89,24 @@ final class ReceiptRepository {
       rethrow;
     }
   }
+
+  /// A consistent structured snapshot. Contains financial history; not encrypted.
+  /// No user-facing export policy or file picker is implied by this core API.
+  Future<Uint8List> exportBackup() => _guard(
+    () => _db.transaction(() async {
+      await _checkBackupSize();
+      await _verifyIntegrity();
+      return _encodeBackup(await _backupContent());
+    }),
+  );
+
+  /// Validates/rebuilds in a new private staging directory. Never activates,
+  /// replaces, or opens an existing application dataset. Caller owns successful
+  /// staging output; failed attempts close and remove only their own directory.
+  static Future<RestoredReceiptBackup> restoreBackup(
+    Uint8List bytes, {
+    required Directory stagingParent,
+  }) => _restoreBackup(bytes, stagingParent);
 
   Future<void> close() => _db.close();
 

@@ -21,8 +21,9 @@ return futures; reactive history queries and update notifications are later work
 Opening creates dataset/device UUIDs only for a new empty dataset. Normal
 close/reopen preserves them. `identity`, `branches`, `read`, `readDeleted`,
 `history`, `saveManual`, `saveOcr`, `deleteReceipt`, and `verifyIntegrity` expose
-the current supported operations. No receiving, pairing, restore, catalog
-mutation, or conflict-resolution API exists. Product links are explicitly
+the current supported receipt operations. The [backup/recovery core](backup-recovery.md)
+adds `exportBackup` and static `restoreBackup` for isolated staging. No receiving,
+pairing, active-dataset replacement, catalog mutation, or conflict-resolution API exists. Product links are explicitly
 rejected until catalog workflows and constraints exist. The UI creates,
 corrects and explicitly deletes reviewed receipts. The repository supports
 reviewed revisions with the same source; provenance is never inferred from UI flags.
@@ -86,9 +87,10 @@ On open, a full local-history audit checks SQLite integrity/foreign keys, event
 digests, contiguous sequences, ancestry/dependencies, complete mutation groups,
 heads, selected projections, original row ownership and retry records. It
 rejects inconsistent data instead of regenerating approvals or guessing a winner.
-The current audit accepts local snapshots and tombstones from the installation's
-local origin; incoming histories, products/aliases, conflicts and peer state
-require explicit later schema/API work. The full design contract is not implemented merely because
+The current audit accepts snapshots and tombstones across preserved historical
+origins after explicit restore, with per-origin continuity and causal ordering.
+Incoming sync, products/aliases, conflicts and peer state require explicit later
+schema/API work. The full design contract is not implemented merely because
 schema v1 exists. Keep all events; no compaction or restore-by-copy is supported.
 
 Public failures expose error codes, not raw SQL, parameters or receipt text.
@@ -128,6 +130,8 @@ source-specific reviewed command and expected-head transaction from history.
 [OCR corrections](ocr-corrections.md) now add fresh image review and explicit row
 matching without changing source policy. [Receipt deletion](receipt-deletion.md)
 adds schema-3 tombstones while retaining prior history and row ownership.
-Product/alias management, sync conflicts and tested structured backup/restore
-remain later work. Existing verification counts above describe the manual-saving
-baseline; the deletion guide records the current suites and native checks.
+The [backup/recovery core](backup-recovery.md) now rebuilds validated history in
+isolated staging with a fresh installation identity. User-facing backup policy,
+UI and activation, product/alias management and sync conflicts remain later work.
+Existing verification counts above describe the manual-saving baseline; the
+recovery guide records the current suites and native checks.

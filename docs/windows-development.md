@@ -233,3 +233,20 @@ $receiptAdb = "$env:LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe"
 
 Do not uninstall or clear app data to restore the normal app. Deletion retains
 historical financial records; it is not secure erasure and has no undo yet.
+
+## Backup/recovery core verification
+
+The [structured recovery engine](backup-recovery.md) uses the existing SQLite
+toolchain and schema 3. Run its private synthetic export/file-read/restore/reopen
+smoke with:
+
+```powershell
+flutter test integration_test/backup_restore_test.dart -d emulator-5554
+flutter test integration_test/backup_restore_test.dart -d windows
+```
+
+The Android check runs in airplane mode; restore its prior setting afterwards.
+Rebuild and launch the normal Windows app and reinstall the normal debug APK
+using the commands above. The smoke preserves normal application data. This
+engine stages recovery only; user-facing file encryption, UI and active-dataset
+replacement remain pending.
