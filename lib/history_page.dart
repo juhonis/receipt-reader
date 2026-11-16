@@ -6,15 +6,8 @@ import 'package:receipt_storage/receipt_storage.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'local_store.dart';
 import 'history_filter_dialog.dart';
-
-String receiptDateText(StoredReceiptDate date) {
-  String two(int n) => n.toString().padLeft(2, '0');
-  final day = '${date.day}.${date.month}.${date.year}';
-  return date.hour == null
-      ? day
-      : '$day ${two(date.hour!)}:${two(date.minute!)}'
-            '${date.second == null ? '' : ':${two(date.second!)}'}';
-}
+import 'manual_receipt_page.dart';
+import 'receipt_format.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key, required this.store});
@@ -160,12 +153,20 @@ class _HistoryPageState extends State<HistoryPage> {
                         ),
                       ],
                     ),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute<void>(
-                        builder: (_) => ReceiptDetailPage(receipt: receipt),
-                      ),
-                    ),
+                    onTap: () async {
+                      final changed = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute<bool>(
+                          builder: (_) => ReceiptDetailPage(
+                            receipt: receipt,
+                            store: widget.store,
+                          ),
+                        ),
+                      );
+                      if (mounted && changed == true) {
+                        await _load(refresh: true);
+                      }
+                    },
                   ),
                 if (_loading) const LinearProgressIndicator(),
                 if (_failed) Text(s.historyFailed),
@@ -185,8 +186,13 @@ class _HistoryPageState extends State<HistoryPage> {
 }
 
 class ReceiptDetailPage extends StatelessWidget {
-  const ReceiptDetailPage({super.key, required this.receipt});
+  const ReceiptDetailPage({
+    super.key,
+    required this.receipt,
+    required this.store,
+  });
   final StoredReceipt receipt;
+  final LocalStore store;
 
   @override
   Widget build(BuildContext context) {
@@ -218,6 +224,30 @@ class ReceiptDetailPage extends StatelessWidget {
                       ? s.savedOcrNotice
                       : s.savedManualNotice,
                 ),
+                if (receipt.document.review is ManualReviewRecord)
+                  OutlinedButton.icon(
+                    key: const Key('edit-manual-receipt'),
+                    onPressed: () async {
+                      final changed = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute<bool>(
+                          builder: (_) => ManualReceiptPage.correction(
+                            store: store,
+                            receipt: receipt,
+                          ),
+                        ),
+                      );
+                      // A pending command may have committed. Always return to
+                      // fresh history after save or explicit uncertain exit.
+                      if (context.mounted && changed == true) {
+                        Navigator.pop(context, true);
+                      }
+                    },
+                    icon: const Icon(Icons.edit_outlined),
+                    label: Text(s.correctManualReceipt),
+                  )
+                else
+                  Text(s.ocrCorrectionUnavailable),
                 for (var i = 0; i < snapshot.items.length; i++)
                   Card(
                     child: Padding(

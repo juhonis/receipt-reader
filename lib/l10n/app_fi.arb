@@ -260,5 +260,14 @@
   "historyAmountInvalid": "Anna summa kahdella desimaalilla, esimerkiksi -12,50. Summan pitää mahtua tallennuksen lukurajoihin.",
   "historyDateRangeInvalid": "Alkupäivä ei voi olla loppupäivän jälkeen.",
   "historyAmountRangeInvalid": "Pienin summa ei voi olla suurinta summaa suurempi.",
-  "historyNoMatches": "Valituilla suodattimilla ei löytynyt kuitteja."
+  "historyNoMatches": "Valituilla suodattimilla ei löytynyt kuitteja.",
+  "correctManualReceipt": "Korjaa käsin syötettyä kuittia",
+  "manualCorrectionTitle": "Korjaa tallennettua kuittia",
+  "manualCorrectionNotice": "Korjaat samaa käsin syötettyä kuittia. Vertaa tiedot alkuperäiseen kuittiin ja tarkista kaikki kentät ja rivit uudelleen. Muutokset tallentuvat uutena versiona vasta vahvistuksen jälkeen.",
+  "manualCorrectionUnchanged": "Tietoja ei ole muutettu. Tee korjaus ennen tallentamista.",
+  "manualCorrectionFinalTitle": "Vahvista kuitin korjaus",
+  "manualCorrectionFinalNotice": "Olet verrannut kaikki tiedot alkuperäiseen kuittiin. Korjaus tallentuu saman kuitin uutena versiona ja säilyttää aiemman version muutoshistoriassa. Varmuuskopiointi ja synkronointi eivät vielä ole käytössä.",
+  "saveCorrection": "Tallenna tarkistettu korjaus",
+  "manualCorrectionStale": "Kuitti tai toimipiste on muuttunut tarkistuksen aikana. Tätä korjausta ei tallennettu. Sulje näkymä historiaan ja avaa ajantasainen kuitti ennen uutta tarkistusta.",
+  "ocrCorrectionUnavailable": "Tekstintunnistuksesta tallennetun kuitin korjaus ei ole vielä käytettävissä. Se tarvitsee oman tarkistuksen alkuperäistä kuittikuvaa vasten."
 }

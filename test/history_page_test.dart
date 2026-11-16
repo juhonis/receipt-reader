@@ -7,6 +7,7 @@ import 'package:receipt_parser/receipt_parser.dart';
 import 'package:receipt_storage/receipt_storage.dart';
 import 'package:receipt_reader/app.dart';
 import 'package:receipt_reader/history_page.dart';
+import 'package:receipt_reader/receipt_format.dart';
 import 'package:receipt_reader/history_filter_dialog.dart';
 
 import 'support/fake_store.dart';

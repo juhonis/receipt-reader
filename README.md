@@ -7,10 +7,11 @@ A local-first receipt tracker for Android and Windows, with a Finnish UI.
 The app imports receipt images on Android and Windows, recognizes text on
 Android, and supports evidence-backed review with explicit saving to local
 SQLite. [Manual saving](docs/manual-saving.md),
-[reviewed OCR saving](docs/ocr-saving.md) and
-[history with branch/date/amount filters](docs/history-filters.md) have synthetic
-native integration checks on both platforms. The Windows OCR adapter/packaging,
-saved-receipt correction/deletion, structured backup/restore and sync remain open.
+[reviewed OCR saving](docs/ocr-saving.md),
+[history filters](docs/history-filters.md) and
+[reviewed manual corrections](docs/manual-corrections.md) have synthetic native
+integration checks on both platforms. The Windows OCR adapter/packaging,
+saved OCR correction, deletion, structured backup/restore and sync remain open.
 
 See [the project plan](docs/plan.md) for the next milestone and
 [OCR spike findings](docs/ocr-spike.md) for engine evidence and remaining

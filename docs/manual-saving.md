@@ -63,7 +63,7 @@ workflow, and uninstalling/clearing application data can remove local history.
    the repository transaction. Success opens history. Cancelling final confirmation
    writes nothing.
 
-A failed save keeps the same immutable command and locks editing. Retry sends the
+A failed save keeps the same immutable command and locks editing/back navigation. Retry sends the
 identical mutation, including its review timestamp and row identities, so an
 uncertain response cannot create a second receipt. The command is retained only
 while this screen is alive. If leaving it or restarting after an uncertain save,
@@ -80,13 +80,18 @@ and time, with unknown time after known times on the same day; durable IDs break
 ties. Money stays exact signed integer cents throughout, including returns.
 
 Details show row types, quantities/rates, discount/deposit parents and adjustment
-reasons. Filters, editing, deletion, branch/catalog management, products/aliases,
-analytics, export/restore and synchronization remain later work. Images and OCR
+reasons. [History filters](history-filters.md) and
+[reviewed manual corrections](manual-corrections.md) are now implemented. OCR
+correction, deletion, branch/catalog management, products/aliases, analytics,
+export/restore and synchronization remain later work. Images and OCR
 text dumps are not stored. `lib/manual_receipt_page.dart` records application
 version `0.1.0+1`; keep its version constant aligned with `pubspec.yaml` when
 cutting a release.
 
 ## Verification
+
+The counts below describe the initial manual-saving baseline. See
+[manual corrections](manual-corrections.md) for current app verification.
 
 - 40 storage tests, 18 domain tests, 68 parser tests and 53 Flutter unit/widget
   tests pass; app and storage analyzers are clean.

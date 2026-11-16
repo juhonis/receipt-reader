@@ -175,3 +175,17 @@ flutter test integration_test/history_filter_test.dart -d windows
 As with the saving smoke tests, restore the prior emulator airplane setting,
 rebuild the normal apps and reinstall the normal debug APK afterwards. The test
 uses an isolated temporary database; the normal app-support data is preserved.
+
+## Manual correction verification
+
+[Reviewed manual corrections](manual-corrections.md) use the same Windows/Android
+toolchain and existing SQLite schema. Run the synthetic correction/reopen and
+stale-write smoke with:
+
+```powershell
+flutter test integration_test/manual_correction_test.dart -d emulator-5554
+flutter test integration_test/manual_correction_test.dart -d windows
+```
+
+Restore the normal app entry points and prior emulator airplane setting after
+integration tests. The smoke preserves the normal application-support database.

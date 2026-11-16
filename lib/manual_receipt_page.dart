@@ -1,23 +1,67 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:receipt_domain/receipt_domain.dart';
 import 'package:receipt_parser/receipt_parser.dart';
+import 'package:receipt_storage/receipt_storage.dart';
 
 import 'l10n/generated/app_localizations.dart';
 import 'local_store.dart';
+import 'receipt_format.dart';
 
 // Keep aligned with pubspec.yaml when cutting a release.
 const receiptAppVersion = '0.1.0+1';
 
 class ManualReceiptPage extends StatefulWidget {
-  const ManualReceiptPage({super.key, required this.store});
+  const ManualReceiptPage({super.key, required this.store}) : _initial = null;
+  const ManualReceiptPage._({
+    super.key,
+    required this.store,
+    required this._initial,
+  });
+
+  factory ManualReceiptPage.correction({
+    Key? key,
+    required LocalStore store,
+    required StoredReceipt receipt,
+  }) {
+    if (receipt.document.review is! ManualReviewRecord) {
+      throw ArgumentError('manual_correction_requires_manual_source');
+    }
+    return ManualReceiptPage._(key: key, store: store, initial: receipt);
+  }
   final LocalStore store;
+  final StoredReceipt? _initial;
 
   @override
   State<ManualReceiptPage> createState() => _ManualReceiptPageState();
 }
 
 class _ManualRow {
-  final id = DurableId.generate();
+  _ManualRow() : id = DurableId.generate();
+  _ManualRow.from(ReceiptItemSnapshot item) : id = item.id {
+    name.text = item.name;
+    amount.text = formatCents(item.cents);
+    kind = item.kind;
+    rawName = item.rawName;
+    product = item.product;
+    if (item.quantityValue != null) {
+      originalQuantityScale = item.quantityScale!;
+      originalQuantityText = formatFixed(
+        item.quantityValue!,
+        originalQuantityScale,
+      );
+      quantity.text = originalQuantityText!;
+      rate.text = formatFixed(item.rateMicros!, 6);
+      unit = item.quantityUnit!;
+    }
+    reason.text = item.adjustmentReason ?? '';
+    if (kind == LineKind.deposit || kind == LineKind.discount) {
+      relationship = item.parentItemId?.value ?? 'receipt';
+    }
+  }
+  final DurableId id;
+  String? rawName, originalQuantityText;
+  int originalQuantityScale = 6;
+  ReceiptProductLink? product;
   final name = TextEditingController();
   final amount = TextEditingController();
   final quantity = TextEditingController();
@@ -36,12 +80,12 @@ class _ManualRow {
 }
 
 class _ManualReceiptPageState extends State<ManualReceiptPage> {
-  final _receiptId = DurableId.generate();
+  late final DurableId _receiptId;
   final _newBranchId = DurableId.generate();
   final _name = TextEditingController();
   final _date = TextEditingController();
   final _total = TextEditingController();
-  final _rows = [_ManualRow()];
+  final _rows = <_ManualRow>[];
   List<ReceiptBranch>? _branches;
   String? _branchChoice;
   bool _branchFailed = false;
@@ -49,11 +93,31 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
   bool _saving = false;
   ReviewedReceipt? _pending;
   bool _saveFailed = false;
-  bool _prepareFailed = false;
+  bool _prepareFailed = false, _stale = false;
+
+  bool get _correcting => widget._initial != null;
+  List<RevisionId> get _expectedHeads =>
+      widget._initial == null ? const [] : [widget._initial!.revision];
+  bool get _reviewComplete =>
+      _branchReviewed &&
+      _dateReviewed &&
+      _totalReviewed &&
+      !_prepareFailed &&
+      _rows.every((row) => row.reviewed);
 
   @override
   void initState() {
     super.initState();
+    final snapshot = widget._initial?.document.snapshot;
+    _receiptId = snapshot?.id ?? DurableId.generate();
+    if (snapshot == null) {
+      _rows.add(_ManualRow());
+    } else {
+      _branchChoice = snapshot.branch.id.value;
+      _date.text = receiptDateText(snapshot.date);
+      _total.text = formatCents(snapshot.totalCents);
+      _rows.addAll(snapshot.items.map(_ManualRow.from));
+    }
     _loadBranches();
   }
 
@@ -61,7 +125,17 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
     setState(() => _branchFailed = false);
     try {
       final branches = await widget.store.branches();
-      if (mounted) setState(() => _branches = branches);
+      if (mounted) {
+        setState(() {
+          _branches = branches;
+          // An unavailable catalog branch needs an explicit new selection.
+          if (_branchChoice != null &&
+              _branchChoice != 'new' &&
+              !branches.any((b) => b.id.value == _branchChoice)) {
+            _branchChoice = null;
+          }
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _branchFailed = true);
     }
@@ -110,15 +184,20 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
         row.quantity.text.trim().isEmpty &&
         row.rate.text.trim().isEmpty &&
         row.unit == QuantityUnit.unknown;
+    final quantityScale = row.quantity.text == row.originalQuantityText
+        ? row.originalQuantityScale
+        : 6;
     return ReceiptItemSnapshot(
       id: row.id,
+      rawName: row.rawName,
+      product: row.product,
       name: row.name.text.trim(),
       kind: row.kind,
       cents: amount(row.amount.text, 'row.cents', 2),
       quantityValue: quantityAbsent
           ? null
-          : amount(row.quantity.text, 'row.quantity', 6),
-      quantityScale: quantityAbsent ? null : 6,
+          : amount(row.quantity.text, 'row.quantity', quantityScale),
+      quantityScale: quantityAbsent ? null : quantityScale,
       quantityUnit: quantityAbsent ? null : row.unit,
       rateMicros: quantityAbsent
           ? null
@@ -139,21 +218,40 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
 
   Future<void> _save(ReceiptSnapshot snapshot) async {
     final s = AppLocalizations.of(context)!;
+    late final ManualReviewChecks checks;
+    try {
+      checks = ManualReviewChecks(
+        snapshot: snapshot,
+        expectedHeads: _expectedHeads,
+        mutationId: DurableId.generate(),
+        branchReviewed: _branchReviewed,
+        dateReviewed: _dateReviewed,
+        totalReviewed: _totalReviewed,
+        reviewedRowIds: _rows.where((r) => r.reviewed).map((r) => r.id),
+      );
+    } on ReceiptDataException {
+      _edit();
+      setState(() => _prepareFailed = true);
+      return;
+    }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(s.manualFinalTitle),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(snapshot.branch.name),
-              Text(_date.text),
-              Text('${formatCents(snapshot.totalCents)} €'),
-              Text(s.manualFinalNotice),
-            ],
-          ),
+        title: Text(
+          _correcting ? s.manualCorrectionFinalTitle : s.manualFinalTitle,
+        ),
+        scrollable: true,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(snapshot.branch.name),
+            Text(_date.text),
+            Text('${formatCents(snapshot.totalCents)} €'),
+            Text(
+              _correcting ? s.manualCorrectionFinalNotice : s.manualFinalNotice,
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -163,25 +261,19 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
           FilledButton(
             key: const Key('confirm-save'),
             onPressed: () => Navigator.pop(context, true),
-            child: Text(s.saveReceipt),
+            child: Text(_correcting ? s.saveCorrection : s.saveReceipt),
           ),
         ],
       ),
     );
     if (!mounted || confirmed != true) return;
     try {
-      final checks = ManualReviewChecks(
-        snapshot: snapshot,
-        expectedHeads: const [],
-        mutationId: DurableId.generate(),
-        branchReviewed: _branchReviewed,
-        dateReviewed: _dateReviewed,
-        totalReviewed: _totalReviewed,
-        reviewedRowIds: _rows.where((r) => r.reviewed).map((r) => r.id),
-      );
+      if (!_reviewComplete) {
+        throw const ReceiptDataException('review', 'changedDuringConfirmation');
+      }
       final pending = ReviewedReceipt.manual(
         current: _snapshot(),
-        expectedHeads: const [],
+        expectedHeads: _expectedHeads,
         confirmation: checks.confirm(
           reviewedAtMs: BigInt.from(
             DateTime.now().toUtc().millisecondsSinceEpoch,
@@ -201,7 +293,7 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
   }
 
   Future<void> _sendPending() async {
-    if (_saving) return;
+    if (_saving || _stale) return;
     setState(() {
       _saving = true;
       _saveFailed = false;
@@ -209,6 +301,13 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
     try {
       await widget.store.saveManual(_pending!);
       if (mounted) Navigator.pop(context, true);
+    } on StorageFailure catch (error) {
+      if (mounted) {
+        setState(() {
+          _saveFailed = true;
+          _stale = error.code == 'staleReceipt' || error.code == 'staleBranch';
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _saveFailed = true);
     } finally {
@@ -227,23 +326,40 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
     super.dispose();
   }
 
+  // A branch dependency revision can become known after creation without
+  // changing receipt content. It must not turn a no-op into a correction.
+  String _content(ReceiptSnapshot snapshot) => ReceiptSnapshotCodec.encode(
+    ReceiptSnapshot(
+      id: snapshot.id,
+      branch: ReceiptBranch(
+        id: snapshot.branch.id,
+        name: snapshot.branch.name,
+        chain: snapshot.branch.chain,
+        address: snapshot.branch.address,
+        printedIdentifier: snapshot.branch.printedIdentifier,
+      ),
+      date: snapshot.date,
+      totalCents: snapshot.totalCents,
+      items: snapshot.items,
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
     ReceiptSnapshot? snapshot;
     ReceiptDataException? invalid;
+    var changed = true;
     try {
       snapshot = _snapshot();
+      changed =
+          !_correcting ||
+          _content(snapshot) != _content(widget._initial!.document.snapshot);
     } on ReceiptDataException catch (error) {
+      snapshot = null;
       invalid = error;
     }
-    final ready =
-        snapshot != null &&
-        _branchReviewed &&
-        _dateReviewed &&
-        _totalReviewed &&
-        !_prepareFailed &&
-        _rows.every((r) => r.reviewed);
+    final ready = snapshot != null && changed && _reviewComplete;
     final locked = _pending != null;
     final kinds = {
       LineKind.product: s.productKind,
@@ -279,9 +395,13 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
       ),
     );
     return PopScope(
-      canPop: !_saving,
+      canPop: !_saving && _pending == null,
       child: Scaffold(
-        appBar: AppBar(title: Text(s.manualEntryTitle)),
+        appBar: AppBar(
+          title: Text(
+            _correcting ? s.manualCorrectionTitle : s.manualEntryTitle,
+          ),
+        ),
         body: SafeArea(
           child: Center(
             child: ConstrainedBox(
@@ -291,7 +411,11 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(s.manualEntryNotice),
+                    Text(
+                      _correcting
+                          ? s.manualCorrectionNotice
+                          : s.manualEntryNotice,
+                    ),
                     const SizedBox(height: 16),
                     if (_branches == null && !_branchFailed)
                       const LinearProgressIndicator(),
@@ -382,6 +506,7 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
                           : switch (invalid?.field) {
                               'branch' || 'branch.name' => s.branchNeedsReview,
                               'date' => s.manualDateInvalid,
+                              'json' => s.manualPrepareFailed,
                               'row.parent' ||
                               'row.discount' => s.manualRelationshipInvalid,
                               'row.quantity' ||
@@ -394,6 +519,8 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
                             },
                       key: const Key('manual-validation'),
                     ),
+                    if (_correcting && !changed)
+                      Text(s.manualCorrectionUnchanged),
                     Text(s.manualRecheckNotice),
                     if (_prepareFailed)
                       Text(
@@ -403,13 +530,13 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
                     if (locked) Text(s.pendingSaveNotice),
                     if (_saveFailed)
                       Text(
-                        s.manualSaveFailed,
+                        _stale ? s.manualCorrectionStale : s.manualSaveFailed,
                         key: const Key('manual-save-error'),
                       ),
                     const SizedBox(height: 12),
                     FilledButton(
                       key: const Key('manual-save'),
-                      onPressed: _saving
+                      onPressed: _saving || _stale
                           ? null
                           : locked
                           ? _sendPending
@@ -421,6 +548,8 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
                             ? s.savingReceipt
                             : locked
                             ? s.retrySave
+                            : _correcting
+                            ? s.saveCorrection
                             : s.saveReceipt,
                       ),
                     ),

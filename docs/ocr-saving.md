@@ -93,4 +93,6 @@ reinstall the normal debug APK, and restore the emulator's prior airplane settin
 See [Windows environment setup](windows-development.md), [local storage](local-storage.md)
 and [manual saving](manual-saving.md) for paths and commands.
 [History filters](history-filters.md) are now implemented. Backup/restore,
-correction/deletion, products/aliases and synchronization remain open.
+OCR correction, deletion, products/aliases and synchronization remain open.
+[Manual corrections](manual-corrections.md) are now available without changing
+OCR provenance.

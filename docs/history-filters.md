@@ -26,7 +26,8 @@ all branches. The applied bounds appear above the results.
   failed first page cannot show rows from the previous query. Changes to filters
   and refresh are disabled during a read to prevent overlapping requests.
 - Filters last for the current history screen only. Closing and reopening history
-  starts unfiltered. Receipt details remain read-only.
+  starts unfiltered. [Reviewed manual corrections](manual-corrections.md) are
+  available from receipt details; OCR details remain read-only.
 
 ## Repository contract
 
@@ -44,14 +45,14 @@ canonical data and projections. The existing branch/date index is reused; schema
 version remains 2. There are no writes, new events or changes to canonical
 receipt bytes, review provenance, identities or mutation retry records.
 
-Offset pagination is consistent for this local read-only workflow. A future
-concurrent correction/sync workflow must revisit pagination when records can
-move or disappear between page requests. Large-history performance remains a
+After a local manual correction, history keeps the applied filter and restarts
+pagination from zero. A future concurrent writer/sync workflow must revisit
+pagination when records can move or disappear between page requests. Large-history performance remains a
 release check; an amount-only query has no dedicated amount index today.
 
 ## Verification
 
-- `flutter test`: 63 app unit/widget tests passed.
+- `flutter test`: 73 app unit/widget tests passed after adding manual corrections.
 - `dart test` in `packages/receipt_storage`: 49 storage tests passed.
 - App and storage analyzers are clean.
 - New repository tests cover individual/combined bounds, identical branch names
@@ -80,5 +81,5 @@ flutter test integration_test/history_filter_test.dart -d windows
 Native checks install a test entry point. Rebuild the normal Android/Windows app
 when done and reinstall the normal debug APK on the emulator. See
 [Windows environment setup](windows-development.md) for the SDK and emulator
-commands. This milestone does not cover corrections/deletion, structured
-backup/restore, products/aliases, sync or Windows OCR packaging.
+commands. OCR correction, deletion, structured backup/restore, products/aliases, sync and
+Windows OCR packaging remain open.
