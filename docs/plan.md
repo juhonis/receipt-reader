@@ -63,7 +63,7 @@ Do an early platform spike for bundled OCR on both targets, HTTPS pinning, secur
 
 ### 3.2 Logical Drift Schema
 
-The following is a schema contract, not migration-ready SQL. Add constraints, indexes, and migration tests during implementation.
+The following is a logical overview, not migration-ready SQL. The [local storage contract](local-storage-contract.md) defines concrete representations, constraints, reviewed-snapshot requirements, atomic writes, causal conflicts, and recovery behaviour for the first Drift implementation. Add generated schema snapshots and migration tests during implementation.
 
 | Table | Main fields and invariants |
 | :--- | :--- |
@@ -230,7 +230,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Establish a standalone Dart parser foundation with exact arithmetic, geometry-based row candidates, header dates, and synthetic validation tests. See [parser scope and limitations](parser-foundations.md); broader layouts and review integration remain open.
 - [ ] Build representative geometry-preserving OCR fixtures and expected outputs.
 - [ ] Implement standalone Dart parser and validation tests, including discounts, deposits, returns, and weighed goods.
-- [ ] Define schema constraints, causal revisions, event identities, conflict states, and protocol versioning before creating migrations. Defer network implementation until both local workflows work.
+- [x] Define schema constraints, causal revisions, event identities, conflict states, and versioning before creating migrations. See the [local storage contract](local-storage-contract.md); schema/event/review versions are independent, while transport limits and the wire format remain work for the sync implementation. Defer network implementation until both local workflows work.
 
 ### Phase 2: Shared Import → Review → Save, Plus Android Capture
 - [x] Initialize one Flutter project with Android and Windows targets and externalized Finnish UI strings.
@@ -285,6 +285,8 @@ Restore must assign a fresh local device identity and preserve imported event id
 
 ## 8. Immediate Next Step
 
-The Windows-native environment and Flutter scaffold are ready. Keep representative S-kaupat receipt images in the ignored `localreceipts/` directory. Use minimal Android and Windows OCR harnesses to compare engine candidates and establish the normalized text/bounding-box fixture format; manually transcribed text can bootstrap lexical tests but cannot validate geometry.
+The temporary Android OCR review now supports evidence-backed completion, with explicit no-save messaging. The shared parser/review rules and the [local storage contract](local-storage-contract.md) are ready for the next persistence foundation. There is still no database, saved history, or backup/restore implementation. Windows OCR packaging and final engine selection remain open.
 
-Write expected financial rows and totals by hand, then expand the corpus and implement deterministic arithmetic, parser output, and validation tests before building the main Flutter UI. Complete the standalone import/review/edit workflow on both platforms before implementing bidirectional sync. Development receipt exports must be explicit and anonymized before committing.
+Next, implement durable IDs, checked storage values, a canonical receipt snapshot codec, and a reviewed-command builder that binds approval to the exact saved values and evidence results. Then add Drift schema v1 and atomic local receipt/change-log writes, before wiring a save action into review. Manual review still needs explicit row/relationship approval; OCR review must pass its live evidence audit. A matching total or the prototype's completion flag alone cannot authorize a save.
+
+Keep representative S-kaupat images and OCR exports in ignored `localreceipts/`; committed fixtures remain synthetic or explicitly anonymized. Complete standalone import/review/save/edit workflows on both platforms and tested recovery before implementing bidirectional sync. Broader parser fixtures, clean-install OCR checks, privacy/permission audits, and native Windows picker verification remain required.

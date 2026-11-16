@@ -340,6 +340,9 @@ printed date/time, valid quantities and signed amounts, exact total reconciliati
 and final confirmation. Evidence can be ready while totals disagree; completion
 then stays blocked. Successful completion explicitly states that nothing was saved.
 There is still no database/history or permission for a future save layer.
+The [local storage contract](local-storage-contract.md) now specifies the separate
+durable snapshot, structured review results, and transaction requirements for
+that future layer; it does not change this prototype's no-save behaviour.
 
 Unsupported cases stay open: malformed/legacy source context, unresolved boundary
 issues, unsupported date ambiguity, manual discount rows without a typed discount
