@@ -1,0 +1,13 @@
+/// Storage-facing values; no database, image retention, or network transport.
+library;
+
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:crypto/crypto.dart';
+import 'package:receipt_parser/receipt_parser.dart';
+
+part 'src/values.dart';
+part 'src/snapshot.dart';
+part 'src/codec.dart';
+part 'src/manual_review.dart';

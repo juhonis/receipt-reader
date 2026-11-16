@@ -249,6 +249,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Add scoped item/total findings, explicit correction/classification of unparsed item text, and a structural source-word coverage inventory that exposes parser omissions. Geometry review, full human evidence review, and OCR completion remain open.
 - [x] Retain layout context and geometry source words, add image overlays and safe re-parsing into a separate temporary review, expose omissions as individual review items, and track per-row image comparison. Overlap/skew resolution and final OCR approval remain open.
 - [x] Add typed overlap/band/skew evidence decisions and a shared final evidence audit with stale-approval rejection, whole-page review, source/quantity preservation, and supported no-save OCR completion. Boundary repair, unsupported conversions, Windows OCR, and persistence still require work.
+- [x] Add independently tested durable UUIDs, range-checked receipt snapshots, canonical JSON/digest fixtures, and snapshot-bound manual confirmation commands. See [storage foundations](storage-foundations.md); app integration, the OCR evidence adapter, and transactional storage remain open.
 - [ ] Save only reviewed, reconciled receipts; verify atomic domain/change-log writes.
 - [ ] Test image cleanup on save, cancel, error, and startup after crashes.
 - [ ] Verify that imported original files remain untouched on both platforms.
@@ -285,8 +286,8 @@ Restore must assign a fresh local device identity and preserve imported event id
 
 ## 8. Immediate Next Step
 
-The temporary Android OCR review now supports evidence-backed completion, with explicit no-save messaging. The shared parser/review rules and the [local storage contract](local-storage-contract.md) are ready for the next persistence foundation. There is still no database, saved history, or backup/restore implementation. Windows OCR packaging and final engine selection remain open.
+The temporary Android OCR review supports evidence-backed completion, with explicit no-save messaging. The [durable receipt foundation](storage-foundations.md) now provides checked values, a canonical codec, and content-bound manual review commands. There is still no database, saved history, or backup/restore implementation. Windows OCR packaging and final engine selection remain open.
 
-Next, implement durable IDs, checked storage values, a canonical receipt snapshot codec, and a reviewed-command builder that binds approval to the exact saved values and evidence results. Then add Drift schema v1 and atomic local receipt/change-log writes, before wiring a save action into review. Manual review still needs explicit row/relationship approval; OCR review must pass its live evidence audit. A matching total or the prototype's completion flag alone cannot authorize a save.
+Next, add Drift schema v1 and atomic local manual-receipt/change-log writes with migration, constraint, rollback and retry tests. Before wiring a save action into review, add Android backup/transfer exclusions, confirmed branch selection, and manual field/row/relationship controls matching the command contract. Then implement the separate live OCR evidence adapter. A matching total or the prototype's completion flag alone cannot authorize a save.
 
 Keep representative S-kaupat images and OCR exports in ignored `localreceipts/`; committed fixtures remain synthetic or explicitly anonymized. Complete standalone import/review/save/edit workflows on both platforms and tested recovery before implementing bidirectional sync. Broader parser fixtures, clean-install OCR checks, privacy/permission audits, and native Windows picker verification remain required.

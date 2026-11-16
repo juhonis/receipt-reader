@@ -4,6 +4,10 @@ Status: design baseline, 2026-11-16. This specifies the first Drift/SQLite
 implementation; it does not introduce a database, migrations, or a save button.
 The app still performs temporary reviews and saves nothing.
 
+The first [durable value and manual-command foundation](storage-foundations.md)
+is now implemented as a standalone Dart package. It is not wired into the app;
+Drift, OCR save adaptation, and the transaction/recovery rules below remain open.
+
 This document makes the [plan's data and sync rules](plan.md#3-data-architecture--financial-rules)
 concrete. Implement local persistence first on Android and Windows. Network
 transport, pairing, backup UI, and product matching remain separate work.

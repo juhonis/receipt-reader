@@ -1,0 +1,15 @@
+name: receipt_domain
+description: Durable receipt snapshots and content-bound review commands.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.14.0
+
+dependencies:
+  crypto: 3.0.7
+  receipt_parser:
+    path: ../receipt_parser
+
+dev_dependencies:
+  test: 1.33.0
