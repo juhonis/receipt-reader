@@ -91,5 +91,6 @@ flutter test integration_test/ocr_save_test.dart -d windows
 Restore the normal app entry point after native tests: rebuild Android/Windows,
 reinstall the normal debug APK, and restore the emulator's prior airplane setting.
 See [Windows environment setup](windows-development.md), [local storage](local-storage.md)
-and [manual saving](manual-saving.md) for paths and commands. Backup/restore,
-filters, correction/deletion, products/aliases and synchronization remain open.
+and [manual saving](manual-saving.md) for paths and commands.
+[History filters](history-filters.md) are now implemented. Backup/restore,
+correction/deletion, products/aliases and synchronization remain open.

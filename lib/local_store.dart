@@ -7,7 +7,11 @@ import 'package:receipt_storage/receipt_storage.dart';
 /// App-facing seam: widget tests never open the user's real database.
 abstract interface class LocalStore {
   Future<List<ReceiptBranch>> branches();
-  Future<List<StoredReceipt>> history({int limit = 30, int offset = 0});
+  Future<List<StoredReceipt>> history({
+    int limit = 30,
+    int offset = 0,
+    HistoryFilter? filter,
+  });
   Future<SaveResult> saveManual(ReviewedReceipt command);
   Future<SaveResult> saveOcr(ReviewedReceipt command);
   Future<void> close();
@@ -20,8 +24,11 @@ final class RepositoryStore implements LocalStore {
   @override
   Future<List<ReceiptBranch>> branches() => repository.branches();
   @override
-  Future<List<StoredReceipt>> history({int limit = 30, int offset = 0}) =>
-      repository.history(limit: limit, offset: offset);
+  Future<List<StoredReceipt>> history({
+    int limit = 30,
+    int offset = 0,
+    HistoryFilter? filter,
+  }) => repository.history(limit: limit, offset: offset, filter: filter);
   @override
   Future<SaveResult> saveManual(ReviewedReceipt command) =>
       repository.saveManual(command);

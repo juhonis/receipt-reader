@@ -3,3 +3,4 @@
 library;
 
 export 'src/repository.dart';
+export 'src/history_filter.dart';

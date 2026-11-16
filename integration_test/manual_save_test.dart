@@ -16,8 +16,11 @@ class _ObservedStore implements LocalStore {
   @override
   Future<List<ReceiptBranch>> branches() => repository.branches();
   @override
-  Future<List<StoredReceipt>> history({int limit = 30, int offset = 0}) =>
-      repository.history(limit: limit, offset: offset);
+  Future<List<StoredReceipt>> history({
+    int limit = 30,
+    int offset = 0,
+    HistoryFilter? filter,
+  }) => repository.history(limit: limit, offset: offset, filter: filter);
   @override
   Future<SaveResult> saveManual(ReviewedReceipt command) =>
       repository.saveManual(command);

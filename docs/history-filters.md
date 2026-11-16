@@ -1,0 +1,84 @@
+# Receipt history filters
+
+The Android and Windows history screens support read-only filters for saved
+manual and OCR receipts. Open **Kuittihistoria → Suodata kuitteja**. Select a
+stored branch and/or enter date and total-amount bounds, then choose
+**Käytä suodattimia**. Unused fields stay blank; **Kaikki toimipisteet** includes
+all branches. The applied bounds appear above the results.
+
+- Dates use Finnish `d.m.yyyy` syntax (1970–2099), without a time. Both boundary
+  days are included according to the printed Helsinki calendar date. Date-only
+  receipts and receipts with known times are included on the same basis;
+  no UTC midnight or invented time is used.
+- Amounts require two decimals, with comma or dot, for example `-12,50` or
+  `12.50`. Bounds include equality and support negative returns, zero and the
+  complete SQLite signed 64-bit cent range. No floating-point amounts are used.
+- Bounds combine with AND. Branch selection uses the durable branch ID, so
+  branches with the same display name stay distinct.
+- Invalid dates, times in date fields, out-of-range amounts and inverted ranges
+  stay in the dialog for correction. They do not change the applied query.
+- Cancel discards draft edits. **Tyhjennä suodattimet** returns to all receipts.
+  Applying or clearing filters starts at offset zero; refresh retains the applied
+  filters and also starts at zero. Empty filtered results have a separate message.
+- **Näytä lisää kuitteja** reads another 30 matching receipts. A failed read keeps
+  already loaded matching rows; retry uses the same filter object and offset.
+  Applying a different filter clears the prior results before the request, so a
+  failed first page cannot show rows from the previous query. Changes to filters
+  and refresh are disabled during a read to prevent overlapping requests.
+- Filters last for the current history screen only. Closing and reopening history
+  starts unfiltered. Receipt details remain read-only.
+
+## Repository contract
+
+`ReceiptRepository.history(filter: HistoryFilter(...), limit: 30, offset: 0)`
+accepts an immutable filter with optional `branchId`, day-precision `fromDate` and
+`throughDate`, and exact `minTotalCents`/`maxTotalCents`. Construction validates day
+precision, inclusive range order and signed integer bounds before SQL execution.
+Existing calls without a filter keep their prior behavior.
+
+Values are bound query parameters. SQL applies all predicates before LIMIT/OFFSET
+and retains the printed-date/time descending order with durable ID ties.
+Date-only receipts follow known times on the same day. Each page is read in a
+consistent transaction and returned documents are checked against their
+canonical data and projections. The existing branch/date index is reused; schema
+version remains 2. There are no writes, new events or changes to canonical
+receipt bytes, review provenance, identities or mutation retry records.
+
+Offset pagination is consistent for this local read-only workflow. A future
+concurrent correction/sync workflow must revisit pagination when records can
+move or disappear between page requests. Large-history performance remains a
+release check; an amount-only query has no dedicated amount index today.
+
+## Verification
+
+- `flutter test`: 63 app unit/widget tests passed.
+- `dart test` in `packages/receipt_storage`: 49 storage tests passed.
+- App and storage analyzers are clean.
+- New repository tests cover individual/combined bounds, identical branch names
+  with distinct IDs, exact signed limits, calendar boundaries, daylight-saving
+  transition days, filtering before pagination, read-only identity/event
+  preservation and canonical/projection checks.
+- Widget tests cover apply/reset/cancel/refresh, validation and branch-read
+  failures, initial/page-read retries, empty matches, in-flight controls and a
+  320-pixel screen with 2× text and full-range amounts.
+- The synthetic native smoke passes on Windows and Android in airplane mode. It
+  seeds 34 invented receipts in an isolated temporary app-support directory,
+  reopens SQLite, combines filters through the UI, loads 30 + 1 matching receipts,
+  opens details, refreshes/resets and checks unchanged content/identity/sequence.
+  It removes only its own temporary directory. No private receipt/image or the
+  normal app database is used.
+- Normal Android and Windows debug builds pass after native integration; the
+  normal APK and prior emulator airplane setting are restored.
+
+Run the native checks with:
+
+```powershell
+flutter test integration_test/history_filter_test.dart -d emulator-5554
+flutter test integration_test/history_filter_test.dart -d windows
+```
+
+Native checks install a test entry point. Rebuild the normal Android/Windows app
+when done and reinstall the normal debug APK on the emulator. See
+[Windows environment setup](windows-development.md) for the SDK and emulator
+commands. This milestone does not cover corrections/deletion, structured
+backup/restore, products/aliases, sync or Windows OCR packaging.

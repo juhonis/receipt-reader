@@ -245,5 +245,20 @@
   "ocrSaveFinalNotice": "Vahvista vielä päivämäärä ja loppusumma alkuperäisestä kuitista. Tallennukseen sisältyvät tarkistetut tiedot ja tulkintapäätökset. Kuvaa tai tunnistettua tekstimassaa ei tallenneta.",
   "ocrSaveReviewNotice": "Vertaa tekstintunnistuksen ehdotusta kuittikuvaan ja korjaa virheet. Tarkista rivit, tulkintahuomiot ja koko kuittikuva ennen tallennusta. Alkuperäinen kuvatiedosto säilyy.",
   "ocrSaveDetailsInvalid": "Tallennuksen tiedot tai kuittikuvan tarkistus ovat puutteelliset tai muuttuneet. Tarkista myös panttien kohdistukset ja oikaisujen syyt, ja vahvista tarkistus uudelleen.",
-  "savedOcrNotice": "Tekstintunnistuksesta tarkistettu kuitti. Tulkintapäätökset ja alkuperäiset rivinimet on säilytetty. Kuvaa, tekstintunnistuksen koko tulosta tai tarkistuksen muistiinpanoja ei ole tallennettu."
+  "savedOcrNotice": "Tekstintunnistuksesta tarkistettu kuitti. Tulkintapäätökset ja alkuperäiset rivinimet on säilytetty. Kuvaa, tekstintunnistuksen koko tulosta tai tarkistuksen muistiinpanoja ei ole tallennettu.",
+  "historyFilters": "Suodata kuitteja",
+  "historyApplyFilters": "Käytä suodattimia",
+  "historyResetFilters": "Tyhjennä suodattimet",
+  "historyAllBranches": "Kaikki toimipisteet",
+  "historyUnavailableBranch": "Aiemmin valittu toimipiste",
+  "historyFromDate": "Alkupäivä",
+  "historyThroughDate": "Loppupäivä",
+  "historyMinAmount": "Pienin loppusumma (€)",
+  "historyMaxAmount": "Suurin loppusumma (€)",
+  "historyFilterNotice": "Jätä tarpeettomat rajat tyhjiksi. Päivämäärät ovat kuitin painettuja päiviä (1970–2099), ja molemmat rajapäivät sisältyvät hakuun. Summat annetaan kahdella desimaalilla; palautus voi olla negatiivinen.",
+  "historyDateInvalid": "Anna kelvollinen päivä muodossa pp.kk.vvvv (1970–2099), ilman kellonaikaa.",
+  "historyAmountInvalid": "Anna summa kahdella desimaalilla, esimerkiksi -12,50. Summan pitää mahtua tallennuksen lukurajoihin.",
+  "historyDateRangeInvalid": "Alkupäivä ei voi olla loppupäivän jälkeen.",
+  "historyAmountRangeInvalid": "Pienin summa ei voi olla suurinta summaa suurempi.",
+  "historyNoMatches": "Valituilla suodattimilla ei löytynyt kuitteja."
 }

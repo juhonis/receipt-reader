@@ -161,3 +161,17 @@ Keep commits focused on one coherent change, including its directly related
 documentation and verification. Prefer a concise, descriptive one-line commit
 message. Avoid mixing unrelated changes or committing generated build outputs,
 local SDK paths, and private receipt images.
+
+## Filtered history verification
+
+See [history filters](history-filters.md) for supported bounds, pagination/retry
+behavior and current verification results. Run its synthetic native smoke with:
+
+```powershell
+flutter test integration_test/history_filter_test.dart -d emulator-5554
+flutter test integration_test/history_filter_test.dart -d windows
+```
+
+As with the saving smoke tests, restore the prior emulator airplane setting,
+rebuild the normal apps and reinstall the normal debug APK afterwards. The test
+uses an isolated temporary database; the normal app-support data is preserved.

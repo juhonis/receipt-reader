@@ -2,7 +2,8 @@
 
 Drift/SQLite repository for reviewed local manual and supported OCR receipts.
 The Flutter app owns an application-support database and provides explicit saving
-and read-only history. Schema 2 migrates released manual data without rewriting
+and read-only history with validated branch/date/exact-cent filters. See the
+[filter contract and native checks](../../docs/history-filters.md). Schema 2 migrates released manual data without rewriting
 its event history. See [storage implementation](../../docs/local-storage.md),
 [OCR saving](../../docs/ocr-saving.md) and the [contract](../../docs/local-storage-contract.md).
 

@@ -118,7 +118,8 @@ real receipt or source image is written by the tests.
 ## Next integration
 
 [Reviewed OCR saving](ocr-saving.md) now validates live evidence, preserves typed
-provenance and uses schema 2. History filters, UI corrections/deletion,
-product/alias management, sync conflicts and tested structured backup/restore
-remain later work. Existing verification counts above describe the manual-saving
+provenance and uses schema 2. [History filters](history-filters.md) now apply
+validated branch/civil-date/exact-cent bounds before pagination without a schema
+change. UI corrections/deletion, product/alias management, sync conflicts and
+tested structured backup/restore remain later work. Existing verification counts above describe the manual-saving
 baseline; current OCR-specific tests and limits are documented separately.

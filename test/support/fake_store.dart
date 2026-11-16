@@ -13,6 +13,8 @@ class FakeStore implements LocalStore {
   bool failSaveAfterCommit = false, failBranches = false, failHistory = false;
   int closeCount = 0, historyCalls = 0;
   final historyOffsets = <int>[];
+  final historyFilters = <HistoryFilter?>[];
+  Future<void>? historyGate;
   @override
   Future<List<ReceiptBranch>> branches() async {
     if (failBranches) throw const StorageFailure('database');
@@ -20,11 +22,34 @@ class FakeStore implements LocalStore {
   }
 
   @override
-  Future<List<StoredReceipt>> history({int limit = 30, int offset = 0}) async {
+  Future<List<StoredReceipt>> history({
+    int limit = 30,
+    int offset = 0,
+    HistoryFilter? filter,
+  }) async {
     historyCalls++;
     historyOffsets.add(offset);
+    historyFilters.add(filter);
+    await historyGate;
     if (failHistory) throw const StorageFailure('database');
-    return documents.skip(offset).take(limit).toList();
+    int day(StoredReceiptDate d) => d.year * 10000 + d.month * 100 + d.day;
+    return documents
+        .where((r) {
+          final s = r.document.snapshot;
+          return (filter?.branchId == null ||
+                  s.branch.id == filter!.branchId) &&
+              (filter?.fromDate == null ||
+                  day(s.date) >= day(filter!.fromDate!)) &&
+              (filter?.throughDate == null ||
+                  day(s.date) <= day(filter!.throughDate!)) &&
+              (filter?.minTotalCents == null ||
+                  s.totalCents >= filter!.minTotalCents!) &&
+              (filter?.maxTotalCents == null ||
+                  s.totalCents <= filter!.maxTotalCents!);
+        })
+        .skip(offset)
+        .take(limit)
+        .toList();
   }
 
   @override

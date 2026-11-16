@@ -8,6 +8,7 @@ import 'package:receipt_domain/receipt_domain.dart';
 import 'package:sqlite3/common.dart' as sqlite;
 
 import 'database.dart';
+import 'history_filter.dart';
 
 part 'integrity.dart';
 
@@ -103,18 +104,51 @@ final class ReceiptRepository {
   /// One consistent, bounded page, ordered by printed Helsinki civil date.
   /// Date-only receipts precede earlier days without inventing an instant.
   /// Ties use the durable ID so pagination is deterministic.
-  Future<List<StoredReceipt>> history({int limit = 30, int offset = 0}) {
+  Future<List<StoredReceipt>> history({
+    int limit = 30,
+    int offset = 0,
+    HistoryFilter? filter,
+  }) {
     if (limit < 1 || limit > 200 || offset < 0) {
       throw ArgumentError('invalid_history_page');
     }
+    final conditions = <String>[];
+    final args = <Object>[];
+    if (filter?.branchId case final branch?) {
+      conditions.add('store_id = ?');
+      args.add(branch.value);
+    }
+    for (final bound in [
+      (filter?.fromDate, '>='),
+      (filter?.throughDate, '<='),
+    ]) {
+      if (bound.$1 case final date?) {
+        conditions.add(
+          '(printed_year, printed_month, printed_day) ${bound.$2} (?, ?, ?)',
+        );
+        args.addAll([date.year, date.month, date.day]);
+      }
+    }
+    for (final bound in [
+      (filter?.minTotalCents, '>='),
+      (filter?.maxTotalCents, '<='),
+    ]) {
+      if (bound.$1 case final amount?) {
+        conditions.add('total_amount_cents ${bound.$2} ?');
+        args.add(amount.toInt());
+      }
+    }
+    final where = conditions.isEmpty
+        ? ''
+        : 'WHERE ${conditions.join(' AND ')} ';
     return _guard(
       () => _db.transaction(() async {
         final rows = await _rows(
-          'SELECT id FROM receipts ORDER BY printed_year DESC, printed_month DESC, '
+          'SELECT id FROM receipts ${where}ORDER BY printed_year DESC, printed_month DESC, '
           'printed_day DESC, COALESCE(printed_hour, -1) DESC, '
           'COALESCE(printed_minute, -1) DESC, COALESCE(printed_second, -1) DESC, '
           'id ASC LIMIT ? OFFSET ?',
-          [limit, offset],
+          [...args, limit, offset],
         );
         return List.unmodifiable([
           for (final row in rows)

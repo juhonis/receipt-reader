@@ -5,6 +5,7 @@ import 'package:receipt_storage/receipt_storage.dart';
 
 import 'l10n/generated/app_localizations.dart';
 import 'local_store.dart';
+import 'history_filter_dialog.dart';
 
 String receiptDateText(StoredReceiptDate date) {
   String two(int n) => n.toString().padLeft(2, '0');
@@ -26,6 +27,7 @@ class _HistoryPageState extends State<HistoryPage> {
   static const _pageSize = 30;
   final _receipts = <StoredReceipt>[];
   bool _loading = false, _failed = false, _more = true;
+  HistoryFilterSelection? _selection;
 
   @override
   void initState() {
@@ -47,6 +49,7 @@ class _HistoryPageState extends State<HistoryPage> {
       final page = await widget.store.history(
         limit: _pageSize,
         offset: _receipts.length,
+        filter: _selection?.filter,
       );
       if (mounted) {
         setState(() {
@@ -59,6 +62,33 @@ class _HistoryPageState extends State<HistoryPage> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _filters() async {
+    final selection = await showDialog<HistoryFilterSelection>(
+      context: context,
+      builder: (_) =>
+          HistoryFilterDialog(store: widget.store, selection: _selection),
+    );
+    if (!mounted || selection == null) return;
+    _selection = selection.filter.isEmpty ? null : selection;
+    await _load(refresh: true);
+  }
+
+  String _filterSummary(AppLocalizations s) {
+    final filter = _selection!.filter;
+    return [
+      if (filter.branchId != null)
+        '${s.branchLabel}: ${_selection!.branchName}',
+      if (filter.fromDate != null)
+        '${s.historyFromDate}: ${receiptDateText(filter.fromDate!)}',
+      if (filter.throughDate != null)
+        '${s.historyThroughDate}: ${receiptDateText(filter.throughDate!)}',
+      if (filter.minTotalCents != null)
+        '${s.historyMinAmount}: ${formatCents(filter.minTotalCents!)} €',
+      if (filter.maxTotalCents != null)
+        '${s.historyMaxAmount}: ${formatCents(filter.maxTotalCents!)} €',
+    ].join('\n');
   }
 
   @override
@@ -84,8 +114,37 @@ class _HistoryPageState extends State<HistoryPage> {
               padding: const EdgeInsets.all(20),
               children: [
                 Text(s.historyNotice),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    TextButton.icon(
+                      key: const Key('history-filters'),
+                      onPressed: _loading ? null : _filters,
+                      icon: const Icon(Icons.filter_list),
+                      label: Text(s.historyFilters),
+                    ),
+                    if (_selection != null)
+                      TextButton(
+                        key: const Key('history-reset'),
+                        onPressed: _loading
+                            ? null
+                            : () {
+                                _selection = null;
+                                _load(refresh: true);
+                              },
+                        child: Text(s.historyResetFilters),
+                      ),
+                  ],
+                ),
+                if (_selection != null)
+                  Text(
+                    _filterSummary(s),
+                    key: const Key('history-filter-summary'),
+                  ),
                 if (!_loading && !_failed && _receipts.isEmpty)
-                  Text(s.historyEmpty),
+                  Text(
+                    _selection == null ? s.historyEmpty : s.historyNoMatches,
+                  ),
                 for (final receipt in _receipts)
                   ListTile(
                     key: ValueKey(

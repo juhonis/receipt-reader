@@ -256,7 +256,8 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [ ] Verify that imported original files remain untouched on both platforms.
 
 ### Phase 3: History, Product Identity & Recovery
-- [ ] Build receipt history with branch/date/amount filters and correction/deletion flows on both platforms.
+- [x] Add read-only receipt history with inclusive branch/date/amount filters, exact signed cents, pagination/retry tests and native offline smoke checks on both platforms. See [history filters](history-filters.md).
+- [ ] Add reviewed receipt correction and deletion flows on both platforms.
 - [ ] Add store-scoped products, aliases, and explicit match correction.
 - [ ] Build price trends with unit comparability, discount semantics, and deposit exclusion.
 - [ ] Implement structured backup/export and restore tests on both platforms, including fresh device identity and preserved event identities after restore.
@@ -287,25 +288,22 @@ Restore must assign a fresh local device identity and preserve imported event id
 
 ## 8. Immediate Next Step
 
-The [manual save and basic history workflow](manual-saving.md) is implemented on
-Android and Windows, using the [durable receipt foundation](storage-foundations.md)
-and [transactional local repository](local-storage.md). The normal app opens one
-application-support database; Android backup/transfer exclusions are configured.
-Native UI save/reopen tests pass on both platforms, including airplane mode on
-Android. The temporary Android OCR review still supports evidence-backed
-completion with explicit no-save messaging.
+[Manual saving](manual-saving.md), [reviewed OCR saving](ocr-saving.md) and
+[read-only history filters](history-filters.md) are implemented on Android and
+Windows. The normal app owns one application-support database with schema-v2
+migration and preserved source provenance; native synthetic save/reopen and
+filtered-history checks pass on both platforms, including Android airplane mode.
 
-Next, build the separate live OCR evidence-to-storage adapter: preserve source
-provenance and typed row/relationship/quantity decisions, validate the live
-snapshot-bound evidence audit, and add a versioned domain command/codec plus
-repository validation. Only then expose OCR saving through the same transactional
-boundary. A matching total, prototype completion flag, decoded assertion or
-relabelled manual command cannot authorize it.
+Next, add explicit reviewed correction of saved receipts, then deletion with
+immutable event/tombstone semantics. Preserve existing source provenance,
+original OCR row ownership and causal revision checks. A stored/decoded OCR
+assertion cannot stand in for fresh review authorization; define the supported
+correction command and its review requirements before exposing an edit action.
 
-After that, add history filters/corrections/deletion and tested structured
-backup/restore. Windows OCR packaging and final engine selection remain open.
-Keep representative S-kaupat images and OCR exports in ignored `localreceipts/`;
-committed fixtures remain synthetic or explicitly anonymized. Complete standalone
-workflows and tested recovery before bidirectional sync. Broader parser fixtures,
-clean-install OCR checks, privacy/permission audits, manufacturer transfer tests,
-and native Windows picker verification remain required.
+Follow with tested structured backup/restore before relying on the app as the
+only copy of financial history. Windows OCR packaging and final engine selection
+remain open. Keep representative S-kaupat images and OCR exports in ignored
+`localreceipts/`; committed fixtures remain synthetic or explicitly anonymized.
+Complete standalone workflows and tested recovery before bidirectional sync.
+Broader parser fixtures, clean-install OCR checks, privacy/permission audits,
+manufacturer transfer tests and native Windows picker verification remain required.
