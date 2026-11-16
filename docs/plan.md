@@ -235,7 +235,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 ### Phase 2: Shared Import → Review → Save, Plus Android Capture
 - [x] Initialize one Flutter project with Android and Windows targets and externalized Finnish UI strings.
 - [ ] Separate platform services from shared domain code and adaptive workflows as the OCR spike establishes the adapter contracts.
-- [x] Configure a local manual-receipt Drift schema, strict constraints, foreign keys, atomic transactions, schema baseline/failure tests, and immutable change logging. See [local storage implementation](local-storage.md); the broader catalog/delete/conflict/sync schema remains open.
+- [x] Configure a local manual-receipt Drift schema, strict constraints, foreign keys, atomic transactions, schema baseline/failure tests, and immutable change logging. See [local storage implementation](local-storage.md); the broader catalog/conflict/sync schema remains open.
 - [ ] Implement camera guidance and clear warnings for incomplete/long receipts.
 - [ ] Implement JPEG/PNG selection and offline OCR on both platforms using the normalized OCR interface.
 - [x] Add bounded, temporary JPEG/PNG import and zoomable receipt evidence on Android/Windows; originals remain read-only. See [image import](image-import.md). Android OCR and reviewed saving now use the separate workflows below; Windows OCR remains open.
@@ -259,7 +259,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Add read-only receipt history with inclusive branch/date/amount filters, exact signed cents, pagination/retry tests and native offline smoke checks on both platforms. See [history filters](history-filters.md).
 - [x] Add reviewed correction of saved manual receipts on both platforms, preserving row metadata and causal revisions, with stale-write rejection and native reopen checks. See [manual corrections](manual-corrections.md).
 - [x] Add original-image-backed correction of saved OCR receipts with explicit row matching, preserved provenance/identity and native synthetic correction/reopen/stale-write checks. See [OCR corrections](ocr-corrections.md). Production Windows recognition remains pending.
-- [ ] Add reviewed receipt deletion with immutable tombstone events on both platforms.
+- [x] Add reviewed receipt deletion with immutable tombstone events, schema-3 migration, stale-write rejection, exact retries and native reopen checks on both platforms. See [receipt deletion](receipt-deletion.md).
 - [ ] Add store-scoped products, aliases, and explicit match correction.
 - [ ] Build price trends with unit comparability, discount semantics, and deposit exclusion.
 - [ ] Implement structured backup/export and restore tests on both platforms, including fresh device identity and preserved event identities after restore.
@@ -291,23 +291,27 @@ Restore must assign a fresh local device identity and preserve imported event id
 ## 8. Immediate Next Step
 
 [Manual saving](manual-saving.md), [reviewed OCR saving](ocr-saving.md),
-[history filters](history-filters.md) and
-[reviewed manual corrections](manual-corrections.md) and
-[fresh-image OCR corrections](ocr-corrections.md) share reviewed persistence on
-Android and Windows. Production recognition is currently Android-only. The normal app owns one application-support database with schema-v2
-migration and preserved source provenance. Native synthetic save/reopen,
-filtered-history and correction/stale-write checks pass on both platforms,
-including Android airplane mode.
+[history filters](history-filters.md),
+[reviewed manual corrections](manual-corrections.md),
+[fresh-image OCR corrections](ocr-corrections.md) and
+[reviewed receipt deletion](receipt-deletion.md) share reviewed persistence on
+Android and Windows. Production recognition is currently Android-only. The normal
+app owns one application-support database with schema-3 migration from released
+schemas 1 and 2. Native synthetic save/reopen, filtered-history,
+correction/stale-write and deletion/tombstone checks pass on both platforms,
+including Android airplane mode. Deletion retains prior structured snapshots;
+it is not secure erasure and receipt undo is not implemented.
 
-Next, add explicit receipt deletion with immutable event/tombstone semantics.
-Preserve prior snapshots, row ownership and causal revision checks; require a
-separate reviewed deletion action and reject stale screens. Define how history
-excludes deleted receipts and how retries/reopening retain the tombstone.
+Next, implement structured backup/export and restore with a versioned format,
+complete event/tombstone and row-ownership preservation, strict validation,
+atomic failure handling and fresh device identity. Test both platforms before
+relying on the app as the only copy of financial history. Keep exports
+user-initiated and explain that backups retain financial records, including
+previously deleted receipts in immutable history.
 
-Follow with tested structured backup/restore before relying on the app as the
-only copy of financial history. Windows OCR packaging and final engine selection
-remain open. Keep representative S-kaupat images and OCR exports in ignored
-`localreceipts/`; committed fixtures remain synthetic or explicitly anonymized.
-Complete standalone workflows and tested recovery before bidirectional sync.
-Broader parser fixtures, clean-install OCR checks, privacy/permission audits,
-manufacturer transfer tests and native Windows picker verification remain required.
+Windows OCR packaging and final engine selection remain open. Keep representative
+S-kaupat images and OCR exports in ignored `localreceipts/`; committed fixtures
+remain synthetic or explicitly anonymized. Complete standalone workflows and
+tested recovery before bidirectional sync. Broader parser fixtures, clean-install
+OCR checks, privacy/permission audits, manufacturer transfer tests and native
+Windows picker verification remain required.

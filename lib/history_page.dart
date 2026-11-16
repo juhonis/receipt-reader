@@ -10,6 +10,7 @@ import 'manual_receipt_page.dart';
 import 'receipt_format.dart';
 import 'receipt_import.dart';
 import 'ocr_correction_page.dart';
+import 'receipt_deletion_dialog.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({
@@ -277,6 +278,22 @@ class ReceiptDetailPage extends StatelessWidget {
                     icon: const Icon(Icons.edit_outlined),
                     label: Text(s.correctOcrReceipt),
                   ),
+                OutlinedButton.icon(
+                  key: const Key('delete-receipt'),
+                  onPressed: () async {
+                    final changed = await showDialog<bool>(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (_) =>
+                          ReceiptDeletionDialog(receipt: receipt, store: store),
+                    );
+                    if (context.mounted && changed == true) {
+                      Navigator.pop(context, true);
+                    }
+                  },
+                  icon: const Icon(Icons.delete_outline),
+                  label: Text(s.deleteReceiptAction),
+                ),
                 for (var i = 0; i < snapshot.items.length; i++)
                   Card(
                     child: Padding(

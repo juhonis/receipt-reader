@@ -278,5 +278,12 @@
   "ocrCorrectionRemoved": "Uudesta versiosta poistuvat tallennetut rivit:",
   "ocrCorrectionNoRemoved": "Kaikki tallennetut rivit säilyvät uudessa versiossa.",
   "ocrCorrectionIdentitiesReviewed": "Tarkistin rivien vastaavuudet ja poistot.",
-  "ocrCorrectionFinal": "Vahvistan rivien vastaavuudet ja lueteltujen rivien poistamisen sekä sen, että olen verrannut kaikki tiedot tämän kuitin alkuperäiseen kuvaan."
+  "ocrCorrectionFinal": "Vahvistan rivien vastaavuudet ja lueteltujen rivien poistamisen sekä sen, että olen verrannut kaikki tiedot tämän kuitin alkuperäiseen kuvaan.",
+  "deleteReceiptTitle": "Poista kuitti historiasta",
+  "deleteReceiptAction": "Poista kuitti",
+  "deleteReceiptNotice": "Tarkista, että kyseessä on oikea kuitti. Poisto piilottaa kuitin historiasta ja säilyttää poistomerkinnän sekä aiemmat tiedot paikallisessa muutoshistoriassa. Tämä ei ole tietojen turvallinen pyyhintä. Palautusta ei vielä tueta.",
+  "deleteReceiptReviewed": "Olen tarkistanut poistettavan kuitin.",
+  "deleteReceiptStale": "Kuitti on muuttunut tai poistettu vahvistuksen aikana. Tätä poistoa ei tallennettu. Sulje näkymä historiaan ja tarkista ajantasaiset tiedot.",
+  "deleteReceiptFailed": "Poiston tulosta ei voitu varmistaa. Yritä samaa poistoa uudelleen tai sulje historiaan ja tarkista tilanne.",
+  "deleteReceiptPending": "Poisto käsitellään samalla vahvistuksella. Älä aloita uutta poistoa ennen kuin olet tarkistanut tilanteen historiasta."
 }

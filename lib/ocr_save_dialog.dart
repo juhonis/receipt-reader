@@ -36,7 +36,10 @@ class _OcrSaveDialogState extends State<OcrSaveDialog> {
       if (mounted) {
         setState(() {
           _failed = true;
-          _stale = error.code == 'staleReceipt' || error.code == 'staleBranch';
+          _stale =
+              error.code == 'staleReceipt' ||
+              error.code == 'staleBranch' ||
+              error.code == 'receiptDeleted';
         });
       }
     } catch (_) {

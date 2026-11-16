@@ -14,6 +14,7 @@ abstract interface class LocalStore {
   });
   Future<SaveResult> saveManual(ReviewedReceipt command);
   Future<SaveResult> saveOcr(ReviewedReceipt command);
+  Future<SaveResult> deleteReceipt(ReviewedReceiptDeletion command);
   Future<void> close();
 }
 
@@ -35,6 +36,9 @@ final class RepositoryStore implements LocalStore {
   @override
   Future<SaveResult> saveOcr(ReviewedReceipt command) =>
       repository.saveOcr(command);
+  @override
+  Future<SaveResult> deleteReceipt(ReviewedReceiptDeletion command) =>
+      repository.deleteReceipt(command);
   @override
   Future<void> close() => repository.close();
 }

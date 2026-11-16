@@ -16,7 +16,7 @@ class ReceiptDatabase extends _$ReceiptDatabase {
   );
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   Future<void> createInitialSchema(Migrator migrator) => migrator.createAll();
 
@@ -33,20 +33,42 @@ class ReceiptDatabase extends _$ReceiptDatabase {
     await customStatement('DROP TABLE receipt_reviews_v1');
   }
 
+  /// Rebuild constraints while preserving every existing event and identity.
+  /// Foreign keys are disabled only outside the encompassing DDL transaction.
+  Future<void> upgradeTombstones(Migrator migrator) async {
+    await migrator.alterTable(TableMigration(changeLog));
+    await migrator.alterTable(
+      TableMigration(receipts, newColumns: [receipts.isDeleted]),
+    );
+  }
+
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => transaction(() async {
       await createInitialSchema(m);
       // Keep schema and version atomic, including a crash before Drift's own
       // redundant version assignment after this callback returns.
-      await customStatement('PRAGMA user_version = 2');
+      await customStatement('PRAGMA user_version = 3');
     }),
     onUpgrade: (m, from, to) async {
-      if (from != 1 || to != 2) throw StateError('unsupported_schema');
-      await transaction(() async {
-        await upgradeReviewPolicy(m);
-        await customStatement('PRAGMA user_version = 2');
-      });
+      if ((from != 1 && from != 2) || to != 3) {
+        throw StateError('unsupported_schema');
+      }
+      await customStatement('PRAGMA foreign_keys = OFF');
+      try {
+        await transaction(() async {
+          if (from == 1) await upgradeReviewPolicy(m);
+          await upgradeTombstones(m);
+          if ((await customSelect(
+            'PRAGMA foreign_key_check',
+          ).get()).isNotEmpty) {
+            throw StateError('migration_foreign_keys');
+          }
+          await customStatement('PRAGMA user_version = 3');
+        });
+      } finally {
+        await customStatement('PRAGMA foreign_keys = ON');
+      }
     },
     beforeOpen: (_) async {
       final fk = await customSelect('PRAGMA foreign_keys').getSingle();
@@ -64,7 +86,7 @@ class ReceiptDatabase extends _$ReceiptDatabase {
 void configureSqlite(sqlite.Database database) {
   // Reject future databases before Drift can run any version migration.
   if ((database.select('PRAGMA user_version').single['user_version'] as int) >
-      2) {
+      3) {
     throw StateError('unsupported_schema');
   }
   database.execute('PRAGMA foreign_keys = ON');

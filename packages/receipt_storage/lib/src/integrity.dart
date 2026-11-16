@@ -14,6 +14,7 @@ extension _Integrity on ReceiptRepository {
     final events = await _rows('SELECT * FROM change_log ORDER BY origin_seq');
     final latest = <String, RevisionId>{};
     final documents = <DurableId, ReceiptDocument>{};
+    final deletions = <DurableId, ReceiptTombstone>{};
     final firstReceiptTimes = <DurableId, int>{};
     final storePayloads = <DurableId, String>{};
     final knownRevisions = <RevisionId, Map<String, Object?>>{};
@@ -67,6 +68,7 @@ extension _Integrity on ReceiptRepository {
         event['audit_at_ms']! as int,
         parents,
         dependencies,
+        operation: event['operation']! as String,
       );
       _check(
         canonical == event['canonical_event'] &&
@@ -74,12 +76,15 @@ extension _Integrity on ReceiptRepository {
         'eventDigest',
       );
       _check(
-        event['payload_version'] == 1 && event['operation'] == 'snapshot',
+        event['payload_version'] == 1 &&
+            ['snapshot', 'tombstone'].contains(event['operation']),
         'unsupportedEvent',
       );
       if (kind == 'store') {
         _check(
-          previous == null && dependencies.isEmpty,
+          previous == null &&
+              dependencies.isEmpty &&
+              event['operation'] == 'snapshot',
           'unsupportedCatalogEdit',
         );
         final fields = jsonDecode(payload) as Map<String, Object?>;
@@ -95,8 +100,31 @@ extension _Integrity on ReceiptRepository {
           'storePayload',
         );
         storePayloads[id] = payload;
+      } else if (event['operation'] == 'tombstone') {
+        _check(
+          kind == 'receipt' &&
+              !deletions.containsKey(id) &&
+              documents.containsKey(id),
+          'invalidDeletion',
+        );
+        final tombstone = ReceiptTombstoneCodec.decode(payload);
+        _check(
+          tombstone.receiptId == id &&
+              tombstone.expectedHead == previous &&
+              tombstone.documentSha256 == documents[id]!.sha256Hex &&
+              tombstone.source == documents[id]!.review.source &&
+              tombstone.deletedAtMs ==
+                  BigInt.from(event['audit_at_ms']! as int) &&
+              dependencies.isEmpty &&
+              event['mutation_count'] == 1 &&
+              event['mutation_index'] == 0,
+          'tombstonePayload',
+        );
+        deletions[id] = tombstone;
+        activeRows[id] = <DurableId>{};
       } else {
         _check(kind == 'receipt', 'unsupportedEvent');
+        _check(!deletions.containsKey(id), 'historicalResurrection');
         final document = ReceiptDocumentCodec.decode(payload);
         final snapshot = document.snapshot;
         _check(
@@ -193,10 +221,16 @@ extension _Integrity on ReceiptRepository {
         'storeAudit',
       );
     }
-    final receipts = await _rows('SELECT id, created_at_ms FROM receipts');
+    final receipts = await _rows(
+      'SELECT id, created_at_ms, is_deleted FROM receipts',
+    );
     _check(receipts.length == documents.length, 'receiptCount');
     for (final receipt in receipts) {
       final id = DurableId.parse(receipt['id']! as String);
+      _check(
+        receipt['is_deleted'] == (deletions.containsKey(id) ? 1 : 0),
+        'deletionProjection',
+      );
       await _read(id);
       _check(receipt['created_at_ms'] == firstReceiptTimes[id], 'receiptAudit');
     }

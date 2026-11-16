@@ -291,7 +291,7 @@ void main() {
     },
   );
 
-  for (final code in ['staleReceipt', 'staleBranch']) {
+  for (final code in ['staleReceipt', 'staleBranch', 'receiptDeleted']) {
     testWidgets('OCR correction $code blocks retry and exits to refresh', (
       tester,
     ) async {

@@ -9,12 +9,15 @@ class FakeStore implements LocalStore {
     revision: RevisionId(DurableId.generate(), BigInt.one),
   );
   final saved = <ReviewedReceipt>[];
+  final deletions = <ReviewedReceiptDeletion>[];
+  final tombstones = <DurableId, ReceiptTombstone>{};
   final documents = <StoredReceipt>[];
   bool failSaveAfterCommit = false, failBranches = false, failHistory = false;
   int closeCount = 0, historyCalls = 0;
   final historyOffsets = <int>[];
   final historyFilters = <HistoryFilter?>[];
   Future<void>? historyGate;
+  Future<void>? deletionGate;
   String? saveFailure;
   final _results = <DurableId, RevisionId>{};
   int _nextRevision = 2;
@@ -61,6 +64,9 @@ class FakeStore implements LocalStore {
     if (saveFailure case final failure?) throw StorageFailure(failure);
     final previous = _results[command.mutationId];
     if (previous != null) return SaveResult(previous, replayed: true);
+    if (tombstones.containsKey(command.document.snapshot.id)) {
+      throw const StorageFailure('receiptDeleted');
+    }
     final index = documents.indexWhere(
       (r) => r.document.snapshot.id == command.document.snapshot.id,
     );
@@ -96,6 +102,36 @@ class FakeStore implements LocalStore {
 
   @override
   Future<SaveResult> saveOcr(ReviewedReceipt command) => saveManual(command);
+  @override
+  Future<SaveResult> deleteReceipt(ReviewedReceiptDeletion command) async {
+    deletions.add(command);
+    await deletionGate;
+    if (saveFailure case final failure?) throw StorageFailure(failure);
+    final previous = _results[command.mutationId];
+    if (previous != null) return SaveResult(previous, replayed: true);
+    final t = command.tombstone;
+    final index = documents.indexWhere(
+      (r) => r.document.snapshot.id == t.receiptId,
+    );
+    if (index < 0 ||
+        documents[index].revision != t.expectedHead ||
+        documents[index].document.sha256Hex != t.documentSha256) {
+      throw const StorageFailure('staleReceipt');
+    }
+    if (_nextRevision <= t.expectedHead.sequence.toInt()) {
+      _nextRevision = t.expectedHead.sequence.toInt() + 1;
+    }
+    final revision = RevisionId(
+      branch.revision!.origin,
+      BigInt.from(_nextRevision++),
+    );
+    _results[command.mutationId] = revision;
+    documents.removeAt(index);
+    tombstones[t.receiptId] = t;
+    if (failSaveAfterCommit) throw const StorageFailure('database');
+    return SaveResult(revision, replayed: false);
+  }
+
   @override
   Future<void> close() async {
     closeCount++;

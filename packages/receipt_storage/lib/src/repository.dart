@@ -31,6 +31,12 @@ final class StoredReceipt {
   final RevisionId revision;
 }
 
+final class DeletedReceipt {
+  const DeletedReceipt(this.tombstone, this.revision);
+  final ReceiptTombstone tombstone;
+  final RevisionId revision;
+}
+
 final class SaveResult {
   const SaveResult(this.revision, {required this.replayed});
   final RevisionId revision;
@@ -112,7 +118,7 @@ final class ReceiptRepository {
     if (limit < 1 || limit > 200 || offset < 0) {
       throw ArgumentError('invalid_history_page');
     }
-    final conditions = <String>[];
+    final conditions = <String>['is_deleted = 0'];
     final args = <Object>[];
     if (filter?.branchId case final branch?) {
       conditions.add('store_id = ?');
@@ -165,6 +171,10 @@ final class ReceiptRepository {
     final rows = await _rows('SELECT * FROM receipts WHERE id = ?', [id.value]);
     if (rows.isEmpty) return null;
     final receipt = rows.single;
+    if (receipt['is_deleted'] == 1) {
+      await _readDeleted(id);
+      return null;
+    }
     final reviews = await _rows(
       'SELECT * FROM receipt_reviews WHERE receipt_id = ?',
       [id.value],
@@ -215,6 +225,150 @@ final class ReceiptRepository {
     return StoredReceipt(document, revision);
   }
 
+  Future<DeletedReceipt?> readDeleted(DurableId id) =>
+      _guard(() => _db.transaction(() => _readDeleted(id)));
+
+  Future<DeletedReceipt?> _readDeleted(DurableId id) async {
+    final rows = await _rows('SELECT * FROM receipts WHERE id = ?', [id.value]);
+    if (rows.isEmpty || rows.single['is_deleted'] != 1) return null;
+    final receipt = rows.single, revision = _revision(rows.single);
+    final events = await _rows(
+      'SELECT * FROM change_log WHERE origin_device_id = ? AND origin_seq = ?',
+      [revision.origin.value, revision.sequence.toInt()],
+    );
+    _check(
+      events.length == 1 &&
+          events.single['entity_kind'] == 'receipt' &&
+          events.single['entity_id'] == id.value &&
+          events.single['operation'] == 'tombstone',
+      'tombstoneEvent',
+    );
+    final tombstone = ReceiptTombstoneCodec.decode(
+      events.single['payload']! as String,
+    );
+    _check(
+      tombstone.receiptId == id &&
+          tombstone.deletedAtMs ==
+              BigInt.from(events.single['audit_at_ms']! as int),
+      'tombstonePayload',
+    );
+    _check(
+      _sameFields(
+        receipt,
+        _tombstoneFields(tombstone, revision, receipt['created_at_ms']! as int),
+      ),
+      'tombstoneProjection',
+    );
+    _check(
+      (await _rows('SELECT 1 FROM receipt_items WHERE receipt_id = ?', [
+            id.value,
+          ])).isEmpty &&
+          (await _rows('SELECT 1 FROM receipt_reviews WHERE receipt_id = ?', [
+            id.value,
+          ])).isEmpty,
+      'tombstoneChildren',
+    );
+    final heads = await _heads('receipt', id);
+    _check(heads.length == 1 && heads.single == revision, 'receiptHeads');
+    return DeletedReceipt(tombstone, revision);
+  }
+
+  Future<SaveResult> deleteReceipt(ReviewedReceiptDeletion command) => _guard(
+    () => _db.transaction(() async {
+      final json = ReceiptTombstoneCodec.encode(command.tombstone);
+      final tombstone = ReceiptTombstoneCodec.decode(json);
+      final id = tombstone.receiptId;
+      final retry = await _rows(
+        'SELECT * FROM local_mutations WHERE mutation_id = ?',
+        [command.mutationId.value],
+      );
+      if (retry.isNotEmpty) {
+        final row = retry.single;
+        _check(
+          row['command_sha256'] == tombstone.sha256Hex &&
+              row['receipt_id'] == id.value,
+          'mutationIdentityReused',
+        );
+        final revision = RevisionId(
+          DurableId.parse(row['result_origin']! as String),
+          BigInt.from(row['result_seq']! as int),
+        );
+        final events = await _rows(
+          'SELECT operation, payload FROM change_log WHERE origin_device_id = ? AND origin_seq = ?',
+          [revision.origin.value, revision.sequence.toInt()],
+        );
+        _check(
+          events.length == 1 &&
+              events.single['operation'] == 'tombstone' &&
+              events.single['payload'] == json,
+          'retryEvent',
+        );
+        return SaveResult(revision, replayed: true);
+      }
+      final current = await _read(id);
+      _check(
+        current != null &&
+            current.revision == tombstone.expectedHead &&
+            current.document.sha256Hex == tombstone.documentSha256 &&
+            current.document.review.source == tombstone.source,
+        'staleReceipt',
+      );
+      final state = await _identity();
+      final next = state.nextLocalSequence + BigInt.one;
+      _check(next <= sqliteInt64Max, 'sequenceExhausted');
+      await _db.customStatement(
+        'UPDATE dataset_state SET next_local_seq = ? WHERE singleton = 1',
+        [next.toInt()],
+      );
+      final revision = RevisionId(state.deviceId, state.nextLocalSequence);
+      await _appendEvent(
+        state,
+        revision,
+        'receipt',
+        id,
+        json,
+        command.mutationId,
+        0,
+        1,
+        tombstone.deletedAtMs.toInt(),
+        [tombstone.expectedHead],
+        [],
+        operation: 'tombstone',
+      );
+      await _db.customStatement(
+        'DELETE FROM receipt_items WHERE receipt_id = ?',
+        [id.value],
+      );
+      await _db.customStatement(
+        'DELETE FROM receipt_reviews WHERE receipt_id = ?',
+        [id.value],
+      );
+      final created =
+          (await _rows('SELECT created_at_ms FROM receipts WHERE id = ?', [
+                id.value,
+              ])).single['created_at_ms']!
+              as int;
+      await _upsertReceipt(
+        _tombstoneFields(tombstone, revision, created),
+        true,
+      );
+      await _selectHead('receipt', id, revision);
+      await _db.customStatement(
+        'UPDATE received_cursors SET committed_seq = ? WHERE origin_device_id = ?',
+        [revision.sequence.toInt(), state.deviceId.value],
+      );
+      await _insert('local_mutations', {
+        'mutation_id': command.mutationId.value,
+        'command_sha256': tombstone.sha256Hex,
+        'receipt_id': id.value,
+        'result_origin': revision.origin.value,
+        'result_seq': revision.sequence.toInt(),
+      });
+      await _readDeleted(id);
+      return SaveResult(revision, replayed: false);
+    }),
+  );
+
   Future<void> verifyIntegrity() =>
       _guard(() => _db.transaction(_verifyIntegrity));
 
@@ -258,6 +412,12 @@ final class ReceiptRepository {
       _check(
         snapshot.items.every((item) => item.product == null),
         'unsupportedProductLink',
+      );
+      _check(
+        (await _rows('SELECT is_deleted FROM receipts WHERE id = ?', [
+          snapshot.id.value,
+        ])).every((r) => r['is_deleted'] == 0),
+        'receiptDeleted',
       );
       final current = await _read(snapshot.id);
       _check(
@@ -424,8 +584,9 @@ final class ReceiptRepository {
     int count,
     int auditAt,
     List<RevisionId> parents,
-    List<RevisionId> dependencies,
-  ) async {
+    List<RevisionId> dependencies, {
+    String operation = 'snapshot',
+  }) async {
     final event = _eventJson(
       state.datasetId,
       revision,
@@ -438,6 +599,7 @@ final class ReceiptRepository {
       auditAt,
       parents,
       dependencies,
+      operation: operation,
     );
     await _insert('change_log', {
       'origin_device_id': revision.origin.value,
@@ -446,7 +608,7 @@ final class ReceiptRepository {
       'entity_kind': kind,
       'entity_id': id.value,
       'payload_version': 1,
-      'operation': 'snapshot',
+      'operation': operation,
       'payload': payload,
       'canonical_event': event,
       'event_sha256': _sha(event),
@@ -631,8 +793,9 @@ String _eventJson(
   int count,
   int auditAt,
   List<RevisionId> parents,
-  List<RevisionId> dependencies,
-) {
+  List<RevisionId> dependencies, {
+  String operation = 'snapshot',
+}) {
   List<Map<String, String>> references(
     List<RevisionId> values,
   ) => (values.toList()..sort())
@@ -646,7 +809,7 @@ String _eventJson(
     'entity_kind': kind,
     'entity_id': id.value,
     'payload_version': '1',
-    'operation': 'snapshot',
+    'operation': operation,
     'audit_at_ms': auditAt.toString(),
     'mutation_id': mutation.value,
     'mutation_index': index.toString(),
@@ -665,6 +828,7 @@ Map<String, Object?> _receiptFields(
   final s = document.snapshot, d = s.date;
   return {
     'id': s.id.value,
+    'is_deleted': 0,
     'store_id': s.branch.id.value,
     'printed_year': d.year,
     'printed_month': d.month,
@@ -684,6 +848,35 @@ Map<String, Object?> _receiptFields(
     'updated_at_ms': document.review.reviewedAtMs.toInt(),
   };
 }
+
+Map<String, Object?> _tombstoneFields(
+  ReceiptTombstone tombstone,
+  RevisionId revision,
+  int createdAt,
+) => {
+  'id': tombstone.receiptId.value,
+  'is_deleted': 1,
+  for (final field in [
+    'store_id',
+    'printed_year',
+    'printed_month',
+    'printed_day',
+    'printed_hour',
+    'printed_minute',
+    'printed_second',
+    'date_precision',
+    'timezone_id',
+    'utc_instant_ms',
+    'currency',
+    'total_amount_cents',
+    'reviewed_at_ms',
+  ])
+    field: null,
+  'current_revision_origin': revision.origin.value,
+  'current_revision_seq': revision.sequence.toInt(),
+  'created_at_ms': createdAt,
+  'updated_at_ms': tombstone.deletedAtMs.toInt(),
+};
 
 Map<String, Object?> _reviewFields(ReceiptDocument document) => {
   'receipt_id': document.snapshot.id.value,

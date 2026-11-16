@@ -58,8 +58,9 @@ only preloads data; it does not authorize another save.
 OCR receipts use a separate [fresh-image correction flow](ocr-corrections.md).
 The manual factory guard rejects OCR receipts in release builds too. Old stored
 assertions cannot authorize a new OCR save and the source must never be relabelled.
-Deletion/tombstones, version browsing/revert, products/aliases, structured
-backup/restore and synchronization remain open.
+[Reviewed deletion/tombstones](receipt-deletion.md) are available separately.
+Version browsing/revert, products/aliases, structured backup/restore and
+synchronization remain open.
 
 ## Verification
 

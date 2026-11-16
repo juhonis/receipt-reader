@@ -305,7 +305,10 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
       if (mounted) {
         setState(() {
           _saveFailed = true;
-          _stale = error.code == 'staleReceipt' || error.code == 'staleBranch';
+          _stale =
+              error.code == 'staleReceipt' ||
+              error.code == 'staleBranch' ||
+              error.code == 'receiptDeleted';
         });
       }
     } catch (_) {

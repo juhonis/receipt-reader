@@ -94,5 +94,6 @@ airplane mode. Restore normal app builds and the prior airplane setting afterwar
 Android can use its production image import/OCR adapter. Windows shares the
 review and persistence path, but production Windows OCR packaging/recognition
 is still pending. These native tests do not establish recognition accuracy or
-Windows OCR availability. Deletion/tombstones, structured backup/restore and
-synchronization remain separate milestones.
+Windows OCR availability. [Reviewed deletion/tombstones](receipt-deletion.md)
+are available separately. Structured backup/restore and synchronization remain
+separate milestones.

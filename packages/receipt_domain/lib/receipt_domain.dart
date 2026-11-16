@@ -13,3 +13,5 @@ part 'src/codec.dart';
 part 'src/manual_review.dart';
 
 part 'src/ocr_review.dart';
+
+part 'src/deletion.dart';

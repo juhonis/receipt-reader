@@ -269,7 +269,7 @@ void main() {
     },
   );
 
-  for (final stale in ['staleReceipt', 'staleBranch']) {
+  for (final stale in ['staleReceipt', 'staleBranch', 'receiptDeleted']) {
     testWidgets(
       '$stale stops retries and returns to fresh history without overwriting',
       (tester) async {

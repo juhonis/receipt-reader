@@ -28,6 +28,9 @@ class _ObservedStore implements LocalStore {
   Future<SaveResult> saveOcr(ReviewedReceipt command) =>
       repository.saveOcr(command);
   @override
+  Future<SaveResult> deleteReceipt(ReviewedReceiptDeletion command) =>
+      repository.deleteReceipt(command);
+  @override
   Future<void> close() => _closing ??= repository.close();
 }
 

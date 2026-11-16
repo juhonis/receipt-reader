@@ -402,7 +402,7 @@ class ChangeLog extends Table with TableInfo<ChangeLog, ChangeLogData> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL CHECK (operation = \'snapshot\')',
+    $customConstraints: 'NOT NULL CHECK (operation IN (\'snapshot\', \'tombstone\') AND(operation <> \'tombstone\' OR entity_kind = \'receipt\'))',
   );
   static const VerificationMeta _payloadMeta = const VerificationMeta(
     'payload',
@@ -2847,16 +2847,28 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
     requiredDuringInsert: true,
     $customConstraints: 'NOT NULL PRIMARY KEY CHECK (length(id) = 36 AND id GLOB \'????????-????-4???-[89ab]???-????????????\' AND length("replace"(id, \'-\', \'\')) = 32 AND "replace"(id, \'-\', \'\') NOT GLOB \'*[^0-9a-f]*\')',
   );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  late final GeneratedColumn<int> isDeleted = GeneratedColumn<int>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1))',
+    defaultValue: const CustomExpression('0'),
+  );
   static const VerificationMeta _storeIdMeta = const VerificationMeta(
     'storeId',
   );
   late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
     'store_id',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL REFERENCES stores(id)',
+    requiredDuringInsert: false,
+    $customConstraints: 'REFERENCES stores(id)',
   );
   static const VerificationMeta _printedYearMeta = const VerificationMeta(
     'printedYear',
@@ -2864,10 +2876,10 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
   late final GeneratedColumn<int> printedYear = GeneratedColumn<int>(
     'printed_year',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL CHECK (printed_year BETWEEN 1970 AND 2099)',
+    requiredDuringInsert: false,
+    $customConstraints: 'CHECK (printed_year BETWEEN 1970 AND 2099)',
   );
   static const VerificationMeta _printedMonthMeta = const VerificationMeta(
     'printedMonth',
@@ -2875,10 +2887,10 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
   late final GeneratedColumn<int> printedMonth = GeneratedColumn<int>(
     'printed_month',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL CHECK (printed_month BETWEEN 1 AND 12)',
+    requiredDuringInsert: false,
+    $customConstraints: 'CHECK (printed_month BETWEEN 1 AND 12)',
   );
   static const VerificationMeta _printedDayMeta = const VerificationMeta(
     'printedDay',
@@ -2886,10 +2898,10 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
   late final GeneratedColumn<int> printedDay = GeneratedColumn<int>(
     'printed_day',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL CHECK (printed_day BETWEEN 1 AND 31)',
+    requiredDuringInsert: false,
+    $customConstraints: 'CHECK (printed_day BETWEEN 1 AND 31)',
   );
   static const VerificationMeta _printedHourMeta = const VerificationMeta(
     'printedHour',
@@ -2933,11 +2945,11 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
   late final GeneratedColumn<String> datePrecision = GeneratedColumn<String>(
     'date_precision',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.string,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
     $customConstraints:
-        'NOT NULL CHECK (date_precision IN (\'day\', \'minute\', \'second\'))',
+        'CHECK (date_precision IN (\'day\', \'minute\', \'second\'))',
   );
   static const VerificationMeta _timezoneIdMeta = const VerificationMeta(
     'timezoneId',
@@ -2945,10 +2957,10 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
   late final GeneratedColumn<String> timezoneId = GeneratedColumn<String>(
     'timezone_id',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL CHECK (timezone_id = \'Europe/Helsinki\')',
+    requiredDuringInsert: false,
+    $customConstraints: 'CHECK (timezone_id = \'Europe/Helsinki\')',
   );
   static const VerificationMeta _utcInstantMsMeta = const VerificationMeta(
     'utcInstantMs',
@@ -2967,10 +2979,10 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
   late final GeneratedColumn<String> currency = GeneratedColumn<String>(
     'currency',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL CHECK (currency = \'EUR\')',
+    requiredDuringInsert: false,
+    $customConstraints: 'CHECK (currency = \'EUR\')',
   );
   static const VerificationMeta _totalAmountCentsMeta = const VerificationMeta(
     'totalAmountCents',
@@ -2978,10 +2990,10 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
   late final GeneratedColumn<int> totalAmountCents = GeneratedColumn<int>(
     'total_amount_cents',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
+    requiredDuringInsert: false,
+    $customConstraints: '',
   );
   static const VerificationMeta _reviewedAtMsMeta = const VerificationMeta(
     'reviewedAtMs',
@@ -2989,10 +3001,10 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
   late final GeneratedColumn<int> reviewedAtMs = GeneratedColumn<int>(
     'reviewed_at_ms',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL CHECK (reviewed_at_ms >= 0)',
+    requiredDuringInsert: false,
+    $customConstraints: 'CHECK (reviewed_at_ms >= 0)',
   );
   static const VerificationMeta _currentRevisionOriginMeta =
       const VerificationMeta('currentRevisionOrigin');
@@ -3040,6 +3052,7 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    isDeleted,
     storeId,
     printedYear,
     printedMonth,
@@ -3075,13 +3088,17 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
     } else if (isInserting) {
       context.missing(_idMeta);
     }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
     if (data.containsKey('store_id')) {
       context.handle(
         _storeIdMeta,
         storeId.isAcceptableOrUnknown(data['store_id']!, _storeIdMeta),
       );
-    } else if (isInserting) {
-      context.missing(_storeIdMeta);
     }
     if (data.containsKey('printed_year')) {
       context.handle(
@@ -3091,8 +3108,6 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
           _printedYearMeta,
         ),
       );
-    } else if (isInserting) {
-      context.missing(_printedYearMeta);
     }
     if (data.containsKey('printed_month')) {
       context.handle(
@@ -3102,16 +3117,12 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
           _printedMonthMeta,
         ),
       );
-    } else if (isInserting) {
-      context.missing(_printedMonthMeta);
     }
     if (data.containsKey('printed_day')) {
       context.handle(
         _printedDayMeta,
         printedDay.isAcceptableOrUnknown(data['printed_day']!, _printedDayMeta),
       );
-    } else if (isInserting) {
-      context.missing(_printedDayMeta);
     }
     if (data.containsKey('printed_hour')) {
       context.handle(
@@ -3148,16 +3159,12 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
           _datePrecisionMeta,
         ),
       );
-    } else if (isInserting) {
-      context.missing(_datePrecisionMeta);
     }
     if (data.containsKey('timezone_id')) {
       context.handle(
         _timezoneIdMeta,
         timezoneId.isAcceptableOrUnknown(data['timezone_id']!, _timezoneIdMeta),
       );
-    } else if (isInserting) {
-      context.missing(_timezoneIdMeta);
     }
     if (data.containsKey('utc_instant_ms')) {
       context.handle(
@@ -3173,8 +3180,6 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
         _currencyMeta,
         currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
       );
-    } else if (isInserting) {
-      context.missing(_currencyMeta);
     }
     if (data.containsKey('total_amount_cents')) {
       context.handle(
@@ -3184,8 +3189,6 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
           _totalAmountCentsMeta,
         ),
       );
-    } else if (isInserting) {
-      context.missing(_totalAmountCentsMeta);
     }
     if (data.containsKey('reviewed_at_ms')) {
       context.handle(
@@ -3195,8 +3198,6 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
           _reviewedAtMsMeta,
         ),
       );
-    } else if (isInserting) {
-      context.missing(_reviewedAtMsMeta);
     }
     if (data.containsKey('current_revision_origin')) {
       context.handle(
@@ -3259,22 +3260,26 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}is_deleted'],
+      )!,
       storeId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}store_id'],
-      )!,
+      ),
       printedYear: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}printed_year'],
-      )!,
+      ),
       printedMonth: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}printed_month'],
-      )!,
+      ),
       printedDay: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}printed_day'],
-      )!,
+      ),
       printedHour: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}printed_hour'],
@@ -3290,11 +3295,11 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
       datePrecision: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}date_precision'],
-      )!,
+      ),
       timezoneId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}timezone_id'],
-      )!,
+      ),
       utcInstantMs: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}utc_instant_ms'],
@@ -3302,15 +3307,15 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
       currency: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}currency'],
-      )!,
+      ),
       totalAmountCents: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}total_amount_cents'],
-      )!,
+      ),
       reviewedAtMs: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}reviewed_at_ms'],
-      )!,
+      ),
       currentRevisionOrigin: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}current_revision_origin'],
@@ -3341,7 +3346,8 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
   List<String> get customConstraints => const [
     'UNIQUE(id, store_id)',
     'FOREIGN KEY(current_revision_origin, current_revision_seq)REFERENCES change_log(origin_device_id, origin_seq)',
-    'CHECK((date_precision = \'day\' AND printed_hour IS NULL AND printed_minute IS NULL AND printed_second IS NULL AND utc_instant_ms IS NULL)OR(date_precision = \'minute\' AND printed_hour IS NOT NULL AND printed_minute IS NOT NULL AND printed_second IS NULL AND utc_instant_ms IS NOT NULL)OR(date_precision = \'second\' AND printed_hour IS NOT NULL AND printed_minute IS NOT NULL AND printed_second IS NOT NULL AND utc_instant_ms IS NOT NULL))',
+    'CHECK(is_deleted = 1 OR((date_precision = \'day\' AND printed_hour IS NULL AND printed_minute IS NULL AND printed_second IS NULL AND utc_instant_ms IS NULL)OR(date_precision = \'minute\' AND printed_hour IS NOT NULL AND printed_minute IS NOT NULL AND printed_second IS NULL AND utc_instant_ms IS NOT NULL)OR(date_precision = \'second\' AND printed_hour IS NOT NULL AND printed_minute IS NOT NULL AND printed_second IS NOT NULL AND utc_instant_ms IS NOT NULL)))',
+    'CHECK((is_deleted = 0 AND store_id IS NOT NULL AND printed_year IS NOT NULL AND printed_month IS NOT NULL AND printed_day IS NOT NULL AND date_precision IS NOT NULL AND timezone_id IS NOT NULL AND currency IS NOT NULL AND total_amount_cents IS NOT NULL AND reviewed_at_ms IS NOT NULL)OR(is_deleted = 1 AND store_id IS NULL AND printed_year IS NULL AND printed_month IS NULL AND printed_day IS NULL AND printed_hour IS NULL AND printed_minute IS NULL AND printed_second IS NULL AND date_precision IS NULL AND timezone_id IS NULL AND utc_instant_ms IS NULL AND currency IS NULL AND total_amount_cents IS NULL AND reviewed_at_ms IS NULL))',
   ];
   @override
   bool get dontWriteConstraints => true;
@@ -3349,38 +3355,40 @@ class Receipts extends Table with TableInfo<Receipts, Receipt> {
 
 class Receipt extends DataClass implements Insertable<Receipt> {
   final String id;
-  final String storeId;
-  final int printedYear;
-  final int printedMonth;
-  final int printedDay;
+  final int isDeleted;
+  final String? storeId;
+  final int? printedYear;
+  final int? printedMonth;
+  final int? printedDay;
   final int? printedHour;
   final int? printedMinute;
   final int? printedSecond;
-  final String datePrecision;
-  final String timezoneId;
+  final String? datePrecision;
+  final String? timezoneId;
   final int? utcInstantMs;
-  final String currency;
-  final int totalAmountCents;
-  final int reviewedAtMs;
+  final String? currency;
+  final int? totalAmountCents;
+  final int? reviewedAtMs;
   final String currentRevisionOrigin;
   final int currentRevisionSeq;
   final int createdAtMs;
   final int updatedAtMs;
   const Receipt({
     required this.id,
-    required this.storeId,
-    required this.printedYear,
-    required this.printedMonth,
-    required this.printedDay,
+    required this.isDeleted,
+    this.storeId,
+    this.printedYear,
+    this.printedMonth,
+    this.printedDay,
     this.printedHour,
     this.printedMinute,
     this.printedSecond,
-    required this.datePrecision,
-    required this.timezoneId,
+    this.datePrecision,
+    this.timezoneId,
     this.utcInstantMs,
-    required this.currency,
-    required this.totalAmountCents,
-    required this.reviewedAtMs,
+    this.currency,
+    this.totalAmountCents,
+    this.reviewedAtMs,
     required this.currentRevisionOrigin,
     required this.currentRevisionSeq,
     required this.createdAtMs,
@@ -3390,10 +3398,19 @@ class Receipt extends DataClass implements Insertable<Receipt> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
-    map['store_id'] = Variable<String>(storeId);
-    map['printed_year'] = Variable<int>(printedYear);
-    map['printed_month'] = Variable<int>(printedMonth);
-    map['printed_day'] = Variable<int>(printedDay);
+    map['is_deleted'] = Variable<int>(isDeleted);
+    if (!nullToAbsent || storeId != null) {
+      map['store_id'] = Variable<String>(storeId);
+    }
+    if (!nullToAbsent || printedYear != null) {
+      map['printed_year'] = Variable<int>(printedYear);
+    }
+    if (!nullToAbsent || printedMonth != null) {
+      map['printed_month'] = Variable<int>(printedMonth);
+    }
+    if (!nullToAbsent || printedDay != null) {
+      map['printed_day'] = Variable<int>(printedDay);
+    }
     if (!nullToAbsent || printedHour != null) {
       map['printed_hour'] = Variable<int>(printedHour);
     }
@@ -3403,14 +3420,24 @@ class Receipt extends DataClass implements Insertable<Receipt> {
     if (!nullToAbsent || printedSecond != null) {
       map['printed_second'] = Variable<int>(printedSecond);
     }
-    map['date_precision'] = Variable<String>(datePrecision);
-    map['timezone_id'] = Variable<String>(timezoneId);
+    if (!nullToAbsent || datePrecision != null) {
+      map['date_precision'] = Variable<String>(datePrecision);
+    }
+    if (!nullToAbsent || timezoneId != null) {
+      map['timezone_id'] = Variable<String>(timezoneId);
+    }
     if (!nullToAbsent || utcInstantMs != null) {
       map['utc_instant_ms'] = Variable<int>(utcInstantMs);
     }
-    map['currency'] = Variable<String>(currency);
-    map['total_amount_cents'] = Variable<int>(totalAmountCents);
-    map['reviewed_at_ms'] = Variable<int>(reviewedAtMs);
+    if (!nullToAbsent || currency != null) {
+      map['currency'] = Variable<String>(currency);
+    }
+    if (!nullToAbsent || totalAmountCents != null) {
+      map['total_amount_cents'] = Variable<int>(totalAmountCents);
+    }
+    if (!nullToAbsent || reviewedAtMs != null) {
+      map['reviewed_at_ms'] = Variable<int>(reviewedAtMs);
+    }
     map['current_revision_origin'] = Variable<String>(currentRevisionOrigin);
     map['current_revision_seq'] = Variable<int>(currentRevisionSeq);
     map['created_at_ms'] = Variable<int>(createdAtMs);
@@ -3421,10 +3448,19 @@ class Receipt extends DataClass implements Insertable<Receipt> {
   ReceiptsCompanion toCompanion(bool nullToAbsent) {
     return ReceiptsCompanion(
       id: Value(id),
-      storeId: Value(storeId),
-      printedYear: Value(printedYear),
-      printedMonth: Value(printedMonth),
-      printedDay: Value(printedDay),
+      isDeleted: Value(isDeleted),
+      storeId: storeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(storeId),
+      printedYear: printedYear == null && nullToAbsent
+          ? const Value.absent()
+          : Value(printedYear),
+      printedMonth: printedMonth == null && nullToAbsent
+          ? const Value.absent()
+          : Value(printedMonth),
+      printedDay: printedDay == null && nullToAbsent
+          ? const Value.absent()
+          : Value(printedDay),
       printedHour: printedHour == null && nullToAbsent
           ? const Value.absent()
           : Value(printedHour),
@@ -3434,14 +3470,24 @@ class Receipt extends DataClass implements Insertable<Receipt> {
       printedSecond: printedSecond == null && nullToAbsent
           ? const Value.absent()
           : Value(printedSecond),
-      datePrecision: Value(datePrecision),
-      timezoneId: Value(timezoneId),
+      datePrecision: datePrecision == null && nullToAbsent
+          ? const Value.absent()
+          : Value(datePrecision),
+      timezoneId: timezoneId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(timezoneId),
       utcInstantMs: utcInstantMs == null && nullToAbsent
           ? const Value.absent()
           : Value(utcInstantMs),
-      currency: Value(currency),
-      totalAmountCents: Value(totalAmountCents),
-      reviewedAtMs: Value(reviewedAtMs),
+      currency: currency == null && nullToAbsent
+          ? const Value.absent()
+          : Value(currency),
+      totalAmountCents: totalAmountCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalAmountCents),
+      reviewedAtMs: reviewedAtMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reviewedAtMs),
       currentRevisionOrigin: Value(currentRevisionOrigin),
       currentRevisionSeq: Value(currentRevisionSeq),
       createdAtMs: Value(createdAtMs),
@@ -3456,19 +3502,20 @@ class Receipt extends DataClass implements Insertable<Receipt> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Receipt(
       id: serializer.fromJson<String>(json['id']),
-      storeId: serializer.fromJson<String>(json['store_id']),
-      printedYear: serializer.fromJson<int>(json['printed_year']),
-      printedMonth: serializer.fromJson<int>(json['printed_month']),
-      printedDay: serializer.fromJson<int>(json['printed_day']),
+      isDeleted: serializer.fromJson<int>(json['is_deleted']),
+      storeId: serializer.fromJson<String?>(json['store_id']),
+      printedYear: serializer.fromJson<int?>(json['printed_year']),
+      printedMonth: serializer.fromJson<int?>(json['printed_month']),
+      printedDay: serializer.fromJson<int?>(json['printed_day']),
       printedHour: serializer.fromJson<int?>(json['printed_hour']),
       printedMinute: serializer.fromJson<int?>(json['printed_minute']),
       printedSecond: serializer.fromJson<int?>(json['printed_second']),
-      datePrecision: serializer.fromJson<String>(json['date_precision']),
-      timezoneId: serializer.fromJson<String>(json['timezone_id']),
+      datePrecision: serializer.fromJson<String?>(json['date_precision']),
+      timezoneId: serializer.fromJson<String?>(json['timezone_id']),
       utcInstantMs: serializer.fromJson<int?>(json['utc_instant_ms']),
-      currency: serializer.fromJson<String>(json['currency']),
-      totalAmountCents: serializer.fromJson<int>(json['total_amount_cents']),
-      reviewedAtMs: serializer.fromJson<int>(json['reviewed_at_ms']),
+      currency: serializer.fromJson<String?>(json['currency']),
+      totalAmountCents: serializer.fromJson<int?>(json['total_amount_cents']),
+      reviewedAtMs: serializer.fromJson<int?>(json['reviewed_at_ms']),
       currentRevisionOrigin: serializer.fromJson<String>(
         json['current_revision_origin'],
       ),
@@ -3484,19 +3531,20 @@ class Receipt extends DataClass implements Insertable<Receipt> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
-      'store_id': serializer.toJson<String>(storeId),
-      'printed_year': serializer.toJson<int>(printedYear),
-      'printed_month': serializer.toJson<int>(printedMonth),
-      'printed_day': serializer.toJson<int>(printedDay),
+      'is_deleted': serializer.toJson<int>(isDeleted),
+      'store_id': serializer.toJson<String?>(storeId),
+      'printed_year': serializer.toJson<int?>(printedYear),
+      'printed_month': serializer.toJson<int?>(printedMonth),
+      'printed_day': serializer.toJson<int?>(printedDay),
       'printed_hour': serializer.toJson<int?>(printedHour),
       'printed_minute': serializer.toJson<int?>(printedMinute),
       'printed_second': serializer.toJson<int?>(printedSecond),
-      'date_precision': serializer.toJson<String>(datePrecision),
-      'timezone_id': serializer.toJson<String>(timezoneId),
+      'date_precision': serializer.toJson<String?>(datePrecision),
+      'timezone_id': serializer.toJson<String?>(timezoneId),
       'utc_instant_ms': serializer.toJson<int?>(utcInstantMs),
-      'currency': serializer.toJson<String>(currency),
-      'total_amount_cents': serializer.toJson<int>(totalAmountCents),
-      'reviewed_at_ms': serializer.toJson<int>(reviewedAtMs),
+      'currency': serializer.toJson<String?>(currency),
+      'total_amount_cents': serializer.toJson<int?>(totalAmountCents),
+      'reviewed_at_ms': serializer.toJson<int?>(reviewedAtMs),
       'current_revision_origin': serializer.toJson<String>(
         currentRevisionOrigin,
       ),
@@ -3508,29 +3556,31 @@ class Receipt extends DataClass implements Insertable<Receipt> {
 
   Receipt copyWith({
     String? id,
-    String? storeId,
-    int? printedYear,
-    int? printedMonth,
-    int? printedDay,
+    int? isDeleted,
+    Value<String?> storeId = const Value.absent(),
+    Value<int?> printedYear = const Value.absent(),
+    Value<int?> printedMonth = const Value.absent(),
+    Value<int?> printedDay = const Value.absent(),
     Value<int?> printedHour = const Value.absent(),
     Value<int?> printedMinute = const Value.absent(),
     Value<int?> printedSecond = const Value.absent(),
-    String? datePrecision,
-    String? timezoneId,
+    Value<String?> datePrecision = const Value.absent(),
+    Value<String?> timezoneId = const Value.absent(),
     Value<int?> utcInstantMs = const Value.absent(),
-    String? currency,
-    int? totalAmountCents,
-    int? reviewedAtMs,
+    Value<String?> currency = const Value.absent(),
+    Value<int?> totalAmountCents = const Value.absent(),
+    Value<int?> reviewedAtMs = const Value.absent(),
     String? currentRevisionOrigin,
     int? currentRevisionSeq,
     int? createdAtMs,
     int? updatedAtMs,
   }) => Receipt(
     id: id ?? this.id,
-    storeId: storeId ?? this.storeId,
-    printedYear: printedYear ?? this.printedYear,
-    printedMonth: printedMonth ?? this.printedMonth,
-    printedDay: printedDay ?? this.printedDay,
+    isDeleted: isDeleted ?? this.isDeleted,
+    storeId: storeId.present ? storeId.value : this.storeId,
+    printedYear: printedYear.present ? printedYear.value : this.printedYear,
+    printedMonth: printedMonth.present ? printedMonth.value : this.printedMonth,
+    printedDay: printedDay.present ? printedDay.value : this.printedDay,
     printedHour: printedHour.present ? printedHour.value : this.printedHour,
     printedMinute: printedMinute.present
         ? printedMinute.value
@@ -3538,12 +3588,16 @@ class Receipt extends DataClass implements Insertable<Receipt> {
     printedSecond: printedSecond.present
         ? printedSecond.value
         : this.printedSecond,
-    datePrecision: datePrecision ?? this.datePrecision,
-    timezoneId: timezoneId ?? this.timezoneId,
+    datePrecision: datePrecision.present
+        ? datePrecision.value
+        : this.datePrecision,
+    timezoneId: timezoneId.present ? timezoneId.value : this.timezoneId,
     utcInstantMs: utcInstantMs.present ? utcInstantMs.value : this.utcInstantMs,
-    currency: currency ?? this.currency,
-    totalAmountCents: totalAmountCents ?? this.totalAmountCents,
-    reviewedAtMs: reviewedAtMs ?? this.reviewedAtMs,
+    currency: currency.present ? currency.value : this.currency,
+    totalAmountCents: totalAmountCents.present
+        ? totalAmountCents.value
+        : this.totalAmountCents,
+    reviewedAtMs: reviewedAtMs.present ? reviewedAtMs.value : this.reviewedAtMs,
     currentRevisionOrigin: currentRevisionOrigin ?? this.currentRevisionOrigin,
     currentRevisionSeq: currentRevisionSeq ?? this.currentRevisionSeq,
     createdAtMs: createdAtMs ?? this.createdAtMs,
@@ -3552,6 +3606,7 @@ class Receipt extends DataClass implements Insertable<Receipt> {
   Receipt copyWithCompanion(ReceiptsCompanion data) {
     return Receipt(
       id: data.id.present ? data.id.value : this.id,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       storeId: data.storeId.present ? data.storeId.value : this.storeId,
       printedYear: data.printedYear.present
           ? data.printedYear.value
@@ -3606,6 +3661,7 @@ class Receipt extends DataClass implements Insertable<Receipt> {
   String toString() {
     return (StringBuffer('Receipt(')
           ..write('id: $id, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('storeId: $storeId, ')
           ..write('printedYear: $printedYear, ')
           ..write('printedMonth: $printedMonth, ')
@@ -3630,6 +3686,7 @@ class Receipt extends DataClass implements Insertable<Receipt> {
   @override
   int get hashCode => Object.hash(
     id,
+    isDeleted,
     storeId,
     printedYear,
     printedMonth,
@@ -3653,6 +3710,7 @@ class Receipt extends DataClass implements Insertable<Receipt> {
       identical(this, other) ||
       (other is Receipt &&
           other.id == this.id &&
+          other.isDeleted == this.isDeleted &&
           other.storeId == this.storeId &&
           other.printedYear == this.printedYear &&
           other.printedMonth == this.printedMonth &&
@@ -3674,19 +3732,20 @@ class Receipt extends DataClass implements Insertable<Receipt> {
 
 class ReceiptsCompanion extends UpdateCompanion<Receipt> {
   final Value<String> id;
-  final Value<String> storeId;
-  final Value<int> printedYear;
-  final Value<int> printedMonth;
-  final Value<int> printedDay;
+  final Value<int> isDeleted;
+  final Value<String?> storeId;
+  final Value<int?> printedYear;
+  final Value<int?> printedMonth;
+  final Value<int?> printedDay;
   final Value<int?> printedHour;
   final Value<int?> printedMinute;
   final Value<int?> printedSecond;
-  final Value<String> datePrecision;
-  final Value<String> timezoneId;
+  final Value<String?> datePrecision;
+  final Value<String?> timezoneId;
   final Value<int?> utcInstantMs;
-  final Value<String> currency;
-  final Value<int> totalAmountCents;
-  final Value<int> reviewedAtMs;
+  final Value<String?> currency;
+  final Value<int?> totalAmountCents;
+  final Value<int?> reviewedAtMs;
   final Value<String> currentRevisionOrigin;
   final Value<int> currentRevisionSeq;
   final Value<int> createdAtMs;
@@ -3694,6 +3753,7 @@ class ReceiptsCompanion extends UpdateCompanion<Receipt> {
   final Value<int> rowid;
   const ReceiptsCompanion({
     this.id = const Value.absent(),
+    this.isDeleted = const Value.absent(),
     this.storeId = const Value.absent(),
     this.printedYear = const Value.absent(),
     this.printedMonth = const Value.absent(),
@@ -3715,40 +3775,33 @@ class ReceiptsCompanion extends UpdateCompanion<Receipt> {
   });
   ReceiptsCompanion.insert({
     required String id,
-    required String storeId,
-    required int printedYear,
-    required int printedMonth,
-    required int printedDay,
+    this.isDeleted = const Value.absent(),
+    this.storeId = const Value.absent(),
+    this.printedYear = const Value.absent(),
+    this.printedMonth = const Value.absent(),
+    this.printedDay = const Value.absent(),
     this.printedHour = const Value.absent(),
     this.printedMinute = const Value.absent(),
     this.printedSecond = const Value.absent(),
-    required String datePrecision,
-    required String timezoneId,
+    this.datePrecision = const Value.absent(),
+    this.timezoneId = const Value.absent(),
     this.utcInstantMs = const Value.absent(),
-    required String currency,
-    required int totalAmountCents,
-    required int reviewedAtMs,
+    this.currency = const Value.absent(),
+    this.totalAmountCents = const Value.absent(),
+    this.reviewedAtMs = const Value.absent(),
     required String currentRevisionOrigin,
     required int currentRevisionSeq,
     required int createdAtMs,
     required int updatedAtMs,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
-       storeId = Value(storeId),
-       printedYear = Value(printedYear),
-       printedMonth = Value(printedMonth),
-       printedDay = Value(printedDay),
-       datePrecision = Value(datePrecision),
-       timezoneId = Value(timezoneId),
-       currency = Value(currency),
-       totalAmountCents = Value(totalAmountCents),
-       reviewedAtMs = Value(reviewedAtMs),
        currentRevisionOrigin = Value(currentRevisionOrigin),
        currentRevisionSeq = Value(currentRevisionSeq),
        createdAtMs = Value(createdAtMs),
        updatedAtMs = Value(updatedAtMs);
   static Insertable<Receipt> custom({
     Expression<String>? id,
+    Expression<int>? isDeleted,
     Expression<String>? storeId,
     Expression<int>? printedYear,
     Expression<int>? printedMonth,
@@ -3770,6 +3823,7 @@ class ReceiptsCompanion extends UpdateCompanion<Receipt> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (isDeleted != null) 'is_deleted': isDeleted,
       if (storeId != null) 'store_id': storeId,
       if (printedYear != null) 'printed_year': printedYear,
       if (printedMonth != null) 'printed_month': printedMonth,
@@ -3795,19 +3849,20 @@ class ReceiptsCompanion extends UpdateCompanion<Receipt> {
 
   ReceiptsCompanion copyWith({
     Value<String>? id,
-    Value<String>? storeId,
-    Value<int>? printedYear,
-    Value<int>? printedMonth,
-    Value<int>? printedDay,
+    Value<int>? isDeleted,
+    Value<String?>? storeId,
+    Value<int?>? printedYear,
+    Value<int?>? printedMonth,
+    Value<int?>? printedDay,
     Value<int?>? printedHour,
     Value<int?>? printedMinute,
     Value<int?>? printedSecond,
-    Value<String>? datePrecision,
-    Value<String>? timezoneId,
+    Value<String?>? datePrecision,
+    Value<String?>? timezoneId,
     Value<int?>? utcInstantMs,
-    Value<String>? currency,
-    Value<int>? totalAmountCents,
-    Value<int>? reviewedAtMs,
+    Value<String?>? currency,
+    Value<int?>? totalAmountCents,
+    Value<int?>? reviewedAtMs,
     Value<String>? currentRevisionOrigin,
     Value<int>? currentRevisionSeq,
     Value<int>? createdAtMs,
@@ -3816,6 +3871,7 @@ class ReceiptsCompanion extends UpdateCompanion<Receipt> {
   }) {
     return ReceiptsCompanion(
       id: id ?? this.id,
+      isDeleted: isDeleted ?? this.isDeleted,
       storeId: storeId ?? this.storeId,
       printedYear: printedYear ?? this.printedYear,
       printedMonth: printedMonth ?? this.printedMonth,
@@ -3843,6 +3899,9 @@ class ReceiptsCompanion extends UpdateCompanion<Receipt> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<String>(id.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<int>(isDeleted.value);
     }
     if (storeId.present) {
       map['store_id'] = Variable<String>(storeId.value);
@@ -3907,6 +3966,7 @@ class ReceiptsCompanion extends UpdateCompanion<Receipt> {
   String toString() {
     return (StringBuffer('ReceiptsCompanion(')
           ..write('id: $id, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('storeId: $storeId, ')
           ..write('printedYear: $printedYear, ')
           ..write('printedMonth: $printedMonth, ')

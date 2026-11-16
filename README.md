@@ -8,11 +8,13 @@ The app imports receipt images on Android and Windows, recognizes text on
 Android, and supports evidence-backed review with explicit saving to local
 SQLite. [Manual saving](docs/manual-saving.md),
 [reviewed OCR saving](docs/ocr-saving.md),
-[history filters](docs/history-filters.md) and
-[reviewed manual corrections](docs/manual-corrections.md) and
-[fresh-image OCR corrections](docs/ocr-corrections.md) have synthetic native
-integration checks on both platforms. The Windows OCR adapter/packaging,
-deletion, structured backup/restore and sync remain open.
+[history filters](docs/history-filters.md),
+[reviewed manual corrections](docs/manual-corrections.md),
+[fresh-image OCR corrections](docs/ocr-corrections.md) and
+[reviewed receipt deletion](docs/receipt-deletion.md) have synthetic native
+integration checks on both platforms. SQLite schema 3 migrates existing data
+from schemas 1 and 2 without changing prior event bytes. Structured backup/restore
+is next; the Windows OCR adapter/packaging and sync also remain open.
 
 See [the project plan](docs/plan.md) for the next milestone and
 [OCR spike findings](docs/ocr-spike.md) for engine evidence and remaining

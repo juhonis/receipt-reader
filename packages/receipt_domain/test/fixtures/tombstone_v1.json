@@ -1,0 +1,1 @@
+{"payload_version":"1","receipt_id":"00000000-0000-4000-8000-000000000001","deletion_policy_version":"1","expected_head":{"origin":"00000000-0000-4000-8000-000000000008","sequence":"9"},"reviewed_document_sha256":"c80bbe1a529145702f193ac69147e1a198beeb800e6ccfa1eca09171400ff37b","source":"manual","receipt_reviewed":true,"deleted_at_ms":"123456","app_version":"deletion-test"}

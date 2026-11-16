@@ -204,3 +204,32 @@ flutter test integration_test/ocr_correction_test.dart -d windows
 Restore the normal app builds and prior emulator airplane setting afterwards.
 The test uses isolated synthetic data. Windows production OCR recognition and
 packaging remain pending; this verifies shared review/storage, not that adapter.
+
+## Receipt deletion verification
+
+[Reviewed receipt deletion](receipt-deletion.md) uses schema 3, with tested
+migration from schemas 1 and 2. Run the synthetic deletion/reopen/retry and
+stale-screen smoke with:
+
+```powershell
+flutter test integration_test/receipt_deletion_test.dart -d emulator-5554
+flutter test integration_test/receipt_deletion_test.dart -d windows
+```
+
+Use the emulator's current ID from `flutter devices`. Test offline by recording
+its current airplane setting, enabling airplane mode for the Android smoke, and
+restoring the recorded setting afterwards. The smoke uses only a guarded,
+isolated temporary database and preserves normal application data.
+
+Integration tests build their own entry point. Restore normal builds afterwards:
+
+```powershell
+flutter build windows --debug
+flutter build apk --debug
+$receiptAdb = "$env:LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe"
+& $receiptAdb install -r build/app/outputs/flutter-apk/app-debug.apk
+& $receiptAdb shell am start -W -n fi.juhonis.receipt_reader/.MainActivity
+```
+
+Do not uninstall or clear app data to restore the normal app. Deletion retains
+historical financial records; it is not secure erasure and has no undo yet.

@@ -1,4 +1,4 @@
--- Reviewed local manual/OCR receipts. Other workflows require migrations.
+-- Reviewed local manual/OCR receipts and immutable receipt tombstones.
 CREATE TABLE dataset_state (
   singleton INTEGER NOT NULL PRIMARY KEY CHECK (singleton = 1),
   dataset_id TEXT NOT NULL UNIQUE CHECK (length(dataset_id) = 36 AND dataset_id GLOB '????????-????-4???-[89ab]???-????????????' AND length("replace"(dataset_id, '-', '')) = 32 AND "replace"(dataset_id, '-', '') NOT GLOB '*[^0-9a-f]*'),
@@ -13,7 +13,7 @@ CREATE TABLE change_log (
   entity_kind TEXT NOT NULL CHECK (entity_kind IN ('store', 'receipt')),
   entity_id TEXT NOT NULL CHECK (length(entity_id) = 36 AND entity_id GLOB '????????-????-4???-[89ab]???-????????????' AND length("replace"(entity_id, '-', '')) = 32 AND "replace"(entity_id, '-', '') NOT GLOB '*[^0-9a-f]*'),
   payload_version INTEGER NOT NULL CHECK (payload_version = 1),
-  operation TEXT NOT NULL CHECK (operation = 'snapshot'),
+  operation TEXT NOT NULL CHECK (operation IN ('snapshot', 'tombstone') AND (operation <> 'tombstone' OR entity_kind = 'receipt')),
   payload TEXT NOT NULL CHECK (json_valid(payload)),
   canonical_event TEXT NOT NULL CHECK (json_valid(canonical_event)),
   event_sha256 TEXT NOT NULL CHECK (length(event_sha256) = 64 AND event_sha256 NOT GLOB '*[^0-9a-f]*'),
@@ -83,28 +83,31 @@ CREATE INDEX stores_revision ON stores(current_revision_origin, current_revision
 
 CREATE TABLE receipts (
   id TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36 AND id GLOB '????????-????-4???-[89ab]???-????????????' AND length("replace"(id, '-', '')) = 32 AND "replace"(id, '-', '') NOT GLOB '*[^0-9a-f]*'),
-  store_id TEXT NOT NULL REFERENCES stores(id),
-  printed_year INTEGER NOT NULL CHECK (printed_year BETWEEN 1970 AND 2099),
-  printed_month INTEGER NOT NULL CHECK (printed_month BETWEEN 1 AND 12),
-  printed_day INTEGER NOT NULL CHECK (printed_day BETWEEN 1 AND 31),
+  is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+  store_id TEXT REFERENCES stores(id),
+  printed_year INTEGER CHECK (printed_year BETWEEN 1970 AND 2099),
+  printed_month INTEGER CHECK (printed_month BETWEEN 1 AND 12),
+  printed_day INTEGER CHECK (printed_day BETWEEN 1 AND 31),
   printed_hour INTEGER CHECK (printed_hour IS NULL OR printed_hour BETWEEN 0 AND 23),
   printed_minute INTEGER CHECK (printed_minute IS NULL OR printed_minute BETWEEN 0 AND 59),
   printed_second INTEGER CHECK (printed_second IS NULL OR printed_second BETWEEN 0 AND 59),
-  date_precision TEXT NOT NULL CHECK (date_precision IN ('day', 'minute', 'second')),
-  timezone_id TEXT NOT NULL CHECK (timezone_id = 'Europe/Helsinki'),
+  date_precision TEXT CHECK (date_precision IN ('day', 'minute', 'second')),
+  timezone_id TEXT CHECK (timezone_id = 'Europe/Helsinki'),
   utc_instant_ms INTEGER,
-  currency TEXT NOT NULL CHECK (currency = 'EUR'),
-  total_amount_cents INTEGER NOT NULL,
-  reviewed_at_ms INTEGER NOT NULL CHECK (reviewed_at_ms >= 0),
+  currency TEXT CHECK (currency = 'EUR'),
+  total_amount_cents INTEGER,
+  reviewed_at_ms INTEGER CHECK (reviewed_at_ms >= 0),
   current_revision_origin TEXT NOT NULL,
   current_revision_seq INTEGER NOT NULL,
   created_at_ms INTEGER NOT NULL CHECK (created_at_ms >= 0),
   updated_at_ms INTEGER NOT NULL CHECK (updated_at_ms >= 0),
   UNIQUE (id, store_id),
   FOREIGN KEY (current_revision_origin, current_revision_seq) REFERENCES change_log(origin_device_id, origin_seq),
-  CHECK ((date_precision = 'day' AND printed_hour IS NULL AND printed_minute IS NULL AND printed_second IS NULL AND utc_instant_ms IS NULL)
+  CHECK (is_deleted = 1 OR ((date_precision = 'day' AND printed_hour IS NULL AND printed_minute IS NULL AND printed_second IS NULL AND utc_instant_ms IS NULL)
       OR (date_precision = 'minute' AND printed_hour IS NOT NULL AND printed_minute IS NOT NULL AND printed_second IS NULL AND utc_instant_ms IS NOT NULL)
-      OR (date_precision = 'second' AND printed_hour IS NOT NULL AND printed_minute IS NOT NULL AND printed_second IS NOT NULL AND utc_instant_ms IS NOT NULL))
+      OR (date_precision = 'second' AND printed_hour IS NOT NULL AND printed_minute IS NOT NULL AND printed_second IS NOT NULL AND utc_instant_ms IS NOT NULL))),
+  CHECK ((is_deleted = 0 AND store_id IS NOT NULL AND printed_year IS NOT NULL AND printed_month IS NOT NULL AND printed_day IS NOT NULL AND date_precision IS NOT NULL AND timezone_id IS NOT NULL AND currency IS NOT NULL AND total_amount_cents IS NOT NULL AND reviewed_at_ms IS NOT NULL)
+    OR (is_deleted = 1 AND store_id IS NULL AND printed_year IS NULL AND printed_month IS NULL AND printed_day IS NULL AND printed_hour IS NULL AND printed_minute IS NULL AND printed_second IS NULL AND date_precision IS NULL AND timezone_id IS NULL AND utc_instant_ms IS NULL AND currency IS NULL AND total_amount_cents IS NULL AND reviewed_at_ms IS NULL))
 ) STRICT;
 CREATE INDEX receipts_branch_date ON receipts(store_id, printed_year, printed_month, printed_day, id);
 CREATE INDEX receipts_revision ON receipts(current_revision_origin, current_revision_seq);
