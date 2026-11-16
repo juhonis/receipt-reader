@@ -1,12 +1,13 @@
 # Local storage contract
 
 Status: design baseline, 2026-11-16. This specifies the first Drift/SQLite
-implementation; it does not introduce a database, migrations, or a save button.
-The app still performs temporary reviews and saves nothing.
+implementation. The normal app still performs temporary reviews and saves nothing.
 
 The first [durable value and manual-command foundation](storage-foundations.md)
-is now implemented as a standalone Dart package. It is not wired into the app;
-Drift, OCR save adaptation, and the transaction/recovery rules below remain open.
+is implemented as a standalone Dart package. A [local manual-receipt repository](local-storage.md)
+now implements schema v1, atomic saves/edits and local event integrity checks.
+The app's save workflow, OCR adapter, and broader catalog/delete/conflict/sync
+and recovery rules below remain open; this contract exceeds the current schema.
 
 This document makes the [plan's data and sync rules](plan.md#3-data-architecture--financial-rules)
 concrete. Implement local persistence first on Android and Windows. Network

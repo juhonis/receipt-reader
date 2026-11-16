@@ -1,7 +1,7 @@
 # receipt_domain
 
 Pure Dart storage-facing receipt values and manual review commands. Experimental;
-the Flutter app does not use this package yet. There is no database or save UI.
+the local storage repository now uses it. The Flutter app still offers no save UI.
 
 See [storage foundations](../../docs/storage-foundations.md) for the API boundary,
 canonical fixtures, checks performed, and remaining work. The

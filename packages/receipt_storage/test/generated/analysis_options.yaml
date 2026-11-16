@@ -1,0 +1,7 @@
+include: ../../analysis_options.yaml
+
+# Drift's generated migration helpers use raw TableInfo mixins. Keep strict
+# checking for handwritten code without editing regeneratable source files.
+analyzer:
+  errors:
+    strict_raw_type: ignore

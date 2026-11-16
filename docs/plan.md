@@ -235,7 +235,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 ### Phase 2: Shared Import → Review → Save, Plus Android Capture
 - [x] Initialize one Flutter project with Android and Windows targets and externalized Finnish UI strings.
 - [ ] Separate platform services from shared domain code and adaptive workflows as the OCR spike establishes the adapter contracts.
-- [ ] Configure Drift, foreign keys, transactions, migration tests, and change logging.
+- [x] Configure a local manual-receipt Drift schema, strict constraints, foreign keys, atomic transactions, schema baseline/failure tests, and immutable change logging. See [local storage implementation](local-storage.md); the broader catalog/delete/conflict/sync schema and app save integration remain open.
 - [ ] Implement camera guidance and clear warnings for incomplete/long receipts.
 - [ ] Implement JPEG/PNG selection and offline OCR on both platforms using the normalized OCR interface.
 - [x] Add bounded, temporary JPEG/PNG import and zoomable receipt evidence on Android/Windows; originals remain read-only. See [image import](image-import.md). OCR integration and saving remain open.
@@ -249,7 +249,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Add scoped item/total findings, explicit correction/classification of unparsed item text, and a structural source-word coverage inventory that exposes parser omissions. Geometry review, full human evidence review, and OCR completion remain open.
 - [x] Retain layout context and geometry source words, add image overlays and safe re-parsing into a separate temporary review, expose omissions as individual review items, and track per-row image comparison. Overlap/skew resolution and final OCR approval remain open.
 - [x] Add typed overlap/band/skew evidence decisions and a shared final evidence audit with stale-approval rejection, whole-page review, source/quantity preservation, and supported no-save OCR completion. Boundary repair, unsupported conversions, Windows OCR, and persistence still require work.
-- [x] Add independently tested durable UUIDs, range-checked receipt snapshots, canonical JSON/digest fixtures, and snapshot-bound manual confirmation commands. See [storage foundations](storage-foundations.md); app integration, the OCR evidence adapter, and transactional storage remain open.
+- [x] Add independently tested durable UUIDs, range-checked receipt snapshots, canonical JSON/digest fixtures, and snapshot-bound manual confirmation commands. See [storage foundations](storage-foundations.md); app integration and the OCR evidence adapter remain open.
 - [ ] Save only reviewed, reconciled receipts; verify atomic domain/change-log writes.
 - [ ] Test image cleanup on save, cancel, error, and startup after crashes.
 - [ ] Verify that imported original files remain untouched on both platforms.
@@ -286,8 +286,8 @@ Restore must assign a fresh local device identity and preserve imported event id
 
 ## 8. Immediate Next Step
 
-The temporary Android OCR review supports evidence-backed completion, with explicit no-save messaging. The [durable receipt foundation](storage-foundations.md) now provides checked values, a canonical codec, and content-bound manual review commands. There is still no database, saved history, or backup/restore implementation. Windows OCR packaging and final engine selection remain open.
+The temporary Android OCR review supports evidence-backed completion, with explicit no-save messaging. The [durable receipt foundation](storage-foundations.md) and [transactional local repository](local-storage.md) are implemented and independently tested. The normal app still opens no database or saved history; backup/restore, Windows OCR packaging and final engine selection remain open.
 
-Next, add Drift schema v1 and atomic local manual-receipt/change-log writes with migration, constraint, rollback and retry tests. Before wiring a save action into review, add Android backup/transfer exclusions, confirmed branch selection, and manual field/row/relationship controls matching the command contract. Then implement the separate live OCR evidence adapter. A matching total or the prototype's completion flag alone cannot authorize a save.
+Next, add Android backup/transfer exclusions and an application-support database lifecycle adapter, confirmed branch selection, and manual field/row/relationship controls matching the command contract. Then connect explicit manual saving and basic history to the repository, followed by the separate live OCR evidence adapter. A matching total or the prototype's completion flag alone cannot authorize a save.
 
 Keep representative S-kaupat images and OCR exports in ignored `localreceipts/`; committed fixtures remain synthetic or explicitly anonymized. Complete standalone import/review/save/edit workflows on both platforms and tested recovery before implementing bidirectional sync. Broader parser fixtures, clean-install OCR checks, privacy/permission audits, and native Windows picker verification remain required.

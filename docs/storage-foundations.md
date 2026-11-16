@@ -2,7 +2,7 @@
 
 Implemented in `packages/receipt_domain`, following the
 [local storage contract](local-storage-contract.md). This is a standalone Dart
-package with no Flutter, SQLite, image, or network integration. The app still
+package with no Flutter, SQLite, image, or network integration of its own. The app still
 performs temporary reviews and saves nothing. No emulator restart is needed for
 this library-only step.
 
@@ -102,8 +102,8 @@ payloads, unsupported OCR assertions, and stale manual confirmation. All pass,
 as do 68 parser tests and 39 Flutter tests. Domain/parser/app analyzers are clean.
 No native build or emulator smoke was run for this library-only change.
 
-Next add Drift schema v1 and a transactional repository for local manual
-receipts, with constraint/migration/failure tests. Before enabling app saves,
+The [local manual-receipt repository](local-storage.md) now adds Drift schema v1
+and transactional writes, with constraint/migration/failure tests. Before enabling app saves,
 add Android automatic-backup/transfer exclusions, branch selection and explicit
 manual row review controls. Then add the OCR evidence adapter through the same
 storage boundary; preserve the no-save behaviour until each path is complete.

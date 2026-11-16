@@ -1,0 +1,270 @@
+part of 'repository.dart';
+
+extension _Integrity on ReceiptRepository {
+  /// V1 has one local origin and no incoming-history API. Validate that complete
+  /// history before exposing projections; future sync needs its own validator.
+  Future<void> _verifyIntegrity() async {
+    final integrity = await _rows('PRAGMA integrity_check');
+    _check(
+      integrity.length == 1 && integrity.single.values.single == 'ok',
+      'sqliteIntegrity',
+    );
+    _check((await _rows('PRAGMA foreign_key_check')).isEmpty, 'foreignKeys');
+    final state = await _identity();
+    final events = await _rows('SELECT * FROM change_log ORDER BY origin_seq');
+    final latest = <String, RevisionId>{};
+    final documents = <DurableId, ReceiptDocument>{};
+    final firstReceiptTimes = <DurableId, int>{};
+    final storePayloads = <DurableId, String>{};
+    final knownRevisions = <RevisionId, Map<String, Object?>>{};
+    final groups = <String, List<Map<String, Object?>>>{};
+    final rowOwners = <DurableId, (DurableId, RevisionId)>{};
+    final activeRows = <DurableId, Set<DurableId>>{};
+    for (var i = 0; i < events.length; i++) {
+      final event = events[i];
+      final revision = RevisionId(
+        DurableId.parse(event['origin_device_id']! as String),
+        BigInt.from(event['origin_seq']! as int),
+      );
+      _check(
+        revision.origin == state.deviceId &&
+            revision.sequence == BigInt.from(i + 1) &&
+            event['dataset_id'] == state.datasetId.value,
+        'eventContinuity',
+      );
+      final id = DurableId.parse(event['entity_id']! as String);
+      final kind = event['entity_kind']! as String;
+      final parents = await _references('revision_parents', 'parent', revision);
+      final dependencies = await _references(
+        'event_dependencies',
+        'dependency',
+        revision,
+      );
+      final key = '$kind:${id.value}';
+      final previous = latest[key];
+      _check(
+        previous == null
+            ? parents.isEmpty
+            : parents.length == 1 && parents.single == previous,
+        'eventAncestry',
+      );
+      _check(
+        parents.every(knownRevisions.containsKey) &&
+            dependencies.every(knownRevisions.containsKey),
+        'missingHistory',
+      );
+      final mutation = DurableId.parse(event['mutation_id']! as String);
+      final payload = event['payload']! as String;
+      final canonical = _eventJson(
+        state.datasetId,
+        revision,
+        kind,
+        id,
+        payload,
+        mutation,
+        event['mutation_index']! as int,
+        event['mutation_count']! as int,
+        event['audit_at_ms']! as int,
+        parents,
+        dependencies,
+      );
+      _check(
+        canonical == event['canonical_event'] &&
+            _sha(canonical) == event['event_sha256'],
+        'eventDigest',
+      );
+      _check(
+        event['payload_version'] == 1 && event['operation'] == 'snapshot',
+        'unsupportedEvent',
+      );
+      if (kind == 'store') {
+        _check(
+          previous == null && dependencies.isEmpty,
+          'unsupportedCatalogEdit',
+        );
+        final fields = jsonDecode(payload) as Map<String, Object?>;
+        final branch = ReceiptBranch(
+          id: DurableId.parse(fields['id']! as String),
+          name: fields['name']! as String,
+          chain: fields['chain'] as String?,
+          address: fields['address'] as String?,
+          printedIdentifier: fields['printed_identifier'] as String?,
+        );
+        _check(
+          branch.id == id && _branchPayload(branch) == payload,
+          'storePayload',
+        );
+        storePayloads[id] = payload;
+      } else {
+        _check(kind == 'receipt', 'unsupportedEvent');
+        final document = ReceiptDocumentCodec.decode(payload);
+        final snapshot = document.snapshot;
+        _check(
+          snapshot.id == id &&
+              snapshot.items.every((row) => row.product == null) &&
+              document.review.reviewedAtMs ==
+                  BigInt.from(event['audit_at_ms']! as int),
+          'receiptPayload',
+        );
+        final expected = document.review.expectedHeads;
+        _check(
+          expected.length == parents.length && expected.every(parents.contains),
+          'reviewParents',
+        );
+        _check(dependencies.length == 1, 'receiptDependencies');
+        final branchRevision = dependencies.single;
+        final branchEvent = knownRevisions[branchRevision]!;
+        _check(
+          branchEvent['entity_kind'] == 'store' &&
+              branchEvent['entity_id'] == snapshot.branch.id.value &&
+              storePayloads[snapshot.branch.id] ==
+                  _branchPayload(snapshot.branch),
+          'branchDependency',
+        );
+        _check(
+          snapshot.branch.revision == null ||
+              snapshot.branch.revision == branchRevision,
+          'branchRevision',
+        );
+        if (snapshot.branch.revision == null) {
+          _check(
+            branchEvent['mutation_id'] == event['mutation_id'],
+            'pendingBranchDependency',
+          );
+        }
+        final before = activeRows[id] ?? <DurableId>{};
+        for (final item in snapshot.items) {
+          final owner = rowOwners[item.id];
+          _check(
+            owner == null || (owner.$1 == id && before.contains(item.id)),
+            'historicalRowReuse',
+          );
+          rowOwners.putIfAbsent(item.id, () => (id, revision));
+        }
+        activeRows[id] = snapshot.items.map((row) => row.id).toSet();
+        documents[id] = document;
+        firstReceiptTimes.putIfAbsent(id, () => event['audit_at_ms']! as int);
+      }
+      latest[key] = revision;
+      knownRevisions[revision] = event;
+      groups.putIfAbsent(mutation.value, () => []).add(event);
+    }
+    _check(
+      state.nextLocalSequence == BigInt.from(events.length) + BigInt.one,
+      'nextSequence',
+    );
+    final cursors = await _rows('SELECT * FROM received_cursors');
+    _check(
+      cursors.length == 1 &&
+          cursors.single['origin_device_id'] == state.deviceId.value &&
+          cursors.single['committed_seq'] == events.length,
+      'committedCursor',
+    );
+    final allHeads = await _rows('SELECT * FROM entity_heads');
+    _check(allHeads.length == latest.length, 'headCount');
+    for (final head in allHeads) {
+      _check(
+        latest['${head['entity_kind']}:${head['entity_id']}'] ==
+            RevisionId(
+              DurableId.parse(head['origin_device_id']! as String),
+              BigInt.from(head['origin_seq']! as int),
+            ),
+        'headProjection',
+      );
+    }
+    final stores = await _rows('SELECT * FROM stores');
+    _check(stores.length == storePayloads.length, 'storeCount');
+    for (final store in stores) {
+      final branch = _branch(store);
+      _check(
+        _branchPayload(branch) == storePayloads[branch.id] &&
+            branch.revision == latest['store:${branch.id.value}'],
+        'storeProjection',
+      );
+      final event = knownRevisions[branch.revision]!;
+      _check(
+        store['created_at_ms'] == event['audit_at_ms'] &&
+            store['updated_at_ms'] == event['audit_at_ms'],
+        'storeAudit',
+      );
+    }
+    final receipts = await _rows('SELECT id, created_at_ms FROM receipts');
+    _check(receipts.length == documents.length, 'receiptCount');
+    for (final receipt in receipts) {
+      final id = DurableId.parse(receipt['id']! as String);
+      await _read(id);
+      _check(receipt['created_at_ms'] == firstReceiptTimes[id], 'receiptAudit');
+    }
+    final identities = await _rows('SELECT * FROM row_identities');
+    _check(identities.length == rowOwners.length, 'rowIdentityCount');
+    for (final identity in identities) {
+      final owner = rowOwners[DurableId.parse(identity['row_id']! as String)];
+      _check(
+        owner != null &&
+            owner.$1.value == identity['receipt_id'] &&
+            owner.$2.origin.value == identity['first_origin'] &&
+            owner.$2.sequence == BigInt.from(identity['first_seq']! as int),
+        'rowOwnership',
+      );
+    }
+    final mutations = await _rows('SELECT * FROM local_mutations');
+    _check(mutations.length == groups.length, 'mutationCount');
+    for (final mutation in mutations) {
+      final group = groups[mutation['mutation_id']];
+      _check(group != null && group.isNotEmpty, 'mutationGroup');
+      final members = group!;
+      _check(
+        members.length == members.first['mutation_count'],
+        'incompleteMutation',
+      );
+      for (var i = 0; i < members.length; i++) {
+        _check(
+          members[i]['mutation_index'] == i &&
+              members[i]['mutation_count'] == members.length &&
+              members[i]['origin_seq'] ==
+                  (members.first['origin_seq']! as int) + i,
+          'mutationOrder',
+        );
+      }
+      final last = members.last;
+      _check(
+        last['entity_kind'] == 'receipt' &&
+            last['entity_id'] == mutation['receipt_id'] &&
+            last['origin_device_id'] == mutation['result_origin'] &&
+            last['origin_seq'] == mutation['result_seq'] &&
+            _sha(last['payload']! as String) == mutation['command_sha256'],
+        'mutationResult',
+      );
+      _check(
+        members.length == 1 || members.first['entity_kind'] == 'store',
+        'mutationShape',
+      );
+      if (members.length == 2) {
+        final receipt = ReceiptDocumentCodec.decode(last['payload']! as String)
+            .snapshot;
+        _check(
+          members.first['entity_id'] == receipt.branch.id.value &&
+              receipt.branch.revision == null,
+          'mutationBranch',
+        );
+      }
+    }
+  }
+
+  Future<List<RevisionId>> _references(
+    String table,
+    String prefix,
+    RevisionId revision,
+  ) async =>
+      (await _rows(
+            'SELECT ${prefix}_origin AS origin, ${prefix}_seq AS seq FROM $table WHERE child_origin = ? AND child_seq = ? ORDER BY origin, seq',
+            [revision.origin.value, revision.sequence.toInt()],
+          ))
+          .map(
+            (row) => RevisionId(
+              DurableId.parse(row['origin']! as String),
+              BigInt.from(row['seq']! as int),
+            ),
+          )
+          .toList();
+}

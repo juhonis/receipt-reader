@@ -7,8 +7,12 @@ environment:
   sdk: ^3.14.0
 
 dependencies:
+  receipt_domain:
+    path: packages/receipt_domain
   receipt_parser:
     path: packages/receipt_parser
+  receipt_storage:
+    path: packages/receipt_storage
   flutter:
     sdk: flutter
   flutter_localizations:
@@ -19,6 +23,8 @@ dependencies:
   file_selector: 1.1.0
 
 dev_dependencies:
+  integration_test:
+    sdk: flutter
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0

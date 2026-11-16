@@ -1,0 +1,187 @@
+-- Local manual receipts only. New workflows require explicit migrations.
+CREATE TABLE dataset_state (
+  singleton INTEGER NOT NULL PRIMARY KEY CHECK (singleton = 1),
+  dataset_id TEXT NOT NULL UNIQUE CHECK (length(dataset_id) = 36 AND dataset_id GLOB '????????-????-4???-[89ab]???-????????????' AND length("replace"(dataset_id, '-', '')) = 32 AND "replace"(dataset_id, '-', '') NOT GLOB '*[^0-9a-f]*'),
+  device_id TEXT NOT NULL CHECK (length(device_id) = 36 AND device_id GLOB '????????-????-4???-[89ab]???-????????????' AND length("replace"(device_id, '-', '')) = 32 AND "replace"(device_id, '-', '') NOT GLOB '*[^0-9a-f]*'),
+  next_local_seq INTEGER NOT NULL CHECK (next_local_seq > 0)
+) STRICT;
+
+CREATE TABLE change_log (
+  origin_device_id TEXT NOT NULL CHECK (length(origin_device_id) = 36 AND origin_device_id GLOB '????????-????-4???-[89ab]???-????????????' AND length("replace"(origin_device_id, '-', '')) = 32 AND "replace"(origin_device_id, '-', '') NOT GLOB '*[^0-9a-f]*'),
+  origin_seq INTEGER NOT NULL CHECK (origin_seq > 0 AND origin_seq < 9223372036854775807),
+  dataset_id TEXT NOT NULL REFERENCES dataset_state(dataset_id),
+  entity_kind TEXT NOT NULL CHECK (entity_kind IN ('store', 'receipt')),
+  entity_id TEXT NOT NULL CHECK (length(entity_id) = 36 AND entity_id GLOB '????????-????-4???-[89ab]???-????????????' AND length("replace"(entity_id, '-', '')) = 32 AND "replace"(entity_id, '-', '') NOT GLOB '*[^0-9a-f]*'),
+  payload_version INTEGER NOT NULL CHECK (payload_version = 1),
+  operation TEXT NOT NULL CHECK (operation = 'snapshot'),
+  payload TEXT NOT NULL CHECK (json_valid(payload)),
+  canonical_event TEXT NOT NULL CHECK (json_valid(canonical_event)),
+  event_sha256 TEXT NOT NULL CHECK (length(event_sha256) = 64 AND event_sha256 NOT GLOB '*[^0-9a-f]*'),
+  audit_at_ms INTEGER NOT NULL CHECK (audit_at_ms >= 0),
+  mutation_id TEXT NOT NULL CHECK (length(mutation_id) = 36 AND mutation_id GLOB '????????-????-4???-[89ab]???-????????????' AND length("replace"(mutation_id, '-', '')) = 32 AND "replace"(mutation_id, '-', '') NOT GLOB '*[^0-9a-f]*'),
+  mutation_index INTEGER NOT NULL CHECK (mutation_index >= 0 AND mutation_index < mutation_count),
+  mutation_count INTEGER NOT NULL CHECK (mutation_count IN (1, 2)),
+  PRIMARY KEY (origin_device_id, origin_seq),
+  UNIQUE (origin_device_id, origin_seq, entity_kind, entity_id),
+  UNIQUE (origin_device_id, mutation_id, mutation_index)
+) STRICT;
+
+CREATE TRIGGER change_log_no_update BEFORE UPDATE ON change_log BEGIN SELECT RAISE(ABORT, 'immutable_event'); END;
+CREATE TRIGGER change_log_no_delete BEFORE DELETE ON change_log BEGIN SELECT RAISE(ABORT, 'immutable_event'); END;
+
+CREATE TABLE revision_parents (
+  child_origin TEXT NOT NULL,
+  child_seq INTEGER NOT NULL,
+  parent_origin TEXT NOT NULL,
+  parent_seq INTEGER NOT NULL,
+  PRIMARY KEY (child_origin, child_seq, parent_origin, parent_seq),
+  FOREIGN KEY (child_origin, child_seq) REFERENCES change_log(origin_device_id, origin_seq),
+  FOREIGN KEY (parent_origin, parent_seq) REFERENCES change_log(origin_device_id, origin_seq),
+  CHECK (child_origin <> parent_origin OR child_seq <> parent_seq)
+) STRICT;
+CREATE INDEX revision_parents_parent ON revision_parents(parent_origin, parent_seq);
+CREATE TRIGGER revision_parents_no_update BEFORE UPDATE ON revision_parents BEGIN SELECT RAISE(ABORT, 'immutable_parent'); END;
+CREATE TRIGGER revision_parents_no_delete BEFORE DELETE ON revision_parents BEGIN SELECT RAISE(ABORT, 'immutable_parent'); END;
+
+CREATE TABLE event_dependencies (
+  child_origin TEXT NOT NULL,
+  child_seq INTEGER NOT NULL,
+  dependency_origin TEXT NOT NULL,
+  dependency_seq INTEGER NOT NULL,
+  PRIMARY KEY (child_origin, child_seq, dependency_origin, dependency_seq),
+  FOREIGN KEY (child_origin, child_seq) REFERENCES change_log(origin_device_id, origin_seq),
+  FOREIGN KEY (dependency_origin, dependency_seq) REFERENCES change_log(origin_device_id, origin_seq)
+) STRICT;
+CREATE INDEX event_dependencies_target ON event_dependencies(dependency_origin, dependency_seq);
+CREATE TRIGGER event_dependencies_no_update BEFORE UPDATE ON event_dependencies BEGIN SELECT RAISE(ABORT, 'immutable_dependency'); END;
+CREATE TRIGGER event_dependencies_no_delete BEFORE DELETE ON event_dependencies BEGIN SELECT RAISE(ABORT, 'immutable_dependency'); END;
+
+CREATE TABLE entity_heads (
+  entity_kind TEXT NOT NULL CHECK (entity_kind IN ('store', 'receipt')),
+  entity_id TEXT NOT NULL,
+  origin_device_id TEXT NOT NULL,
+  origin_seq INTEGER NOT NULL,
+  PRIMARY KEY (entity_kind, entity_id, origin_device_id, origin_seq),
+  FOREIGN KEY (origin_device_id, origin_seq, entity_kind, entity_id)
+    REFERENCES change_log(origin_device_id, origin_seq, entity_kind, entity_id)
+) STRICT;
+CREATE INDEX entity_heads_revision ON entity_heads(origin_device_id, origin_seq);
+
+CREATE TABLE stores (
+  id TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36 AND id GLOB '????????-????-4???-[89ab]???-????????????' AND length("replace"(id, '-', '')) = 32 AND "replace"(id, '-', '') NOT GLOB '*[^0-9a-f]*'),
+  display_name TEXT NOT NULL CHECK (length(trim(display_name)) > 0 AND display_name = trim(display_name)),
+  chain TEXT CHECK (chain IS NULL OR (length(trim(chain)) > 0 AND chain = trim(chain))),
+  address TEXT CHECK (address IS NULL OR (length(trim(address)) > 0 AND address = trim(address))),
+  printed_identifier TEXT CHECK (printed_identifier IS NULL OR (length(trim(printed_identifier)) > 0 AND printed_identifier = trim(printed_identifier))),
+  current_revision_origin TEXT NOT NULL,
+  current_revision_seq INTEGER NOT NULL,
+  created_at_ms INTEGER NOT NULL CHECK (created_at_ms >= 0),
+  updated_at_ms INTEGER NOT NULL CHECK (updated_at_ms >= 0),
+  FOREIGN KEY (current_revision_origin, current_revision_seq) REFERENCES change_log(origin_device_id, origin_seq)
+) STRICT;
+CREATE INDEX stores_revision ON stores(current_revision_origin, current_revision_seq);
+
+CREATE TABLE receipts (
+  id TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36 AND id GLOB '????????-????-4???-[89ab]???-????????????' AND length("replace"(id, '-', '')) = 32 AND "replace"(id, '-', '') NOT GLOB '*[^0-9a-f]*'),
+  store_id TEXT NOT NULL REFERENCES stores(id),
+  printed_year INTEGER NOT NULL CHECK (printed_year BETWEEN 1970 AND 2099),
+  printed_month INTEGER NOT NULL CHECK (printed_month BETWEEN 1 AND 12),
+  printed_day INTEGER NOT NULL CHECK (printed_day BETWEEN 1 AND 31),
+  printed_hour INTEGER CHECK (printed_hour IS NULL OR printed_hour BETWEEN 0 AND 23),
+  printed_minute INTEGER CHECK (printed_minute IS NULL OR printed_minute BETWEEN 0 AND 59),
+  printed_second INTEGER CHECK (printed_second IS NULL OR printed_second BETWEEN 0 AND 59),
+  date_precision TEXT NOT NULL CHECK (date_precision IN ('day', 'minute', 'second')),
+  timezone_id TEXT NOT NULL CHECK (timezone_id = 'Europe/Helsinki'),
+  utc_instant_ms INTEGER,
+  currency TEXT NOT NULL CHECK (currency = 'EUR'),
+  total_amount_cents INTEGER NOT NULL,
+  reviewed_at_ms INTEGER NOT NULL CHECK (reviewed_at_ms >= 0),
+  current_revision_origin TEXT NOT NULL,
+  current_revision_seq INTEGER NOT NULL,
+  created_at_ms INTEGER NOT NULL CHECK (created_at_ms >= 0),
+  updated_at_ms INTEGER NOT NULL CHECK (updated_at_ms >= 0),
+  UNIQUE (id, store_id),
+  FOREIGN KEY (current_revision_origin, current_revision_seq) REFERENCES change_log(origin_device_id, origin_seq),
+  CHECK ((date_precision = 'day' AND printed_hour IS NULL AND printed_minute IS NULL AND printed_second IS NULL AND utc_instant_ms IS NULL)
+      OR (date_precision = 'minute' AND printed_hour IS NOT NULL AND printed_minute IS NOT NULL AND printed_second IS NULL AND utc_instant_ms IS NOT NULL)
+      OR (date_precision = 'second' AND printed_hour IS NOT NULL AND printed_minute IS NOT NULL AND printed_second IS NOT NULL AND utc_instant_ms IS NOT NULL))
+) STRICT;
+CREATE INDEX receipts_branch_date ON receipts(store_id, printed_year, printed_month, printed_day, id);
+CREATE INDEX receipts_revision ON receipts(current_revision_origin, current_revision_seq);
+
+-- Historical ownership survives removal from the current item collection.
+CREATE TABLE row_identities (
+  row_id TEXT NOT NULL PRIMARY KEY CHECK (length(row_id) = 36 AND row_id GLOB '????????-????-4???-[89ab]???-????????????' AND length("replace"(row_id, '-', '')) = 32 AND "replace"(row_id, '-', '') NOT GLOB '*[^0-9a-f]*'),
+  receipt_id TEXT NOT NULL REFERENCES receipts(id),
+  first_origin TEXT NOT NULL,
+  first_seq INTEGER NOT NULL,
+  UNIQUE (receipt_id, row_id),
+  FOREIGN KEY (first_origin, first_seq) REFERENCES change_log(origin_device_id, origin_seq)
+) STRICT;
+CREATE INDEX row_identities_revision ON row_identities(first_origin, first_seq);
+CREATE TRIGGER row_identities_no_update BEFORE UPDATE ON row_identities BEGIN SELECT RAISE(ABORT, 'immutable_row_identity'); END;
+CREATE TRIGGER row_identities_no_delete BEFORE DELETE ON row_identities BEGIN SELECT RAISE(ABORT, 'immutable_row_identity'); END;
+
+CREATE TABLE receipt_items (
+  id TEXT NOT NULL PRIMARY KEY,
+  receipt_id TEXT NOT NULL,
+  store_id TEXT NOT NULL,
+  position INTEGER NOT NULL CHECK (position >= 0),
+  kind TEXT NOT NULL CHECK (kind IN ('product', 'discount', 'deposit', 'adjustment')),
+  parent_item_id TEXT,
+  discount_scope TEXT CHECK (discount_scope IS NULL OR discount_scope IN ('item', 'receipt')),
+  product_id TEXT CHECK (product_id IS NULL),
+  raw_name TEXT CHECK (raw_name IS NULL OR (length(trim(raw_name)) > 0 AND raw_name = trim(raw_name))),
+  name TEXT NOT NULL CHECK (length(trim(name)) > 0 AND name = trim(name)),
+  normalized_name TEXT NOT NULL CHECK (length(normalized_name) > 0),
+  normalizer_version INTEGER NOT NULL CHECK (normalizer_version = 1),
+  quantity_value INTEGER,
+  quantity_scale INTEGER CHECK (quantity_scale IS NULL OR quantity_scale BETWEEN 0 AND 6),
+  quantity_unit TEXT CHECK (quantity_unit IS NULL OR quantity_unit IN ('piece', 'kg', 'litre')),
+  rate_micros INTEGER CHECK (rate_micros IS NULL OR rate_micros >= 0),
+  line_total_cents INTEGER NOT NULL,
+  adjustment_reason TEXT CHECK (adjustment_reason IS NULL OR (length(trim(adjustment_reason)) > 0 AND adjustment_reason = trim(adjustment_reason))),
+  UNIQUE (receipt_id, position),
+  UNIQUE (receipt_id, id),
+  FOREIGN KEY (receipt_id, store_id) REFERENCES receipts(id, store_id),
+  FOREIGN KEY (receipt_id, id) REFERENCES row_identities(receipt_id, row_id),
+  FOREIGN KEY (receipt_id, parent_item_id) REFERENCES receipt_items(receipt_id, id) DEFERRABLE INITIALLY DEFERRED,
+  CHECK (parent_item_id IS NULL OR (parent_item_id <> id AND kind IN ('discount', 'deposit'))),
+  CHECK ((kind = 'discount' AND line_total_cents < 0 AND discount_scope IS NOT NULL
+      AND ((discount_scope = 'item' AND parent_item_id IS NOT NULL) OR (discount_scope = 'receipt' AND parent_item_id IS NULL)))
+    OR (kind <> 'discount' AND discount_scope IS NULL)),
+  CHECK ((kind = 'adjustment' AND adjustment_reason IS NOT NULL) OR (kind <> 'adjustment' AND adjustment_reason IS NULL)),
+  CHECK ((quantity_value IS NULL AND quantity_scale IS NULL AND quantity_unit IS NULL AND rate_micros IS NULL)
+    OR (quantity_value IS NOT NULL AND quantity_value <> 0 AND quantity_scale IS NOT NULL AND quantity_unit IS NOT NULL AND rate_micros IS NOT NULL))
+) STRICT;
+CREATE INDEX receipt_items_parent ON receipt_items(receipt_id, parent_item_id);
+
+CREATE TABLE receipt_reviews (
+  receipt_id TEXT NOT NULL PRIMARY KEY REFERENCES receipts(id),
+  payload_version INTEGER NOT NULL CHECK (payload_version = 1),
+  policy_version INTEGER NOT NULL CHECK (policy_version = 1),
+  source TEXT NOT NULL CHECK (source = 'manual'),
+  app_version TEXT NOT NULL CHECK (length(trim(app_version)) > 0 AND app_version = trim(app_version)),
+  timezone_rules_version TEXT NOT NULL,
+  row_count INTEGER NOT NULL CHECK (row_count > 0),
+  approved_sha256 TEXT NOT NULL CHECK (length(approved_sha256) = 64 AND approved_sha256 NOT GLOB '*[^0-9a-f]*'),
+  canonical_document TEXT NOT NULL CHECK (json_valid(canonical_document))
+) STRICT;
+
+CREATE TABLE received_cursors (
+  origin_device_id TEXT NOT NULL PRIMARY KEY,
+  committed_seq INTEGER NOT NULL CHECK (committed_seq >= 0 AND committed_seq < 9223372036854775807)
+) STRICT;
+
+CREATE TABLE local_mutations (
+  mutation_id TEXT NOT NULL PRIMARY KEY,
+  command_sha256 TEXT NOT NULL CHECK (length(command_sha256) = 64 AND command_sha256 NOT GLOB '*[^0-9a-f]*'),
+  receipt_id TEXT NOT NULL REFERENCES receipts(id),
+  result_origin TEXT NOT NULL,
+  result_seq INTEGER NOT NULL,
+  FOREIGN KEY (result_origin, result_seq) REFERENCES change_log(origin_device_id, origin_seq)
+) STRICT;
+CREATE INDEX local_mutations_revision ON local_mutations(result_origin, result_seq);
+CREATE INDEX local_mutations_receipt ON local_mutations(receipt_id);
+CREATE TRIGGER local_mutations_no_update BEFORE UPDATE ON local_mutations BEGIN SELECT RAISE(ABORT, 'immutable_mutation'); END;
+CREATE TRIGGER local_mutations_no_delete BEFORE DELETE ON local_mutations BEGIN SELECT RAISE(ABORT, 'immutable_mutation'); END;
