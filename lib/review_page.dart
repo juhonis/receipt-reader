@@ -8,6 +8,7 @@ import 'receipt_import.dart';
 import 'receipt_ocr.dart';
 import 'receipt_evidence_painter.dart';
 import 'relationship_dialog.dart';
+import 'row_evidence_dialog.dart';
 
 class ReviewPage extends StatefulWidget {
   const ReviewPage({super.key, this.draft, this.evidence, this.recognizer});
@@ -53,6 +54,7 @@ class _ReviewPageState extends State<ReviewPage> {
   final _resolvedFindings = <int>{};
   final _findingNotes = <int, String>{};
   final _relationships = <int, RelationshipDecision>{};
+  final _rowDecisions = <int, RowEvidenceDecision>{};
   List<ParseFinding> _findings = [];
 
   bool _isRelationship(ParseFinding finding) =>
@@ -70,7 +72,64 @@ class _ReviewPageState extends State<ReviewPage> {
     ...row.evidence,
     for (final entry in _relationships.entries)
       if (identical(entry.value.target, row)) ..._findings[entry.key].words,
+    for (final entry in _rowDecisions.entries)
+      if (identical(entry.value.target, row)) ..._findings[entry.key].words,
   ];
+
+  _RowFields? _rowDecisionTarget(RowEvidenceDecision decision) {
+    for (final row in _rows) {
+      if (identical(row, decision.target)) return row;
+    }
+    return null;
+  }
+
+  Future<void> _reviewUnparsedRow(int index) async {
+    final decision = await showDialog<RowEvidenceDecision>(
+      context: context,
+      builder: (_) => RowEvidenceDialog(
+        finding: _findings[index],
+        image: widget.evidence?.image,
+        targets: [
+          for (var i = 0; i < _rows.length; i++)
+            RelationshipTarget(_rows[i], _rows[i].input, i + 1),
+        ],
+        initial: _rowDecisions[index],
+      ),
+    );
+    if (!mounted || decision == null) return;
+    var target = _rowDecisionTarget(decision);
+    final created = decision.newRow;
+    if (created != null) {
+      target = _RowFields()
+        ..name.text = created.name
+        ..amount.text = created.amount
+        ..kind = created.kind;
+    }
+    if ((decision.kind == RowEvidenceKind.financialRow ||
+            decision.kind == RowEvidenceKind.description) &&
+        target == null) {
+      return;
+    }
+    setState(() {
+      if (created != null) {
+        _rows.add(target!);
+        _resolvedFindings.clear();
+      }
+      _rowDecisions[index] = RowEvidenceDecision(
+        decision.kind,
+        target,
+        decision.note,
+        createdTarget:
+            created != null ||
+            (_rowDecisions[index]?.createdTarget == true &&
+                identical(_rowDecisions[index]?.target, target)),
+      );
+      _findingNotes[index] = decision.note;
+      _resolvedFindings.add(index);
+      _reviewed = false;
+      _edited = true;
+    });
+  }
 
   Future<void> _reviewRelationship(int index) async {
     final finding = _findings[index];
@@ -143,6 +202,10 @@ class _ReviewPageState extends State<ReviewPage> {
 
   Future<void> _reviewFinding(int index, String message) async {
     final finding = _findings[index];
+    if (isUnparsedItemFinding(finding)) {
+      await _reviewUnparsedRow(index);
+      return;
+    }
     if (_isRelationship(finding)) {
       await _reviewRelationship(index);
       return;
@@ -296,7 +359,10 @@ class _ReviewPageState extends State<ReviewPage> {
   });
 
   void _showEvidence(_RowFields row) {
-    final words = _rowEvidence(row);
+    _showEvidenceWords(_rowEvidence(row));
+  }
+
+  void _showEvidenceWords(List<OcrWord> words) {
     final s = AppLocalizations.of(context)!;
     showDialog<void>(
       context: context,
@@ -367,6 +433,10 @@ class _ReviewPageState extends State<ReviewPage> {
       ParseIssue.discountNeedsReview => s.ocrDiscountIssue,
       _ => s.ocrRowIssue,
     };
+    String findingText(ParseFinding finding) =>
+        finding.scope == FindingScope.total
+        ? s.ocrTotalIssue
+        : issueText(finding.issue);
     final wide = MediaQuery.sizeOf(context).width >= 1000;
     Widget preview() => Column(
       children: [
@@ -510,7 +580,7 @@ class _ReviewPageState extends State<ReviewPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  Text(issueText(_findings[f].issue)),
+                                  Text(findingText(_findings[f])),
                                   if (_findings[f].rowIndex != null)
                                     Text(
                                       _findingRow(_findings[f])?.name.text ??
@@ -523,6 +593,19 @@ class _ReviewPageState extends State<ReviewPage> {
                                   ),
                                   if (_findingNotes[f] != null)
                                     Text(_findingNotes[f]!),
+                                  if (_rowDecisions[f]
+                                      case final decision?) ...[
+                                    Text(
+                                      rowEvidenceKindLabel(s, decision.kind),
+                                    ),
+                                    if (decision.target != null)
+                                      Text(
+                                        _rowDecisionTarget(decision)
+                                                ?.name
+                                                .text ??
+                                            s.findingRowRemoved,
+                                      ),
+                                  ],
                                   if (_relationships[f]
                                       case final relation?) ...[
                                     Text(switch (relation.kind) {
@@ -547,7 +630,7 @@ class _ReviewPageState extends State<ReviewPage> {
                                     key: ValueKey('finding-$f'),
                                     onPressed: () => _reviewFinding(
                                       f,
-                                      issueText(_findings[f].issue),
+                                      findingText(_findings[f]),
                                     ),
                                     child: Text(s.reviewFinding),
                                   ),
@@ -556,6 +639,32 @@ class _ReviewPageState extends State<ReviewPage> {
                             ),
                           ),
                         for (final note in draft.notes) Text(note),
+                        if (draft.evidenceCoverage case final coverage?)
+                          ExpansionTile(
+                            key: const Key('evidence-coverage'),
+                            title: Text(s.coverageTitle),
+                            subtitle: Text(
+                              s.coverageSummary(
+                                coverage.sourceWords.length,
+                                coverage.unassignedWords.length,
+                              ),
+                            ),
+                            children: [
+                              Text(s.coverageHint),
+                              if (!coverage.complete) ...[
+                                Text(s.coverageMissing),
+                                for (final word in coverage.unassignedWords)
+                                  Text(word.text),
+                                if (widget.evidence != null)
+                                  TextButton(
+                                    onPressed: () => _showEvidenceWords(
+                                      coverage.unassignedWords,
+                                    ),
+                                    child: Text(s.coverageShowMissing),
+                                  ),
+                              ],
+                            ],
+                          ),
                         for (var n = 0; n < draft.wrappedNames.length; n++)
                           if (!_handledNames.contains(n) &&
                               draft.wrappedNames[n].rowIndex >= 0 &&

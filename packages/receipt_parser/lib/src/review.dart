@@ -15,9 +15,12 @@ bool canResolveFinding(
     case ParseIssue.ambiguousTotal:
     case ParseIssue.totalLabelNeedsReview:
       return parseCents(total) != null;
+    case ParseIssue.invalidAmount:
+      return finding.scope == FindingScope.total && parseCents(total) != null;
     case ParseIssue.quantityMismatch:
       return row != null && row.quantityState == QuantityReviewState.matched;
     case ParseIssue.normalizedOcrAmount:
+      if (finding.scope == FindingScope.total) return parseCents(total) != null;
       return row != null &&
           row.name.trim().isNotEmpty &&
           parseCents(row.amount) != null;

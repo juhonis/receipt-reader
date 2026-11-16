@@ -101,14 +101,14 @@ Handling a finding does not change financial values or erase original evidence.
 
 Data edits reopen all handled findings conservatively, retaining their notes for
 rechecking. Deleted-row findings cannot be reassigned accidentally to the next
-row. Unsupported findings stay open: layout ambiguity/skew,
-unclassified/invalid rows, and normalized total amounts
-without a row association. Older manually constructed drafts without occurrence
+row. Scoped unparsed-row and total corrections are described below. Layout
+ambiguity/skew and legacy findings without adequate scope/evidence remain open.
+Older manually constructed drafts without occurrence
 details retain category-level warnings and cannot invent missing row links.
 
 OCR completion and persistence remain disabled even if every currently supported
 finding has been handled. Orphan/discount relationships are described below;
-remaining issue types and full evidence-coverage validation are still open.
+geometry review and full human evidence-coverage validation are still open.
 
 Verification: 44 parser tests and 18 Flutter tests cover repeated occurrences,
 immutable source evidence, resolution prerequisites, independent handling, and
@@ -176,3 +176,63 @@ price to MILK, then marked ALE as receipt-wide; all three finding cards showed
 handled while MILK remained 2,00 and the receipt total remained 1,50. Restored the
 emulator's original network setting. Fresh-install certification and native
 Windows picker interaction remain pending.
+
+## Unparsed item text and source coverage (2026-11-16)
+
+Findings now identify whether they concern an item, the printed total, or the
+receipt generally. An invalid or whitespace-normalized total can be reviewed
+against the total field without inventing a product link. Old manually built
+findings with no scope cannot be treated as unparsed item rows automatically.
+
+For an unclassified item line or an invalid item amount, the review dialog offers
+explicit choices. Link it to a valid existing financial row, add a missing row,
+attach it as a product-description continuation, or classify it as header/metadata,
+payment/tax information, or explanatory text. A normalized amount with no parsed
+row can use the same flow. No choice is inferred from arithmetic.
+
+Creating a missing row requires a name, an exact signed amount, and a line kind
+(product, deposit, or adjustment). Image comparison and a written explanation
+are required for all choices; non-financial classifications require a separate
+acknowledgment that the text is not a contribution to the purchased-item sum.
+The printed total is never changed to accommodate a new row. Existing-row and
+description links do not alter the row's fields.
+
+Cancel discards dialog changes. A new row is appended only on confirmation;
+rechecking its finding starts from the existing row instead of creating another.
+If the user wants to reinterpret a finding that created a row, they must remove
+that created row first before changing its target or classifying it as non-financial.
+Removing targets reopens findings and never selects replacement targets silently.
+Source words remain attached to the relevant temporary row-evidence view.
+
+Discount-row repair is intentionally excluded from this dialog: a corrected
+discount needs an explicit financial/explanatory interpretation and discount
+relationship. Invalid quantity data must also be corrected before linking a row.
+Geometry issues, split/merged financial lines, and some conversions still need
+their own workflows. OCR completion and persistence remain disabled.
+
+The **Tunnistetun tekstin kattavuus** section counts source words and lists any
+words outside the parser's header, row evidence, findings, totals, and footer.
+The comparison preserves word identities even when strings repeat. It catches
+such omissions as text removed with a band crossing the item-section boundary,
+or text between competing totals. Unassigned words can be inspected against an
+image crop. This inventory is structural coverage, not proof of transcription,
+correct section boundaries, or human review. An empty omissions list does not
+clear findings or enable completion. Incomplete or misclassified layouts still
+need review even if every word appears somewhere in the inventory.
+
+Verification: 53 parser tests and 30 Flutter tests cover item/total scope,
+normalized-total correction, strict repair prerequisites, immutable coverage,
+boundary/competing-total omissions, cancellation, single row creation, guarded
+reclassification, non-financial acknowledgment, deleted targets, and enlarged
+narrow layouts. Both analyzers pass.
+
+Android and Windows debug builds pass. Restarted `Receipt_Reader_API_36_1` after
+the host reboot and ran an offline upgrade-install smoke with a synthetic image:
+STORE NOTE remained unclassified, MISSING ITEM had the deliberately unreadable
+amount `X,XX`, and recognized rows at 2,00 and 3,00 had a printed total of 6,00.
+The new dialog added one confirmed MISSING row at 1,00 with source evidence;
+the item issue became handled and financial validation showed matched totals.
+The separate STORE NOTE finding remained open. The coverage inventory counted
+15 source words and no structural omissions without clearing that finding.
+Original structured OCR output remained unchanged. No private images were used.
+Restored airplane mode and the temporary handwriting-input setting afterward.

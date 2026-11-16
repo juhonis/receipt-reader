@@ -31,6 +31,29 @@ class QuantityRateCandidate {
   final BigInt rateMicros;
 }
 
+enum FindingScope { receipt, item, total }
+
+/// Structural source coverage, not proof that text was read or classified
+/// correctly. Word identities are preserved, including identical OCR strings.
+class ReceiptEvidenceCoverage {
+  ReceiptEvidenceCoverage({
+    required Iterable<OcrWord> sourceWords,
+    required Iterable<OcrWord> header,
+    required Iterable<OcrWord> rows,
+    required Iterable<OcrWord> findings,
+    required Iterable<OcrWord> totals,
+    required Iterable<OcrWord> footer,
+  }) : sourceWords = List.unmodifiable(sourceWords) {
+    final assigned = {...header, ...rows, ...findings, ...totals, ...footer};
+    unassignedWords = List.unmodifiable(
+      this.sourceWords.where((w) => !assigned.contains(w)),
+    );
+  }
+  final List<OcrWord> sourceWords;
+  late final List<OcrWord> unassignedWords;
+  bool get complete => unassignedWords.isEmpty;
+}
+
 /// One occurrence, rather than a deduplicated category. Indices refer to the
 /// immutable draft rows, never the current position in an edited row list.
 class ParseFinding {
@@ -40,12 +63,14 @@ class ParseFinding {
     Iterable<OcrWord> words = const [],
     this.quantityCandidate,
     this.discountKind,
+    this.scope = FindingScope.receipt,
   }) : words = List.unmodifiable(words);
   final ParseIssue issue;
   final int? rowIndex;
   final List<OcrWord> words;
   final QuantityRateCandidate? quantityCandidate;
   final DiscountFindingKind? discountKind;
+  final FindingScope scope;
 }
 
 class ReceiptDraft {
@@ -58,6 +83,7 @@ class ReceiptDraft {
     Iterable<WrappedNameCandidate> wrappedNames, {
     Iterable<Iterable<OcrWord>> rowEvidence = const [],
     Iterable<ParseFinding> findings = const [],
+    this.evidenceCoverage,
   }) : rowEvidence = List.unmodifiable(
          rowEvidence.map((words) => List<OcrWord>.unmodifiable(words)),
        ),
@@ -67,6 +93,7 @@ class ReceiptDraft {
        wrappedNames = List.unmodifiable(wrappedNames),
        findings = List.unmodifiable(findings);
   final List<ParseFinding> findings;
+  final ReceiptEvidenceCoverage? evidenceCoverage;
   final List<FinancialRow> rows;
 
   /// Original words associated with each row, including attached quantity lines
@@ -103,6 +130,7 @@ ReceiptDraft parseReceipt(
   final findings = <ParseFinding>[];
   Iterable<OcrWord> activeWords = const [];
   int? activeRow;
+  var activeScope = FindingScope.receipt;
   void report(
     ParseIssue issue, {
     QuantityRateCandidate? quantityCandidate,
@@ -116,6 +144,7 @@ ReceiptDraft parseReceipt(
         words: activeWords,
         quantityCandidate: quantityCandidate,
         discountKind: discountKind,
+        scope: activeScope,
       ),
     );
   }
@@ -213,6 +242,7 @@ ReceiptDraft parseReceipt(
       .where((b) => footer < 0 || bands.indexOf(b) < footer)
       .toList();
   activeWords = candidates.expand((band) => band);
+  activeScope = FindingScope.total;
   BigInt? total;
   if (candidates.isEmpty) {
     report(ParseIssue.missingTotal);
@@ -242,6 +272,7 @@ ReceiptDraft parseReceipt(
   );
   for (final band in bands.take(end)) {
     activeWords = band;
+    activeScope = FindingScope.item;
     activeRow = null;
     final preceding = pendingDescription;
     pendingDescription = null;
@@ -352,5 +383,15 @@ ReceiptDraft parseReceipt(
     wrappedNames,
     rowEvidence: rowEvidence,
     findings: findings,
+    evidenceCoverage: ReceiptEvidenceCoverage(
+      sourceWords: page.words,
+      header: page.words.where((word) => word.box.bottom <= itemTop),
+      rows: rowEvidence.expand((words) => words),
+      findings: findings.expand((finding) => finding.words),
+      totals: candidates.expand((words) => words),
+      footer: footer < 0
+          ? const []
+          : bands.skip(footer).expand((words) => words),
+    ),
   );
 }

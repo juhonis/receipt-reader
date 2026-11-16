@@ -184,3 +184,11 @@ can produce one; mismatched units or excessive precision do not create a candida
 All recognized financial discount rows require an explicit relationship review,
 including negative discounts. Explanatory price text remains excluded from sums.
 Engine packaging and clean-machine tests remain separate release requirements.
+
+Findings now carry `FindingScope` (receipt, item, or total). The temporary review
+supports scoped unparsed-item classification and invalid/normalized-total
+correction; see [review behavior](android-ocr-review.md). A structural
+`ReceiptEvidenceCoverage` inventory also retains original source words and any
+words outside header/row/finding/total/footer evidence. This detects omissions,
+including bands crossing the item boundary and text between competing totals;
+it does not claim correct classification or completed human review.
