@@ -309,3 +309,19 @@ build-dir when normal Windows Debug sessions hold the executable open, and resto
 the prior build-dir and emulator airplane setting afterward. Rebuild the normal
 Windows release/Android debug entry points and upgrade-install the APK without
 uninstalling or clearing app data.
+
+## Native migration and recovery rehearsal
+
+[The upgrade rehearsal](migration-recovery.md) exercises populated schemas 1–4,
+transaction rollback/retry, exact retained history, catalog links, both analytics
+screens and repeated encrypted recovery. Run:
+
+    flutter test integration_test/migration_recovery_test.dart -d windows
+    flutter test integration_test/migration_recovery_test.dart -d emulator-5554
+
+The test uses generated historical schemas and guarded synthetic app-support
+directories. Keep normal Windows sessions running by choosing a temporary
+build-dir for its Debug executable; restore the previous configuration afterward.
+Run Android in airplane mode and restore its prior setting, then rebuild and
+upgrade-install the normal Android app without uninstalling or clearing data.
+The package version runs in packages/receipt_storage/test/upgrade_recovery_test.dart.

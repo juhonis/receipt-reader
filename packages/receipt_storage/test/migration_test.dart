@@ -1,8 +1,6 @@
 import 'dart:io';
 
-import 'package:drift/drift.dart'
-    show GeneratedDatabase, Migrator, driftRuntimeOptions;
-import 'package:drift/native.dart';
+import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift_dev/api/migrations_native.dart';
 import 'package:receipt_storage/receipt_storage.dart';
 import 'package:receipt_domain/receipt_domain.dart';
@@ -14,21 +12,9 @@ import 'package:sqlite3/sqlite3.dart' as sqlite;
 import 'package:test/test.dart';
 
 import 'generated/schema.dart';
-import 'generated/schema_v1.dart' as v1;
-import 'generated/schema_v2.dart' as v2;
-import 'generated/schema_v3.dart' as v3;
-import 'generated/schema_v4.dart' as v4;
 import 'support.dart';
 import 'catalog_support.dart';
-
-class FailingUpgrade extends ReceiptDatabase {
-  FailingUpgrade(super.executor);
-  @override
-  Future<void> upgradeProductLinks(Migrator m) async {
-    await super.upgradeProductLinks(m);
-    throw StateError('synthetic migration failure');
-  }
-}
+import 'support/released_database.dart';
 
 void main() {
   setUpAll(() => driftRuntimeOptions.dontWarnAboutMultipleDatabases = true);
@@ -43,38 +29,7 @@ void main() {
     expect(directory.path.contains('receipt-migration-'), isTrue);
     await directory.delete(recursive: true);
   });
-  Map<String, Object?> capture(sqlite.Database db) => {
-    for (final table in [
-      'dataset_state',
-      'change_log',
-      'revision_parents',
-      'event_dependencies',
-      'entity_heads',
-      'stores',
-      'receipts',
-      'row_identities',
-      'receipt_items',
-      'receipt_reviews',
-      'received_cursors',
-      'local_mutations',
-      'products',
-      'product_aliases',
-      'catalog_mutations',
-    ])
-      if (db.select(
-        "SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = ?",
-        [table],
-      ).isNotEmpty)
-        table: db
-            .select('SELECT * FROM $table ORDER BY rowid')
-            .map(
-              (r) => <String, Object?>{
-                if (table == 'receipts') 'is_deleted': 0,
-                ...r,
-              },
-            )
-            .toList(),
-  };
+  Map<String, Object?> capture(sqlite.Database db) => captureReleasedTables(db);
   Future<void> seedReleased(int version) async {
     final seed = File('${directory.path}/seed.sqlite');
     final repository = await ReceiptRepository.open(seed);
@@ -129,43 +84,7 @@ void main() {
       );
     }
     await repository.close();
-    final rawSeed = sqlite.sqlite3.open(seed.path);
-    final data = capture(rawSeed);
-    rawSeed.close();
-    final GeneratedDatabase old = version == 1
-        ? v1.DatabaseAtV1(NativeDatabase(file, setup: configureSqlite))
-        : version == 2
-        ? v2.DatabaseAtV2(NativeDatabase(file, setup: configureSqlite))
-        : version == 3
-        ? v3.DatabaseAtV3(NativeDatabase(file, setup: configureSqlite))
-        : v4.DatabaseAtV4(NativeDatabase(file, setup: configureSqlite));
-    await old.customSelect('SELECT 1').get();
-    await old.close();
-    final raw = sqlite.sqlite3.open(file.path);
-    try {
-      raw.execute('BEGIN');
-      for (final entry in data.entries) {
-        if (version < 4 &&
-            {
-              'products',
-              'product_aliases',
-              'catalog_mutations',
-            }.contains(entry.key))
-          continue;
-        for (final original in entry.value! as List<Map<String, Object?>>) {
-          final row = Map<String, Object?>.from(original);
-          if (version < 3) row.remove('is_deleted');
-          raw.execute(
-            'INSERT INTO ${entry.key} (${row.keys.join(', ')}) VALUES (${List.filled(row.length, '?').join(', ')})',
-            row.values.toList(),
-          );
-        }
-      }
-      raw.execute('COMMIT');
-      expect(raw.select('PRAGMA foreign_key_check'), isEmpty);
-    } finally {
-      raw.close();
-    }
+    await copyToReleasedSchema(seed, file, version);
   }
 
   for (final version in [1, 2, 3, 4]) {
@@ -265,14 +184,16 @@ void main() {
             .map((r) => r['sql'])
             .toList();
         raw.close();
-        final broken = FailingUpgrade(
-          NativeDatabase(file, setup: configureSqlite),
-        );
         await expectLater(
-          broken.customSelect('SELECT 1').get(),
-          throwsA(anything),
+          failReleasedUpgrade(file),
+          throwsA(
+            isA<StateError>().having(
+              (e) => e.message,
+              'message',
+              'synthetic migration failure',
+            ),
+          ),
         );
-        await broken.close();
         final rolledBack = sqlite.sqlite3.open(file.path);
         expect(rolledBack.userVersion, version);
         expect(capture(rolledBack), before);

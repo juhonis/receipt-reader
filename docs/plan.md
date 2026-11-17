@@ -267,7 +267,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Add receipt-level spending summaries by branch and calendar month, using complete current receipt totals, exact signed cents, inclusive branch/date filters and explicit coverage notices. See [spending summaries](spending-summary.md).
 - [x] Implement the versioned structured backup/isolated recovery core on both platforms, including strict validation, preserved event/tombstone/row identities, fresh device identity and repeated restore/write tests. See [backup recovery](backup-recovery.md).
 - [x] Add password-protected backup files, native export/import UI, validated preview, explicit replacement confirmation, transactional activation/crash recovery and retained previous datasets on both platforms. See [password backups](password-backups.md).
-- [ ] Test migrations and data integrity before using real financial history as the only copy.
+- [x] Rehearse supported-schema (1–4) migration, rollback, retained history, catalog links and exact analytics through encrypted recovery/reopen on both native platforms using synthetic data. See [migration/recovery integrity](migration-recovery.md). Keep independent backups; this does not establish sole-copy safety.
 
 ### Phase 4: Adaptive UI & Standalone Feature Parity
 - [ ] Refine Windows navigation, wide tables, keyboard shortcuts, split-screen editing, and charts alongside compact Android layouts.
@@ -346,10 +346,18 @@ notices, negative receipt counts and adjustment/unlinked receipt counts stay vis
 These totals are separate from comparable product prices and update after encrypted
 recovery without changing stored financial data.
 
-Next, rehearse migration and recovery integrity across supported database versions
-on both native platforms before treating the app as the only copy of financial
-history. Check original event bytes, corrections/tombstones, catalog links and both
-spending/price summaries after upgrade, encrypted restore and reopen.
+[Migration/recovery integrity](migration-recovery.md) now has a shared synthetic
+rehearsal for source schemas 1–4 on native Windows and Android. It checks migration
+rollback/retry, unchanged existing values/event bytes, corrections and tombstones,
+retired row identities, catalog revisions/aliases and exact spending/price summaries.
+Repeated encrypted recovery, fresh-origin writes, reopen and retained previous
+slots preserve history. Future schemas and corrupt projections are refused without
+resetting data. These checks do not replace independent encrypted backups.
+
+Next, close the standalone Windows OCR gap, beginning with an explicit engine and
+packaging decision based on the existing spike results and clean-install testing
+constraints. Then integrate the chosen adapter with the normal review flow and
+verify offline behavior and original-file protection on both platforms.
 
 Windows OCR packaging and final engine selection remain open. Keep representative
 S-kaupat images and OCR exports in ignored `localreceipts/`; committed fixtures

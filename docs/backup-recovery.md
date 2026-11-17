@@ -124,3 +124,11 @@ prior airplane setting and normal application builds after native tests; see
 validated preview, explicit replacement confirmation, transactional slot selection
 and previous-dataset recovery. The current suites contain 115 app tests and 120
 storage tests; the counts above describe the earlier core milestone.
+
+## Supported-schema native rehearsal
+
+[Migration and encrypted recovery checks](migration-recovery.md) now exercise
+schemas 1–4 through native upgrade, further reviewed writes, encrypted activation,
+fresh-origin writes, reopen and previous-dataset recovery. They verify original
+event bytes, projection values, row ownership and both spending/price summaries.
+The earlier counts above describe the original recovery milestones.

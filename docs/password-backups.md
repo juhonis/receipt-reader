@@ -163,3 +163,8 @@ prior setting afterwards. Rebuild normal app entry points after integration test
 see [Windows setup](windows-development.md). This work does not establish physical
 power-loss durability, cloud-provider reliability, manufacturer transfer behavior
 or production Windows OCR availability.
+
+The [migration/recovery rehearsal](migration-recovery.md) additionally checks
+encrypted recovery after upgrading each supported historical schema, including
+exact restored table values, catalog links, fresh-origin writes, both analytics
+screens and repeated previous-dataset recovery on both native platforms.
