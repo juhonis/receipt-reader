@@ -1,6 +1,7 @@
 import 'dart:io';
 
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart'
+    show GeneratedDatabase, Migrator, driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:drift_dev/api/migrations_native.dart';
 import 'package:receipt_storage/receipt_storage.dart';
@@ -15,13 +16,15 @@ import 'package:test/test.dart';
 import 'generated/schema.dart';
 import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v2.dart' as v2;
+import 'generated/schema_v3.dart' as v3;
 import 'support.dart';
+import 'catalog_support.dart';
 
 class FailingUpgrade extends ReceiptDatabase {
   FailingUpgrade(super.executor);
   @override
-  Future<void> upgradeTombstones(Migrator m) async {
-    await super.upgradeTombstones(m);
+  Future<void> upgradeCatalog(Migrator m) async {
+    await super.upgradeCatalog(m);
     throw StateError('synthetic migration failure');
   }
 }
@@ -56,14 +59,19 @@ void main() {
     ])
       table: db
           .select('SELECT * FROM $table ORDER BY rowid')
-          .map((r) => (Map<String, Object?>.from(r)..remove('is_deleted')))
+          .map(
+            (r) => <String, Object?>{
+              if (table == 'receipts') 'is_deleted': 0,
+              ...r,
+            },
+          )
           .toList(),
   };
   Future<void> seedReleased(int version) async {
     final seed = File('${directory.path}/seed.sqlite');
     final repository = await ReceiptRepository.open(seed);
     await repository.saveManual(command(snapshot()));
-    if (version == 2) {
+    if (version >= 2) {
       final f = OcrFixture(), branch = (await repository.branches()).single;
       final ids = ReviewRowIds()..retain(f.rows.single.id, id(21));
       final audit = f.audit();
@@ -91,20 +99,34 @@ void main() {
         ),
       );
     }
+    if (version == 3) {
+      final receipt = (await repository.read(id(1)))!;
+      final deletion = ReceiptDeletionChecks(
+        document: receipt.document,
+        expectedHead: receipt.revision,
+        mutationId: id(30),
+        receiptReviewed: true,
+      ).confirm(deletedAtMs: BigInt.from(789), appVersion: 'migration-test');
+      await repository.deleteReceipt(deletion);
+    }
     await repository.close();
     final rawSeed = sqlite.sqlite3.open(seed.path);
     final data = capture(rawSeed);
     rawSeed.close();
     final GeneratedDatabase old = version == 1
         ? v1.DatabaseAtV1(NativeDatabase(file, setup: configureSqlite))
-        : v2.DatabaseAtV2(NativeDatabase(file, setup: configureSqlite));
+        : version == 2
+        ? v2.DatabaseAtV2(NativeDatabase(file, setup: configureSqlite))
+        : v3.DatabaseAtV3(NativeDatabase(file, setup: configureSqlite));
     await old.customSelect('SELECT 1').get();
     await old.close();
     final raw = sqlite.sqlite3.open(file.path);
     try {
       raw.execute('BEGIN');
       for (final entry in data.entries) {
-        for (final row in entry.value! as List<Map<String, Object?>>) {
+        for (final original in entry.value! as List<Map<String, Object?>>) {
+          final row = Map<String, Object?>.from(original);
+          if (version < 3) row.remove('is_deleted');
           raw.execute(
             'INSERT INTO ${entry.key} (${row.keys.join(', ')}) VALUES (${List.filled(row.length, '?').join(', ')})',
             row.values.toList(),
@@ -118,7 +140,7 @@ void main() {
     }
   }
 
-  for (final version in [1, 2]) {
+  for (final version in [1, 2, 3]) {
     test(
       'populated released v$version migrates without changing any persisted values or retry identity',
       () async {
@@ -132,10 +154,10 @@ void main() {
           GeneratedHelper(),
           setup: configureSqlite,
         );
-        await verifier.migrateAndValidate(db, 3);
+        await verifier.migrateAndValidate(db, 4);
         final repository = await ReceiptRepository.connect(db);
         final migrated = sqlite.sqlite3.open(file.path);
-        expect(migrated.userVersion, 3);
+        expect(migrated.userVersion, 4);
         expect(capture(migrated), before);
         expect(migrated.select('PRAGMA foreign_key_check'), isEmpty);
         expect(
@@ -157,6 +179,41 @@ void main() {
             throwsA(isA<sqlite.SqliteException>()),
           );
         }
+        migrated.execute('PRAGMA foreign_keys = ON');
+        final branch = (await repository.branches()).firstWhere(
+          (b) => b.id == id(2),
+        );
+        final product = await repository.saveProduct(
+          productDocument(branch),
+          mutationId: id(40),
+        );
+        await repository.saveAlias(
+          aliasDocument(branch, product.revision),
+          mutationId: id(41),
+        );
+        expect(
+          () => migrated.execute('UPDATE product_aliases SET store_id = ?', [
+            id(99).value,
+          ]),
+          throwsA(isA<sqlite.SqliteException>()),
+        );
+        expect(
+          () => migrated.execute('DELETE FROM catalog_mutations'),
+          throwsA(isA<sqlite.SqliteException>()),
+        );
+        expect(
+          () => migrated.execute('DELETE FROM change_log'),
+          throwsA(isA<sqlite.SqliteException>()),
+        );
+        expect(
+          () => migrated.execute(
+            'INSERT INTO product_aliases SELECT ?, store_id, normalized_name, normalizer_version, product_id, is_active, current_revision_origin, current_revision_seq, created_at_ms, updated_at_ms FROM product_aliases',
+            [id(90).value],
+          ),
+          throwsA(isA<sqlite.SqliteException>()),
+        );
+        if (version == 3)
+          expect(await repository.readDeleted(id(1)), isNotNull);
         migrated.close();
         await repository.close();
         final reopened = await ReceiptRepository.open(file);

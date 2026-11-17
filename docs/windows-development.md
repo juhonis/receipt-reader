@@ -270,3 +270,20 @@ the normal debug APK after testing. Do not uninstall or clear app data. The norm
 app now creates workspace.sqlite beside the original receipts.sqlite, with an
 exclusive workspace.lock and retained receipt-restore-* directories after restores.
 WSL Git does not move or back up these private application-support files.
+
+## Product and alias storage verification
+
+[The catalog foundation](product-catalog.md) uses the existing Dart/SQLite toolchain;
+no additional SDK, service or native dependency is required. Schema 4 migrates
+released schemas 1/2/3. Run the synthetic native workflow with:
+
+```powershell
+flutter test integration_test/product_catalog_test.dart -d windows
+flutter test integration_test/product_catalog_test.dart -d emulator-5554
+```
+
+This checks catalog writes, exact suggestions, encrypted activation, fresh-origin
+edits, reopen and previous-data recovery in guarded temporary app-support storage.
+It does not add or test product review UI yet. Run Android in airplane mode and
+restore its prior setting. Serialize Flutter commands and restore normal app builds
+using the receipt-deletion commands above; never uninstall or clear normal data.

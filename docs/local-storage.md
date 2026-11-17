@@ -24,9 +24,10 @@ close/reopen preserves them. `identity`, `branches`, `read`, `readDeleted`,
 `history`, `saveManual`, `saveOcr`, `deleteReceipt`, and `verifyIntegrity` expose
 the current supported receipt operations. The [backup/recovery core](backup-recovery.md)
 adds `exportBackup` and static `restoreBackup` for isolated staging. No receiving,
-pairing, catalog mutation, or conflict-resolution API exists.
+pairing or conflict-resolution API exists. [Product/alias storage](product-catalog.md)
+adds a separate reviewed catalog mutation and exact-suggestion API.
 The [encrypted backup workspace](password-backups.md) adds reviewed dataset selection. Product links are explicitly
-rejected until catalog workflows and constraints exist. The UI creates,
+rejected until the catalog review UI and receipt-link constraints exist. The UI creates,
 corrects and explicitly deletes reviewed receipts. The repository supports
 reviewed revisions with the same source; provenance is never inferred from UI flags.
 
@@ -62,11 +63,11 @@ Pinned dependencies are Drift 2.35.4 and sqlite3 3.9.1, with Drift's generator
 download is needed when the installed app opens SQLite. Builds may download
 their dependencies/assets on the development PC.
 
-Schema v3 uses strict SQLite tables, foreign keys on every connection, WAL,
+Schema v4 uses strict SQLite tables, foreign keys on every connection, WAL,
 `synchronous = FULL`, and a bounded busy timeout. It stores the dataset identity,
 local change log, causal parents/dependencies, heads, stores, live/deleted receipts,
-items, review documents, historical row identities, committed cursors and
-mutation retry results. Triggers prevent ordinary update/deletion of immutable
+items, review documents, historical row identities, committed cursors,
+store-owned products/aliases and mutation retry results. Triggers prevent ordinary update/deletion of immutable
 events, revision links, row identities and retry records.
 
 SQL checks cover integer storage, enums, UUIDs, date/time precision groups,
@@ -80,8 +81,8 @@ The committed Drift schema snapshot and generated migration helpers verify the
 creation baseline. Creation explicitly wraps DDL and schema-version assignment
 in one transaction; a failed creation leaves neither partial tables nor a newer
 version marker. Future/unsupported schemas fail without resetting data. Tested
-v1/v2-to-v3 migrations preserve existing values and event bytes, including after
-injected failures. Version 3 adds receipt-only tombstones and minimal deleted
+v1/v2/v3-to-v4 migrations preserve existing values and event bytes, including after
+injected failures. Version 4 adds [catalog storage](product-catalog.md); version 3 added receipt-only tombstones and minimal deleted
 shells. See [receipt deletion](receipt-deletion.md) for transaction, retry,
 retention and migration details.
 

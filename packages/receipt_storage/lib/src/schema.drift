@@ -10,7 +10,7 @@ CREATE TABLE change_log (
   origin_device_id TEXT NOT NULL CHECK (length(origin_device_id) = 36 AND origin_device_id GLOB '????????-????-4???-[89ab]???-????????????' AND length("replace"(origin_device_id, '-', '')) = 32 AND "replace"(origin_device_id, '-', '') NOT GLOB '*[^0-9a-f]*'),
   origin_seq INTEGER NOT NULL CHECK (origin_seq > 0 AND origin_seq < 9223372036854775807),
   dataset_id TEXT NOT NULL REFERENCES dataset_state(dataset_id),
-  entity_kind TEXT NOT NULL CHECK (entity_kind IN ('store', 'receipt')),
+  entity_kind TEXT NOT NULL CHECK (entity_kind IN ('store', 'receipt', 'product', 'alias')),
   entity_id TEXT NOT NULL CHECK (length(entity_id) = 36 AND entity_id GLOB '????????-????-4???-[89ab]???-????????????' AND length("replace"(entity_id, '-', '')) = 32 AND "replace"(entity_id, '-', '') NOT GLOB '*[^0-9a-f]*'),
   payload_version INTEGER NOT NULL CHECK (payload_version = 1),
   operation TEXT NOT NULL CHECK (operation IN ('snapshot', 'tombstone') AND (operation <> 'tombstone' OR entity_kind = 'receipt')),
@@ -57,7 +57,7 @@ CREATE TRIGGER event_dependencies_no_update BEFORE UPDATE ON event_dependencies 
 CREATE TRIGGER event_dependencies_no_delete BEFORE DELETE ON event_dependencies BEGIN SELECT RAISE(ABORT, 'immutable_dependency'); END;
 
 CREATE TABLE entity_heads (
-  entity_kind TEXT NOT NULL CHECK (entity_kind IN ('store', 'receipt')),
+  entity_kind TEXT NOT NULL CHECK (entity_kind IN ('store', 'receipt', 'product', 'alias')),
   entity_id TEXT NOT NULL,
   origin_device_id TEXT NOT NULL,
   origin_seq INTEGER NOT NULL,
@@ -189,3 +189,55 @@ CREATE INDEX local_mutations_revision ON local_mutations(result_origin, result_s
 CREATE INDEX local_mutations_receipt ON local_mutations(receipt_id);
 CREATE TRIGGER local_mutations_no_update BEFORE UPDATE ON local_mutations BEGIN SELECT RAISE(ABORT, 'immutable_mutation'); END;
 CREATE TRIGGER local_mutations_no_delete BEFORE DELETE ON local_mutations BEGIN SELECT RAISE(ABORT, 'immutable_mutation'); END;
+
+-- Store ownership is immutable in the repository and history auditor.
+CREATE TABLE products (
+  id TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36 AND id GLOB '????????-????-4???-[89ab]???-????????????' AND length("replace"(id, '-', '')) = 32 AND "replace"(id, '-', '') NOT GLOB '*[^0-9a-f]*'),
+  store_id TEXT NOT NULL REFERENCES stores(id),
+  canonical_name TEXT NOT NULL CHECK (length(trim(canonical_name)) > 0 AND canonical_name = trim(canonical_name)),
+  package_value INTEGER,
+  package_scale INTEGER,
+  package_unit TEXT,
+  current_revision_origin TEXT NOT NULL,
+  current_revision_seq INTEGER NOT NULL,
+  created_at_ms INTEGER NOT NULL CHECK (created_at_ms >= 0),
+  updated_at_ms INTEGER NOT NULL CHECK (updated_at_ms >= 0),
+  UNIQUE (store_id, id),
+  FOREIGN KEY (current_revision_origin, current_revision_seq) REFERENCES change_log(origin_device_id, origin_seq),
+  CHECK ((package_value IS NULL AND package_scale IS NULL AND package_unit IS NULL)
+    OR (package_value IS NOT NULL AND package_value > 0 AND package_scale IS NOT NULL AND package_scale BETWEEN 0 AND 6 AND package_unit IS NOT NULL AND package_unit IN ('piece', 'kg', 'litre')))
+) STRICT;
+CREATE INDEX products_branch_name ON products(store_id, canonical_name, id);
+CREATE INDEX products_revision ON products(current_revision_origin, current_revision_seq);
+
+CREATE TABLE product_aliases (
+  id TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36 AND id GLOB '????????-????-4???-[89ab]???-????????????' AND length("replace"(id, '-', '')) = 32 AND "replace"(id, '-', '') NOT GLOB '*[^0-9a-f]*'),
+  store_id TEXT NOT NULL,
+  normalized_name TEXT NOT NULL CHECK (length(normalized_name) > 0),
+  normalizer_version INTEGER NOT NULL CHECK (normalizer_version = 1),
+  product_id TEXT NOT NULL,
+  is_active INTEGER NOT NULL CHECK (is_active IN (0, 1)),
+  current_revision_origin TEXT NOT NULL,
+  current_revision_seq INTEGER NOT NULL,
+  created_at_ms INTEGER NOT NULL CHECK (created_at_ms >= 0),
+  updated_at_ms INTEGER NOT NULL CHECK (updated_at_ms >= 0),
+  FOREIGN KEY (store_id, product_id) REFERENCES products(store_id, id),
+  FOREIGN KEY (current_revision_origin, current_revision_seq) REFERENCES change_log(origin_device_id, origin_seq)
+) STRICT;
+CREATE UNIQUE INDEX product_aliases_active_name ON product_aliases(store_id, normalized_name) WHERE is_active = 1;
+CREATE INDEX product_aliases_product ON product_aliases(store_id, product_id);
+CREATE INDEX product_aliases_revision ON product_aliases(current_revision_origin, current_revision_seq);
+
+-- Receipt retries retain their released layout; catalog retries are separate.
+CREATE TABLE catalog_mutations (
+  mutation_id TEXT NOT NULL PRIMARY KEY,
+  command_sha256 TEXT NOT NULL CHECK (length(command_sha256) = 64 AND command_sha256 NOT GLOB '*[^0-9a-f]*'),
+  entity_kind TEXT NOT NULL CHECK (entity_kind IN ('product', 'alias')),
+  entity_id TEXT NOT NULL,
+  result_origin TEXT NOT NULL,
+  result_seq INTEGER NOT NULL,
+  FOREIGN KEY (result_origin, result_seq, entity_kind, entity_id) REFERENCES change_log(origin_device_id, origin_seq, entity_kind, entity_id)
+) STRICT;
+CREATE INDEX catalog_mutations_revision ON catalog_mutations(result_origin, result_seq);
+CREATE TRIGGER catalog_mutations_no_update BEFORE UPDATE ON catalog_mutations BEGIN SELECT RAISE(ABORT, 'immutable_mutation'); END;
+CREATE TRIGGER catalog_mutations_no_delete BEFORE DELETE ON catalog_mutations BEGIN SELECT RAISE(ABORT, 'immutable_mutation'); END;

@@ -39,7 +39,9 @@ const _countKeys = [
 Uint8List _encodeBackup(Map<String, Object?> content) {
   final text = jsonEncode({
     'format': 'receipt_reader_backup',
-    'format_version': '1',
+    'format_version': (content['counts']! as Map).containsKey('products')
+        ? '2'
+        : '1',
     'content_sha256': _sha(jsonEncode(content)),
     'content': content,
   });
@@ -133,8 +135,8 @@ final class _BackupEvent {
       return RevisionId(DurableId.parse(_backupString(origin)), number);
     }
 
-    List<RevisionId> references(Object? value) {
-      _check(value is List && value.length <= 1, 'invalidBackup');
+    List<RevisionId> references(Object? value, int limit) {
+      _check(value is List && value.length <= limit, 'invalidBackup');
       final result = <RevisionId>[];
       for (final ref in value! as List) {
         final map = _backupObject(ref, ['origin', 'sequence']);
@@ -154,12 +156,12 @@ final class _BackupEvent {
       DurableId.parse(_backupString(event['mutation_id'])),
       _backupNumber(event['mutation_index']).toInt(),
       _backupNumber(event['mutation_count']).toInt(),
-      references(event['parents']),
-      references(event['dependencies']),
+      references(event['parents'], 1),
+      references(event['dependencies'], 2),
       jsonEncode(event['payload']),
     );
     _check(
-      ['store', 'receipt'].contains(result.kind) &&
+      ['store', 'receipt', 'product', 'alias'].contains(result.kind) &&
           ['snapshot', 'tombstone'].contains(result.operation) &&
           (result.operation != 'tombstone' || result.kind == 'receipt') &&
           result.count >= 1 &&
@@ -216,7 +218,7 @@ _DecodedBackup _decodeBackup(Uint8List bytes) {
     ]);
     _check(
       root['format'] == 'receipt_reader_backup' &&
-          root['format_version'] == '1',
+          ['1', '2'].contains(root['format_version']),
       'unsupportedBackup',
     );
     _check(jsonEncode(root) == text, 'invalidBackup');
@@ -233,9 +235,13 @@ _DecodedBackup _decodeBackup(Uint8List bytes) {
       'backupChecksum',
     );
     final dataset = DurableId.parse(_backupString(content['dataset_id']));
-    final countsObject = _backupObject(content['counts'], _countKeys);
+    final countKeys = [
+      ..._countKeys,
+      if (root['format_version'] == '2') ...['products', 'aliases'],
+    ];
+    final countsObject = _backupObject(content['counts'], countKeys);
     final counts = {
-      for (final key in _countKeys)
+      for (final key in countKeys)
         key: _backupNumber(countsObject[key]).toInt(),
     };
     _check(
@@ -266,6 +272,11 @@ _DecodedBackup _decodeBackup(Uint8List bytes) {
     final events = [
       for (final entry in raw) _BackupEvent.decode(entry, dataset),
     ];
+    _check(
+      root['format_version'] == '2' ||
+          events.every((e) => e.kind == 'store' || e.kind == 'receipt'),
+      'unsupportedBackup',
+    );
     _check(
       events.map((e) => e.revision.origin).toSet().length <=
           ReceiptBackupLimits.maxOrigins,
@@ -391,6 +402,21 @@ extension _BackupRepository on ReceiptRepository {
       'row_identities': 'SELECT COUNT(*) AS n FROM row_identities',
       'heads': 'SELECT COUNT(*) AS n FROM entity_heads',
     };
+    final catalogCounts = {
+      'products':
+          (await _rows('SELECT COUNT(*) AS n FROM products')).single['n']!
+              as int,
+      'aliases':
+          (await _rows('SELECT COUNT(*) AS n FROM product_aliases'))
+                  .single['n']!
+              as int,
+    };
+    if (catalogCounts.values.any((n) => n > 0)) {
+      countQueries.addAll({
+        'products': 'SELECT COUNT(*) AS n FROM products',
+        'aliases': 'SELECT COUNT(*) AS n FROM product_aliases',
+      });
+    }
     final counts = <String, String>{};
     for (final entry in countQueries.entries) {
       final count = (await _rows(entry.value)).single['n']! as int;
@@ -493,6 +519,17 @@ extension _BackupRepository on ReceiptRepository {
           'created_at_ms': event.auditAt,
           'updated_at_ms': event.auditAt,
         });
+      } else if (event.kind == 'product' || event.kind == 'alias') {
+        final record = _CatalogRecord.decode(event.kind, event.payload);
+        _check(
+          record.id == event.id && event.operation == 'snapshot',
+          'invalidBackup',
+        );
+        await _projectCatalog(record, event.revision);
+        await _insert(
+          'catalog_mutations',
+          _catalogMutation(record, event.mutation, event.revision),
+        );
       } else {
         final exists = receipts.contains(event.id);
         final first = created.putIfAbsent(event.id, () => event.auditAt);

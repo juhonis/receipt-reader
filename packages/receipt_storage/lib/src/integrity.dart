@@ -18,6 +18,9 @@ extension _Integrity on ReceiptRepository {
     final deletions = <DurableId, ReceiptTombstone>{};
     final firstReceiptTimes = <DurableId, int>{};
     final storePayloads = <DurableId, String>{};
+    final catalog = <String, _CatalogRecord>{};
+    final catalogCreated = <String, int>{};
+    final activeAliasKeys = <String, DurableId>{};
     final knownRevisions = <RevisionId, Map<String, Object?>>{};
     final groups = <String, List<Map<String, Object?>>>{};
     final rowOwners = <DurableId, (DurableId, RevisionId)>{};
@@ -102,6 +105,56 @@ extension _Integrity on ReceiptRepository {
           'storePayload',
         );
         storePayloads[id] = payload;
+      } else if (kind == 'product' || kind == 'alias') {
+        _check(
+          event['operation'] == 'snapshot' &&
+              event['mutation_count'] == 1 &&
+              event['mutation_index'] == 0,
+          'catalogMutationShape',
+        );
+        final record = _CatalogRecord.decode(kind, payload);
+        _check(
+          record.id == id &&
+              record.auditAt == event['audit_at_ms'] &&
+              record.expectedHead == previous,
+          'catalogPayload',
+        );
+        if (catalog[key] != null) record.checkOwnership(catalog[key]!);
+        _check(
+          dependencies.length == record.dependencies.length &&
+              record.dependencies.every(dependencies.contains),
+          'catalogDependencies',
+        );
+        final store = knownRevisions[record.storeRevision]!;
+        _check(
+          store['entity_kind'] == 'store' &&
+              store['entity_id'] == record.storeId.value,
+          'branchDependency',
+        );
+        if (record.alias case final alias?) {
+          final productEvent = knownRevisions[alias.productRevision]!;
+          _check(
+            productEvent['entity_kind'] == 'product' &&
+                productEvent['entity_id'] == alias.alias.productId.value,
+            'productDependency',
+          );
+          final product = ProductDocumentCodec.decode(
+            productEvent['payload']! as String,
+          );
+          _check(
+            product.product.storeId == record.storeId,
+            'crossStoreProduct',
+          );
+          final aliasKey =
+              '${record.storeId.value}:${alias.alias.normalizedName}';
+          if (activeAliasKeys[aliasKey] == id) activeAliasKeys.remove(aliasKey);
+          if (alias.alias.isActive) {
+            _check(!activeAliasKeys.containsKey(aliasKey), 'aliasCollision');
+            activeAliasKeys[aliasKey] = id;
+          }
+        }
+        catalog[key] = record;
+        catalogCreated.putIfAbsent(key, () => record.auditAt);
       } else if (event['operation'] == 'tombstone') {
         _check(
           kind == 'receipt' &&
@@ -229,6 +282,27 @@ extension _Integrity on ReceiptRepository {
         'storeAudit',
       );
     }
+    for (final kind in ['product', 'alias']) {
+      final rows = await _rows('SELECT * FROM ${_catalogTable(kind)}');
+      _check(
+        rows.length == catalog.values.where((v) => v.kind == kind).length,
+        'catalogCount',
+      );
+      for (final row in rows) {
+        final id = DurableId.parse(row['id']! as String),
+            key = '$kind:${row['id']}';
+        final record = catalog[key];
+        _check(
+          record != null &&
+              _sameFields(
+                row,
+                record.fields(latest[key]!, catalogCreated[key]!),
+              ),
+          'catalogProjection',
+        );
+        await _readCatalog(kind, id);
+      }
+    }
     final receipts = await _rows(
       'SELECT id, created_at_ms, is_deleted FROM receipts',
     );
@@ -254,7 +328,10 @@ extension _Integrity on ReceiptRepository {
         'rowOwnership',
       );
     }
-    final mutations = await _rows('SELECT * FROM local_mutations');
+    final mutations = [
+      ...await _rows('SELECT * FROM local_mutations'),
+      ...await _rows('SELECT * FROM catalog_mutations'),
+    ];
     _check(mutations.length == groups.length, 'mutationCount');
     for (final mutation in mutations) {
       final group = groups[mutation['mutation_id']];
@@ -275,16 +352,19 @@ extension _Integrity on ReceiptRepository {
         );
       }
       final last = members.last;
+      final kind = mutation['entity_kind'] ?? 'receipt';
       _check(
-        last['entity_kind'] == 'receipt' &&
-            last['entity_id'] == mutation['receipt_id'] &&
+        last['entity_kind'] == kind &&
+            last['entity_id'] ==
+                (mutation['entity_id'] ?? mutation['receipt_id']) &&
             last['origin_device_id'] == mutation['result_origin'] &&
             last['origin_seq'] == mutation['result_seq'] &&
             _sha(last['payload']! as String) == mutation['command_sha256'],
         'mutationResult',
       );
       _check(
-        members.length == 1 || members.first['entity_kind'] == 'store',
+        members.length == 1 ||
+            (kind == 'receipt' && members.first['entity_kind'] == 'store'),
         'mutationShape',
       );
       if (members.length == 2) {

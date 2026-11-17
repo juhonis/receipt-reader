@@ -6,14 +6,16 @@ history](manual-saving.md) and separate [reviewed OCR saving](ocr-saving.md).
 
 The first [durable value and manual-command foundation](storage-foundations.md)
 is implemented as a standalone Dart package. A [local manual-receipt repository](local-storage.md)
-now implements schema v3, source-specific atomic saves/edits, reviewed deletion
+now implements schema v4, source-specific atomic saves/edits, reviewed deletion
 and event integrity checks.
 [OCR corrections](ocr-corrections.md) use fresh scans and explicit row identity
 matching; earlier source identities and decisions remain in immutable events.
 [Structured backup/isolated recovery](backup-recovery.md) now preserves event
 history with fresh installation identity. [Password-protected backup UI and
 activation](password-backups.md) now provide explicit dataset selection and retained
-previous slots. The broader catalog/conflict/sync rules below remain open.
+previous slots. [Store-scoped catalog storage](product-catalog.md) now implements
+product/alias snapshots, ownership, exact suggestions and recovered history.
+Catalog UI, receipt product links and conflict/sync rules remain open.
 
 This document makes the [plan's data and sync rules](plan.md#3-data-architecture--financial-rules)
 concrete. Implement local persistence first on Android and Windows. Network
@@ -32,7 +34,7 @@ transport, pairing and product matching remain separate work.
   Transactions serialize repository mutations. No UI or plugin writes SQL.
 - SQLite schema version starts at 1. Event payload version, review-policy
   version, and future wire-protocol version are independent integers, initially
-  1. The current implementation uses schema 3 and OCR review policy 2 while
+  1. The current implementation uses schema 4 and OCR review policy 2 while
   preserving manual policy 1 and receipt/event payload 1. A schema migration
   must not rewrite historical event payloads or identities.
 - Opening a newer, unsupported schema is a visible error, never a reset. A

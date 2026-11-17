@@ -13,6 +13,7 @@ import 'history_filter.dart';
 
 part 'integrity.dart';
 part 'backup.dart';
+part 'catalog.dart';
 
 final class StorageFailure implements Exception {
   const StorageFailure(this.code);
@@ -298,6 +299,12 @@ final class ReceiptRepository {
       final json = ReceiptTombstoneCodec.encode(command.tombstone);
       final tombstone = ReceiptTombstoneCodec.decode(json);
       final id = tombstone.receiptId;
+      _check(
+        (await _rows('SELECT 1 FROM catalog_mutations WHERE mutation_id = ?', [
+          command.mutationId.value,
+        ])).isEmpty,
+        'mutationIdentityReused',
+      );
       final retry = await _rows(
         'SELECT * FROM local_mutations WHERE mutation_id = ?',
         [command.mutationId.value],
@@ -404,6 +411,12 @@ final class ReceiptRepository {
       final document = ReceiptDocumentCodec.decode(json);
       final snapshot = document.snapshot;
       final digest = document.sha256Hex;
+      _check(
+        (await _rows('SELECT 1 FROM catalog_mutations WHERE mutation_id = ?', [
+          command.mutationId.value,
+        ])).isEmpty,
+        'mutationIdentityReused',
+      );
       final retry = await _rows(
         'SELECT * FROM local_mutations WHERE mutation_id = ?',
         [command.mutationId.value],

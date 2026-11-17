@@ -235,7 +235,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 ### Phase 2: Shared Import → Review → Save, Plus Android Capture
 - [x] Initialize one Flutter project with Android and Windows targets and externalized Finnish UI strings.
 - [ ] Separate platform services from shared domain code and adaptive workflows as the OCR spike establishes the adapter contracts.
-- [x] Configure a local manual-receipt Drift schema, strict constraints, foreign keys, atomic transactions, schema baseline/failure tests, and immutable change logging. See [local storage implementation](local-storage.md); the broader catalog/conflict/sync schema remains open.
+- [x] Configure a local manual-receipt Drift schema, strict constraints, foreign keys, atomic transactions, schema baseline/failure tests, and immutable change logging. See [local storage implementation](local-storage.md); the catalog storage extension is implemented; broader conflict/sync schema remains open.
 - [ ] Implement camera guidance and clear warnings for incomplete/long receipts.
 - [ ] Implement JPEG/PNG selection and offline OCR on both platforms using the normalized OCR interface.
 - [x] Add bounded, temporary JPEG/PNG import and zoomable receipt evidence on Android/Windows; originals remain read-only. See [image import](image-import.md). Android OCR and reviewed saving now use the separate workflows below; Windows OCR remains open.
@@ -260,7 +260,8 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Add reviewed correction of saved manual receipts on both platforms, preserving row metadata and causal revisions, with stale-write rejection and native reopen checks. See [manual corrections](manual-corrections.md).
 - [x] Add original-image-backed correction of saved OCR receipts with explicit row matching, preserved provenance/identity and native synthetic correction/reopen/stale-write checks. See [OCR corrections](ocr-corrections.md). Production Windows recognition remains pending.
 - [x] Add reviewed receipt deletion with immutable tombstone events, schema-3 migration, stale-write rejection, exact retries and native reopen checks on both platforms. See [receipt deletion](receipt-deletion.md).
-- [ ] Add store-scoped products, aliases, and explicit match correction.
+- [x] Add store-scoped product/alias storage, immutable revisions, schema-4 migration and encrypted backup recovery. See [product catalog](product-catalog.md).
+- [ ] Add product/alias management UI and explicit reviewed receipt match correction.
 - [ ] Build price trends with unit comparability, discount semantics, and deposit exclusion.
 - [x] Implement the versioned structured backup/isolated recovery core on both platforms, including strict validation, preserved event/tombstone/row identities, fresh device identity and repeated restore/write tests. See [backup recovery](backup-recovery.md).
 - [x] Add password-protected backup files, native export/import UI, validated preview, explicit replacement confirmation, transactional activation/crash recovery and retained previous datasets on both platforms. See [password backups](password-backups.md).
@@ -297,8 +298,8 @@ Restore must assign a fresh local device identity and preserve imported event id
 [fresh-image OCR corrections](ocr-corrections.md) and
 [reviewed receipt deletion](receipt-deletion.md) share reviewed persistence on
 Android and Windows. Production recognition is currently Android-only. The normal
-app owns one application-support database with schema-3 migration from released
-schemas 1 and 2. Native synthetic save/reopen, filtered-history,
+app owns one application-support database with schema-4 migration from released
+schemas 1, 2 and 3. Native synthetic save/reopen, filtered-history,
 correction/stale-write and deletion/tombstone checks pass on both platforms,
 including Android airplane mode. Deletion retains prior structured snapshots;
 it is not secure erasure and receipt undo is not implemented.
@@ -315,9 +316,14 @@ explicit backup recovery if the selected receipt database cannot open. Unit,
 widget, process-exit and native offline recovery checks pass. Completed encrypted
 backup files must be kept off-device with their passwords stored separately.
 
-Next, add store-scoped product identity and aliases with explicit reviewed match
-correction. Preserve receipt/row identities and causal history, keep cross-store
-links invalid, and make matching choices visible before building price trends.
+[Store-scoped product and alias storage](product-catalog.md) now provides durable
+branch-owned identities, exact alias suggestions, reviewed revision commands and
+encrypted recovery, with migration from schemas 1/2/3. Existing receipts remain
+unlinked; saving product links still waits for the review workflow.
+
+Next, add Finnish product/alias management and explicit reviewed receipt matching
+and match correction. Preserve receipt/row identities, source provenance and causal
+history, keep cross-store links invalid, and make choices visible before price trends.
 
 Windows OCR packaging and final engine selection remain open. Keep representative
 S-kaupat images and OCR exports in ignored `localreceipts/`; committed fixtures

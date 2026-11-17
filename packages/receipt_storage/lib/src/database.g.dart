@@ -368,8 +368,7 @@ class ChangeLog extends Table with TableInfo<ChangeLog, ChangeLogData> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
-    $customConstraints:
-        'NOT NULL CHECK (entity_kind IN (\'store\', \'receipt\'))',
+    $customConstraints: 'NOT NULL CHECK (entity_kind IN (\'store\', \'receipt\', \'product\', \'alias\'))',
   );
   static const VerificationMeta _entityIdMeta = const VerificationMeta(
     'entityId',
@@ -1890,8 +1889,7 @@ class EntityHeads extends Table with TableInfo<EntityHeads, EntityHead> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
-    $customConstraints:
-        'NOT NULL CHECK (entity_kind IN (\'store\', \'receipt\'))',
+    $customConstraints: 'NOT NULL CHECK (entity_kind IN (\'store\', \'receipt\', \'product\', \'alias\'))',
   );
   static const VerificationMeta _entityIdMeta = const VerificationMeta(
     'entityId',
@@ -6634,6 +6632,1784 @@ class LocalMutationsCompanion extends UpdateCompanion<LocalMutation> {
   }
 }
 
+class Products extends Table with TableInfo<Products, Product> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  Products(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL PRIMARY KEY CHECK (length(id) = 36 AND id GLOB \'????????-????-4???-[89ab]???-????????????\' AND length("replace"(id, \'-\', \'\')) = 32 AND "replace"(id, \'-\', \'\') NOT GLOB \'*[^0-9a-f]*\')',
+  );
+  static const VerificationMeta _storeIdMeta = const VerificationMeta(
+    'storeId',
+  );
+  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
+    'store_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES stores(id)',
+  );
+  static const VerificationMeta _canonicalNameMeta = const VerificationMeta(
+    'canonicalName',
+  );
+  late final GeneratedColumn<String> canonicalName = GeneratedColumn<String>(
+    'canonical_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (length(trim(canonical_name)) > 0 AND canonical_name = trim(canonical_name))',
+  );
+  static const VerificationMeta _packageValueMeta = const VerificationMeta(
+    'packageValue',
+  );
+  late final GeneratedColumn<int> packageValue = GeneratedColumn<int>(
+    'package_value',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: '',
+  );
+  static const VerificationMeta _packageScaleMeta = const VerificationMeta(
+    'packageScale',
+  );
+  late final GeneratedColumn<int> packageScale = GeneratedColumn<int>(
+    'package_scale',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: '',
+  );
+  static const VerificationMeta _packageUnitMeta = const VerificationMeta(
+    'packageUnit',
+  );
+  late final GeneratedColumn<String> packageUnit = GeneratedColumn<String>(
+    'package_unit',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: '',
+  );
+  static const VerificationMeta _currentRevisionOriginMeta =
+      const VerificationMeta('currentRevisionOrigin');
+  late final GeneratedColumn<String> currentRevisionOrigin =
+      GeneratedColumn<String>(
+        'current_revision_origin',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+        $customConstraints: 'NOT NULL',
+      );
+  static const VerificationMeta _currentRevisionSeqMeta =
+      const VerificationMeta('currentRevisionSeq');
+  late final GeneratedColumn<int> currentRevisionSeq = GeneratedColumn<int>(
+    'current_revision_seq',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  static const VerificationMeta _createdAtMsMeta = const VerificationMeta(
+    'createdAtMs',
+  );
+  late final GeneratedColumn<int> createdAtMs = GeneratedColumn<int>(
+    'created_at_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (created_at_ms >= 0)',
+  );
+  static const VerificationMeta _updatedAtMsMeta = const VerificationMeta(
+    'updatedAtMs',
+  );
+  late final GeneratedColumn<int> updatedAtMs = GeneratedColumn<int>(
+    'updated_at_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (updated_at_ms >= 0)',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    storeId,
+    canonicalName,
+    packageValue,
+    packageScale,
+    packageUnit,
+    currentRevisionOrigin,
+    currentRevisionSeq,
+    createdAtMs,
+    updatedAtMs,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'products';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Product> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('store_id')) {
+      context.handle(
+        _storeIdMeta,
+        storeId.isAcceptableOrUnknown(data['store_id']!, _storeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_storeIdMeta);
+    }
+    if (data.containsKey('canonical_name')) {
+      context.handle(
+        _canonicalNameMeta,
+        canonicalName.isAcceptableOrUnknown(
+          data['canonical_name']!,
+          _canonicalNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_canonicalNameMeta);
+    }
+    if (data.containsKey('package_value')) {
+      context.handle(
+        _packageValueMeta,
+        packageValue.isAcceptableOrUnknown(
+          data['package_value']!,
+          _packageValueMeta,
+        ),
+      );
+    }
+    if (data.containsKey('package_scale')) {
+      context.handle(
+        _packageScaleMeta,
+        packageScale.isAcceptableOrUnknown(
+          data['package_scale']!,
+          _packageScaleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('package_unit')) {
+      context.handle(
+        _packageUnitMeta,
+        packageUnit.isAcceptableOrUnknown(
+          data['package_unit']!,
+          _packageUnitMeta,
+        ),
+      );
+    }
+    if (data.containsKey('current_revision_origin')) {
+      context.handle(
+        _currentRevisionOriginMeta,
+        currentRevisionOrigin.isAcceptableOrUnknown(
+          data['current_revision_origin']!,
+          _currentRevisionOriginMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_currentRevisionOriginMeta);
+    }
+    if (data.containsKey('current_revision_seq')) {
+      context.handle(
+        _currentRevisionSeqMeta,
+        currentRevisionSeq.isAcceptableOrUnknown(
+          data['current_revision_seq']!,
+          _currentRevisionSeqMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_currentRevisionSeqMeta);
+    }
+    if (data.containsKey('created_at_ms')) {
+      context.handle(
+        _createdAtMsMeta,
+        createdAtMs.isAcceptableOrUnknown(
+          data['created_at_ms']!,
+          _createdAtMsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMsMeta);
+    }
+    if (data.containsKey('updated_at_ms')) {
+      context.handle(
+        _updatedAtMsMeta,
+        updatedAtMs.isAcceptableOrUnknown(
+          data['updated_at_ms']!,
+          _updatedAtMsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMsMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {storeId, id},
+  ];
+  @override
+  Product map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Product(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      storeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}store_id'],
+      )!,
+      canonicalName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}canonical_name'],
+      )!,
+      packageValue: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}package_value'],
+      ),
+      packageScale: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}package_scale'],
+      ),
+      packageUnit: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}package_unit'],
+      ),
+      currentRevisionOrigin: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}current_revision_origin'],
+      )!,
+      currentRevisionSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}current_revision_seq'],
+      )!,
+      createdAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at_ms'],
+      )!,
+      updatedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at_ms'],
+      )!,
+    );
+  }
+
+  @override
+  Products createAlias(String alias) {
+    return Products(attachedDatabase, alias);
+  }
+
+  @override
+  bool get isStrict => true;
+  @override
+  List<String> get customConstraints => const [
+    'UNIQUE(store_id, id)',
+    'FOREIGN KEY(current_revision_origin, current_revision_seq)REFERENCES change_log(origin_device_id, origin_seq)',
+    'CHECK((package_value IS NULL AND package_scale IS NULL AND package_unit IS NULL)OR(package_value IS NOT NULL AND package_value > 0 AND package_scale IS NOT NULL AND package_scale BETWEEN 0 AND 6 AND package_unit IS NOT NULL AND package_unit IN (\'piece\', \'kg\', \'litre\')))',
+  ];
+  @override
+  bool get dontWriteConstraints => true;
+}
+
+class Product extends DataClass implements Insertable<Product> {
+  final String id;
+  final String storeId;
+  final String canonicalName;
+  final int? packageValue;
+  final int? packageScale;
+  final String? packageUnit;
+  final String currentRevisionOrigin;
+  final int currentRevisionSeq;
+  final int createdAtMs;
+  final int updatedAtMs;
+  const Product({
+    required this.id,
+    required this.storeId,
+    required this.canonicalName,
+    this.packageValue,
+    this.packageScale,
+    this.packageUnit,
+    required this.currentRevisionOrigin,
+    required this.currentRevisionSeq,
+    required this.createdAtMs,
+    required this.updatedAtMs,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['store_id'] = Variable<String>(storeId);
+    map['canonical_name'] = Variable<String>(canonicalName);
+    if (!nullToAbsent || packageValue != null) {
+      map['package_value'] = Variable<int>(packageValue);
+    }
+    if (!nullToAbsent || packageScale != null) {
+      map['package_scale'] = Variable<int>(packageScale);
+    }
+    if (!nullToAbsent || packageUnit != null) {
+      map['package_unit'] = Variable<String>(packageUnit);
+    }
+    map['current_revision_origin'] = Variable<String>(currentRevisionOrigin);
+    map['current_revision_seq'] = Variable<int>(currentRevisionSeq);
+    map['created_at_ms'] = Variable<int>(createdAtMs);
+    map['updated_at_ms'] = Variable<int>(updatedAtMs);
+    return map;
+  }
+
+  ProductsCompanion toCompanion(bool nullToAbsent) {
+    return ProductsCompanion(
+      id: Value(id),
+      storeId: Value(storeId),
+      canonicalName: Value(canonicalName),
+      packageValue: packageValue == null && nullToAbsent
+          ? const Value.absent()
+          : Value(packageValue),
+      packageScale: packageScale == null && nullToAbsent
+          ? const Value.absent()
+          : Value(packageScale),
+      packageUnit: packageUnit == null && nullToAbsent
+          ? const Value.absent()
+          : Value(packageUnit),
+      currentRevisionOrigin: Value(currentRevisionOrigin),
+      currentRevisionSeq: Value(currentRevisionSeq),
+      createdAtMs: Value(createdAtMs),
+      updatedAtMs: Value(updatedAtMs),
+    );
+  }
+
+  factory Product.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Product(
+      id: serializer.fromJson<String>(json['id']),
+      storeId: serializer.fromJson<String>(json['store_id']),
+      canonicalName: serializer.fromJson<String>(json['canonical_name']),
+      packageValue: serializer.fromJson<int?>(json['package_value']),
+      packageScale: serializer.fromJson<int?>(json['package_scale']),
+      packageUnit: serializer.fromJson<String?>(json['package_unit']),
+      currentRevisionOrigin: serializer.fromJson<String>(
+        json['current_revision_origin'],
+      ),
+      currentRevisionSeq: serializer.fromJson<int>(
+        json['current_revision_seq'],
+      ),
+      createdAtMs: serializer.fromJson<int>(json['created_at_ms']),
+      updatedAtMs: serializer.fromJson<int>(json['updated_at_ms']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'store_id': serializer.toJson<String>(storeId),
+      'canonical_name': serializer.toJson<String>(canonicalName),
+      'package_value': serializer.toJson<int?>(packageValue),
+      'package_scale': serializer.toJson<int?>(packageScale),
+      'package_unit': serializer.toJson<String?>(packageUnit),
+      'current_revision_origin': serializer.toJson<String>(
+        currentRevisionOrigin,
+      ),
+      'current_revision_seq': serializer.toJson<int>(currentRevisionSeq),
+      'created_at_ms': serializer.toJson<int>(createdAtMs),
+      'updated_at_ms': serializer.toJson<int>(updatedAtMs),
+    };
+  }
+
+  Product copyWith({
+    String? id,
+    String? storeId,
+    String? canonicalName,
+    Value<int?> packageValue = const Value.absent(),
+    Value<int?> packageScale = const Value.absent(),
+    Value<String?> packageUnit = const Value.absent(),
+    String? currentRevisionOrigin,
+    int? currentRevisionSeq,
+    int? createdAtMs,
+    int? updatedAtMs,
+  }) => Product(
+    id: id ?? this.id,
+    storeId: storeId ?? this.storeId,
+    canonicalName: canonicalName ?? this.canonicalName,
+    packageValue: packageValue.present ? packageValue.value : this.packageValue,
+    packageScale: packageScale.present ? packageScale.value : this.packageScale,
+    packageUnit: packageUnit.present ? packageUnit.value : this.packageUnit,
+    currentRevisionOrigin: currentRevisionOrigin ?? this.currentRevisionOrigin,
+    currentRevisionSeq: currentRevisionSeq ?? this.currentRevisionSeq,
+    createdAtMs: createdAtMs ?? this.createdAtMs,
+    updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+  );
+  Product copyWithCompanion(ProductsCompanion data) {
+    return Product(
+      id: data.id.present ? data.id.value : this.id,
+      storeId: data.storeId.present ? data.storeId.value : this.storeId,
+      canonicalName: data.canonicalName.present
+          ? data.canonicalName.value
+          : this.canonicalName,
+      packageValue: data.packageValue.present
+          ? data.packageValue.value
+          : this.packageValue,
+      packageScale: data.packageScale.present
+          ? data.packageScale.value
+          : this.packageScale,
+      packageUnit: data.packageUnit.present
+          ? data.packageUnit.value
+          : this.packageUnit,
+      currentRevisionOrigin: data.currentRevisionOrigin.present
+          ? data.currentRevisionOrigin.value
+          : this.currentRevisionOrigin,
+      currentRevisionSeq: data.currentRevisionSeq.present
+          ? data.currentRevisionSeq.value
+          : this.currentRevisionSeq,
+      createdAtMs: data.createdAtMs.present
+          ? data.createdAtMs.value
+          : this.createdAtMs,
+      updatedAtMs: data.updatedAtMs.present
+          ? data.updatedAtMs.value
+          : this.updatedAtMs,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Product(')
+          ..write('id: $id, ')
+          ..write('storeId: $storeId, ')
+          ..write('canonicalName: $canonicalName, ')
+          ..write('packageValue: $packageValue, ')
+          ..write('packageScale: $packageScale, ')
+          ..write('packageUnit: $packageUnit, ')
+          ..write('currentRevisionOrigin: $currentRevisionOrigin, ')
+          ..write('currentRevisionSeq: $currentRevisionSeq, ')
+          ..write('createdAtMs: $createdAtMs, ')
+          ..write('updatedAtMs: $updatedAtMs')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    storeId,
+    canonicalName,
+    packageValue,
+    packageScale,
+    packageUnit,
+    currentRevisionOrigin,
+    currentRevisionSeq,
+    createdAtMs,
+    updatedAtMs,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Product &&
+          other.id == this.id &&
+          other.storeId == this.storeId &&
+          other.canonicalName == this.canonicalName &&
+          other.packageValue == this.packageValue &&
+          other.packageScale == this.packageScale &&
+          other.packageUnit == this.packageUnit &&
+          other.currentRevisionOrigin == this.currentRevisionOrigin &&
+          other.currentRevisionSeq == this.currentRevisionSeq &&
+          other.createdAtMs == this.createdAtMs &&
+          other.updatedAtMs == this.updatedAtMs);
+}
+
+class ProductsCompanion extends UpdateCompanion<Product> {
+  final Value<String> id;
+  final Value<String> storeId;
+  final Value<String> canonicalName;
+  final Value<int?> packageValue;
+  final Value<int?> packageScale;
+  final Value<String?> packageUnit;
+  final Value<String> currentRevisionOrigin;
+  final Value<int> currentRevisionSeq;
+  final Value<int> createdAtMs;
+  final Value<int> updatedAtMs;
+  final Value<int> rowid;
+  const ProductsCompanion({
+    this.id = const Value.absent(),
+    this.storeId = const Value.absent(),
+    this.canonicalName = const Value.absent(),
+    this.packageValue = const Value.absent(),
+    this.packageScale = const Value.absent(),
+    this.packageUnit = const Value.absent(),
+    this.currentRevisionOrigin = const Value.absent(),
+    this.currentRevisionSeq = const Value.absent(),
+    this.createdAtMs = const Value.absent(),
+    this.updatedAtMs = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProductsCompanion.insert({
+    required String id,
+    required String storeId,
+    required String canonicalName,
+    this.packageValue = const Value.absent(),
+    this.packageScale = const Value.absent(),
+    this.packageUnit = const Value.absent(),
+    required String currentRevisionOrigin,
+    required int currentRevisionSeq,
+    required int createdAtMs,
+    required int updatedAtMs,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       storeId = Value(storeId),
+       canonicalName = Value(canonicalName),
+       currentRevisionOrigin = Value(currentRevisionOrigin),
+       currentRevisionSeq = Value(currentRevisionSeq),
+       createdAtMs = Value(createdAtMs),
+       updatedAtMs = Value(updatedAtMs);
+  static Insertable<Product> custom({
+    Expression<String>? id,
+    Expression<String>? storeId,
+    Expression<String>? canonicalName,
+    Expression<int>? packageValue,
+    Expression<int>? packageScale,
+    Expression<String>? packageUnit,
+    Expression<String>? currentRevisionOrigin,
+    Expression<int>? currentRevisionSeq,
+    Expression<int>? createdAtMs,
+    Expression<int>? updatedAtMs,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (storeId != null) 'store_id': storeId,
+      if (canonicalName != null) 'canonical_name': canonicalName,
+      if (packageValue != null) 'package_value': packageValue,
+      if (packageScale != null) 'package_scale': packageScale,
+      if (packageUnit != null) 'package_unit': packageUnit,
+      if (currentRevisionOrigin != null)
+        'current_revision_origin': currentRevisionOrigin,
+      if (currentRevisionSeq != null)
+        'current_revision_seq': currentRevisionSeq,
+      if (createdAtMs != null) 'created_at_ms': createdAtMs,
+      if (updatedAtMs != null) 'updated_at_ms': updatedAtMs,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProductsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? storeId,
+    Value<String>? canonicalName,
+    Value<int?>? packageValue,
+    Value<int?>? packageScale,
+    Value<String?>? packageUnit,
+    Value<String>? currentRevisionOrigin,
+    Value<int>? currentRevisionSeq,
+    Value<int>? createdAtMs,
+    Value<int>? updatedAtMs,
+    Value<int>? rowid,
+  }) {
+    return ProductsCompanion(
+      id: id ?? this.id,
+      storeId: storeId ?? this.storeId,
+      canonicalName: canonicalName ?? this.canonicalName,
+      packageValue: packageValue ?? this.packageValue,
+      packageScale: packageScale ?? this.packageScale,
+      packageUnit: packageUnit ?? this.packageUnit,
+      currentRevisionOrigin:
+          currentRevisionOrigin ?? this.currentRevisionOrigin,
+      currentRevisionSeq: currentRevisionSeq ?? this.currentRevisionSeq,
+      createdAtMs: createdAtMs ?? this.createdAtMs,
+      updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (storeId.present) {
+      map['store_id'] = Variable<String>(storeId.value);
+    }
+    if (canonicalName.present) {
+      map['canonical_name'] = Variable<String>(canonicalName.value);
+    }
+    if (packageValue.present) {
+      map['package_value'] = Variable<int>(packageValue.value);
+    }
+    if (packageScale.present) {
+      map['package_scale'] = Variable<int>(packageScale.value);
+    }
+    if (packageUnit.present) {
+      map['package_unit'] = Variable<String>(packageUnit.value);
+    }
+    if (currentRevisionOrigin.present) {
+      map['current_revision_origin'] = Variable<String>(
+        currentRevisionOrigin.value,
+      );
+    }
+    if (currentRevisionSeq.present) {
+      map['current_revision_seq'] = Variable<int>(currentRevisionSeq.value);
+    }
+    if (createdAtMs.present) {
+      map['created_at_ms'] = Variable<int>(createdAtMs.value);
+    }
+    if (updatedAtMs.present) {
+      map['updated_at_ms'] = Variable<int>(updatedAtMs.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProductsCompanion(')
+          ..write('id: $id, ')
+          ..write('storeId: $storeId, ')
+          ..write('canonicalName: $canonicalName, ')
+          ..write('packageValue: $packageValue, ')
+          ..write('packageScale: $packageScale, ')
+          ..write('packageUnit: $packageUnit, ')
+          ..write('currentRevisionOrigin: $currentRevisionOrigin, ')
+          ..write('currentRevisionSeq: $currentRevisionSeq, ')
+          ..write('createdAtMs: $createdAtMs, ')
+          ..write('updatedAtMs: $updatedAtMs, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class ProductAliases extends Table
+    with TableInfo<ProductAliases, ProductAliase> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  ProductAliases(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL PRIMARY KEY CHECK (length(id) = 36 AND id GLOB \'????????-????-4???-[89ab]???-????????????\' AND length("replace"(id, \'-\', \'\')) = 32 AND "replace"(id, \'-\', \'\') NOT GLOB \'*[^0-9a-f]*\')',
+  );
+  static const VerificationMeta _storeIdMeta = const VerificationMeta(
+    'storeId',
+  );
+  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
+    'store_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  static const VerificationMeta _normalizedNameMeta = const VerificationMeta(
+    'normalizedName',
+  );
+  late final GeneratedColumn<String> normalizedName = GeneratedColumn<String>(
+    'normalized_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (length(normalized_name) > 0)',
+  );
+  static const VerificationMeta _normalizerVersionMeta = const VerificationMeta(
+    'normalizerVersion',
+  );
+  late final GeneratedColumn<int> normalizerVersion = GeneratedColumn<int>(
+    'normalizer_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (normalizer_version = 1)',
+  );
+  static const VerificationMeta _productIdMeta = const VerificationMeta(
+    'productId',
+  );
+  late final GeneratedColumn<String> productId = GeneratedColumn<String>(
+    'product_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  static const VerificationMeta _isActiveMeta = const VerificationMeta(
+    'isActive',
+  );
+  late final GeneratedColumn<int> isActive = GeneratedColumn<int>(
+    'is_active',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (is_active IN (0, 1))',
+  );
+  static const VerificationMeta _currentRevisionOriginMeta =
+      const VerificationMeta('currentRevisionOrigin');
+  late final GeneratedColumn<String> currentRevisionOrigin =
+      GeneratedColumn<String>(
+        'current_revision_origin',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+        $customConstraints: 'NOT NULL',
+      );
+  static const VerificationMeta _currentRevisionSeqMeta =
+      const VerificationMeta('currentRevisionSeq');
+  late final GeneratedColumn<int> currentRevisionSeq = GeneratedColumn<int>(
+    'current_revision_seq',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  static const VerificationMeta _createdAtMsMeta = const VerificationMeta(
+    'createdAtMs',
+  );
+  late final GeneratedColumn<int> createdAtMs = GeneratedColumn<int>(
+    'created_at_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (created_at_ms >= 0)',
+  );
+  static const VerificationMeta _updatedAtMsMeta = const VerificationMeta(
+    'updatedAtMs',
+  );
+  late final GeneratedColumn<int> updatedAtMs = GeneratedColumn<int>(
+    'updated_at_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (updated_at_ms >= 0)',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    storeId,
+    normalizedName,
+    normalizerVersion,
+    productId,
+    isActive,
+    currentRevisionOrigin,
+    currentRevisionSeq,
+    createdAtMs,
+    updatedAtMs,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'product_aliases';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ProductAliase> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('store_id')) {
+      context.handle(
+        _storeIdMeta,
+        storeId.isAcceptableOrUnknown(data['store_id']!, _storeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_storeIdMeta);
+    }
+    if (data.containsKey('normalized_name')) {
+      context.handle(
+        _normalizedNameMeta,
+        normalizedName.isAcceptableOrUnknown(
+          data['normalized_name']!,
+          _normalizedNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_normalizedNameMeta);
+    }
+    if (data.containsKey('normalizer_version')) {
+      context.handle(
+        _normalizerVersionMeta,
+        normalizerVersion.isAcceptableOrUnknown(
+          data['normalizer_version']!,
+          _normalizerVersionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_normalizerVersionMeta);
+    }
+    if (data.containsKey('product_id')) {
+      context.handle(
+        _productIdMeta,
+        productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_productIdMeta);
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(
+        _isActiveMeta,
+        isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_isActiveMeta);
+    }
+    if (data.containsKey('current_revision_origin')) {
+      context.handle(
+        _currentRevisionOriginMeta,
+        currentRevisionOrigin.isAcceptableOrUnknown(
+          data['current_revision_origin']!,
+          _currentRevisionOriginMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_currentRevisionOriginMeta);
+    }
+    if (data.containsKey('current_revision_seq')) {
+      context.handle(
+        _currentRevisionSeqMeta,
+        currentRevisionSeq.isAcceptableOrUnknown(
+          data['current_revision_seq']!,
+          _currentRevisionSeqMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_currentRevisionSeqMeta);
+    }
+    if (data.containsKey('created_at_ms')) {
+      context.handle(
+        _createdAtMsMeta,
+        createdAtMs.isAcceptableOrUnknown(
+          data['created_at_ms']!,
+          _createdAtMsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMsMeta);
+    }
+    if (data.containsKey('updated_at_ms')) {
+      context.handle(
+        _updatedAtMsMeta,
+        updatedAtMs.isAcceptableOrUnknown(
+          data['updated_at_ms']!,
+          _updatedAtMsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMsMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ProductAliase map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProductAliase(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      storeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}store_id'],
+      )!,
+      normalizedName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}normalized_name'],
+      )!,
+      normalizerVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}normalizer_version'],
+      )!,
+      productId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}product_id'],
+      )!,
+      isActive: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}is_active'],
+      )!,
+      currentRevisionOrigin: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}current_revision_origin'],
+      )!,
+      currentRevisionSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}current_revision_seq'],
+      )!,
+      createdAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at_ms'],
+      )!,
+      updatedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at_ms'],
+      )!,
+    );
+  }
+
+  @override
+  ProductAliases createAlias(String alias) {
+    return ProductAliases(attachedDatabase, alias);
+  }
+
+  @override
+  bool get isStrict => true;
+  @override
+  List<String> get customConstraints => const [
+    'FOREIGN KEY(store_id, product_id)REFERENCES products(store_id, id)',
+    'FOREIGN KEY(current_revision_origin, current_revision_seq)REFERENCES change_log(origin_device_id, origin_seq)',
+  ];
+  @override
+  bool get dontWriteConstraints => true;
+}
+
+class ProductAliase extends DataClass implements Insertable<ProductAliase> {
+  final String id;
+  final String storeId;
+  final String normalizedName;
+  final int normalizerVersion;
+  final String productId;
+  final int isActive;
+  final String currentRevisionOrigin;
+  final int currentRevisionSeq;
+  final int createdAtMs;
+  final int updatedAtMs;
+  const ProductAliase({
+    required this.id,
+    required this.storeId,
+    required this.normalizedName,
+    required this.normalizerVersion,
+    required this.productId,
+    required this.isActive,
+    required this.currentRevisionOrigin,
+    required this.currentRevisionSeq,
+    required this.createdAtMs,
+    required this.updatedAtMs,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['store_id'] = Variable<String>(storeId);
+    map['normalized_name'] = Variable<String>(normalizedName);
+    map['normalizer_version'] = Variable<int>(normalizerVersion);
+    map['product_id'] = Variable<String>(productId);
+    map['is_active'] = Variable<int>(isActive);
+    map['current_revision_origin'] = Variable<String>(currentRevisionOrigin);
+    map['current_revision_seq'] = Variable<int>(currentRevisionSeq);
+    map['created_at_ms'] = Variable<int>(createdAtMs);
+    map['updated_at_ms'] = Variable<int>(updatedAtMs);
+    return map;
+  }
+
+  ProductAliasesCompanion toCompanion(bool nullToAbsent) {
+    return ProductAliasesCompanion(
+      id: Value(id),
+      storeId: Value(storeId),
+      normalizedName: Value(normalizedName),
+      normalizerVersion: Value(normalizerVersion),
+      productId: Value(productId),
+      isActive: Value(isActive),
+      currentRevisionOrigin: Value(currentRevisionOrigin),
+      currentRevisionSeq: Value(currentRevisionSeq),
+      createdAtMs: Value(createdAtMs),
+      updatedAtMs: Value(updatedAtMs),
+    );
+  }
+
+  factory ProductAliase.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProductAliase(
+      id: serializer.fromJson<String>(json['id']),
+      storeId: serializer.fromJson<String>(json['store_id']),
+      normalizedName: serializer.fromJson<String>(json['normalized_name']),
+      normalizerVersion: serializer.fromJson<int>(json['normalizer_version']),
+      productId: serializer.fromJson<String>(json['product_id']),
+      isActive: serializer.fromJson<int>(json['is_active']),
+      currentRevisionOrigin: serializer.fromJson<String>(
+        json['current_revision_origin'],
+      ),
+      currentRevisionSeq: serializer.fromJson<int>(
+        json['current_revision_seq'],
+      ),
+      createdAtMs: serializer.fromJson<int>(json['created_at_ms']),
+      updatedAtMs: serializer.fromJson<int>(json['updated_at_ms']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'store_id': serializer.toJson<String>(storeId),
+      'normalized_name': serializer.toJson<String>(normalizedName),
+      'normalizer_version': serializer.toJson<int>(normalizerVersion),
+      'product_id': serializer.toJson<String>(productId),
+      'is_active': serializer.toJson<int>(isActive),
+      'current_revision_origin': serializer.toJson<String>(
+        currentRevisionOrigin,
+      ),
+      'current_revision_seq': serializer.toJson<int>(currentRevisionSeq),
+      'created_at_ms': serializer.toJson<int>(createdAtMs),
+      'updated_at_ms': serializer.toJson<int>(updatedAtMs),
+    };
+  }
+
+  ProductAliase copyWith({
+    String? id,
+    String? storeId,
+    String? normalizedName,
+    int? normalizerVersion,
+    String? productId,
+    int? isActive,
+    String? currentRevisionOrigin,
+    int? currentRevisionSeq,
+    int? createdAtMs,
+    int? updatedAtMs,
+  }) => ProductAliase(
+    id: id ?? this.id,
+    storeId: storeId ?? this.storeId,
+    normalizedName: normalizedName ?? this.normalizedName,
+    normalizerVersion: normalizerVersion ?? this.normalizerVersion,
+    productId: productId ?? this.productId,
+    isActive: isActive ?? this.isActive,
+    currentRevisionOrigin: currentRevisionOrigin ?? this.currentRevisionOrigin,
+    currentRevisionSeq: currentRevisionSeq ?? this.currentRevisionSeq,
+    createdAtMs: createdAtMs ?? this.createdAtMs,
+    updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+  );
+  ProductAliase copyWithCompanion(ProductAliasesCompanion data) {
+    return ProductAliase(
+      id: data.id.present ? data.id.value : this.id,
+      storeId: data.storeId.present ? data.storeId.value : this.storeId,
+      normalizedName: data.normalizedName.present
+          ? data.normalizedName.value
+          : this.normalizedName,
+      normalizerVersion: data.normalizerVersion.present
+          ? data.normalizerVersion.value
+          : this.normalizerVersion,
+      productId: data.productId.present ? data.productId.value : this.productId,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      currentRevisionOrigin: data.currentRevisionOrigin.present
+          ? data.currentRevisionOrigin.value
+          : this.currentRevisionOrigin,
+      currentRevisionSeq: data.currentRevisionSeq.present
+          ? data.currentRevisionSeq.value
+          : this.currentRevisionSeq,
+      createdAtMs: data.createdAtMs.present
+          ? data.createdAtMs.value
+          : this.createdAtMs,
+      updatedAtMs: data.updatedAtMs.present
+          ? data.updatedAtMs.value
+          : this.updatedAtMs,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProductAliase(')
+          ..write('id: $id, ')
+          ..write('storeId: $storeId, ')
+          ..write('normalizedName: $normalizedName, ')
+          ..write('normalizerVersion: $normalizerVersion, ')
+          ..write('productId: $productId, ')
+          ..write('isActive: $isActive, ')
+          ..write('currentRevisionOrigin: $currentRevisionOrigin, ')
+          ..write('currentRevisionSeq: $currentRevisionSeq, ')
+          ..write('createdAtMs: $createdAtMs, ')
+          ..write('updatedAtMs: $updatedAtMs')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    storeId,
+    normalizedName,
+    normalizerVersion,
+    productId,
+    isActive,
+    currentRevisionOrigin,
+    currentRevisionSeq,
+    createdAtMs,
+    updatedAtMs,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProductAliase &&
+          other.id == this.id &&
+          other.storeId == this.storeId &&
+          other.normalizedName == this.normalizedName &&
+          other.normalizerVersion == this.normalizerVersion &&
+          other.productId == this.productId &&
+          other.isActive == this.isActive &&
+          other.currentRevisionOrigin == this.currentRevisionOrigin &&
+          other.currentRevisionSeq == this.currentRevisionSeq &&
+          other.createdAtMs == this.createdAtMs &&
+          other.updatedAtMs == this.updatedAtMs);
+}
+
+class ProductAliasesCompanion extends UpdateCompanion<ProductAliase> {
+  final Value<String> id;
+  final Value<String> storeId;
+  final Value<String> normalizedName;
+  final Value<int> normalizerVersion;
+  final Value<String> productId;
+  final Value<int> isActive;
+  final Value<String> currentRevisionOrigin;
+  final Value<int> currentRevisionSeq;
+  final Value<int> createdAtMs;
+  final Value<int> updatedAtMs;
+  final Value<int> rowid;
+  const ProductAliasesCompanion({
+    this.id = const Value.absent(),
+    this.storeId = const Value.absent(),
+    this.normalizedName = const Value.absent(),
+    this.normalizerVersion = const Value.absent(),
+    this.productId = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.currentRevisionOrigin = const Value.absent(),
+    this.currentRevisionSeq = const Value.absent(),
+    this.createdAtMs = const Value.absent(),
+    this.updatedAtMs = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProductAliasesCompanion.insert({
+    required String id,
+    required String storeId,
+    required String normalizedName,
+    required int normalizerVersion,
+    required String productId,
+    required int isActive,
+    required String currentRevisionOrigin,
+    required int currentRevisionSeq,
+    required int createdAtMs,
+    required int updatedAtMs,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       storeId = Value(storeId),
+       normalizedName = Value(normalizedName),
+       normalizerVersion = Value(normalizerVersion),
+       productId = Value(productId),
+       isActive = Value(isActive),
+       currentRevisionOrigin = Value(currentRevisionOrigin),
+       currentRevisionSeq = Value(currentRevisionSeq),
+       createdAtMs = Value(createdAtMs),
+       updatedAtMs = Value(updatedAtMs);
+  static Insertable<ProductAliase> custom({
+    Expression<String>? id,
+    Expression<String>? storeId,
+    Expression<String>? normalizedName,
+    Expression<int>? normalizerVersion,
+    Expression<String>? productId,
+    Expression<int>? isActive,
+    Expression<String>? currentRevisionOrigin,
+    Expression<int>? currentRevisionSeq,
+    Expression<int>? createdAtMs,
+    Expression<int>? updatedAtMs,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (storeId != null) 'store_id': storeId,
+      if (normalizedName != null) 'normalized_name': normalizedName,
+      if (normalizerVersion != null) 'normalizer_version': normalizerVersion,
+      if (productId != null) 'product_id': productId,
+      if (isActive != null) 'is_active': isActive,
+      if (currentRevisionOrigin != null)
+        'current_revision_origin': currentRevisionOrigin,
+      if (currentRevisionSeq != null)
+        'current_revision_seq': currentRevisionSeq,
+      if (createdAtMs != null) 'created_at_ms': createdAtMs,
+      if (updatedAtMs != null) 'updated_at_ms': updatedAtMs,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProductAliasesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? storeId,
+    Value<String>? normalizedName,
+    Value<int>? normalizerVersion,
+    Value<String>? productId,
+    Value<int>? isActive,
+    Value<String>? currentRevisionOrigin,
+    Value<int>? currentRevisionSeq,
+    Value<int>? createdAtMs,
+    Value<int>? updatedAtMs,
+    Value<int>? rowid,
+  }) {
+    return ProductAliasesCompanion(
+      id: id ?? this.id,
+      storeId: storeId ?? this.storeId,
+      normalizedName: normalizedName ?? this.normalizedName,
+      normalizerVersion: normalizerVersion ?? this.normalizerVersion,
+      productId: productId ?? this.productId,
+      isActive: isActive ?? this.isActive,
+      currentRevisionOrigin:
+          currentRevisionOrigin ?? this.currentRevisionOrigin,
+      currentRevisionSeq: currentRevisionSeq ?? this.currentRevisionSeq,
+      createdAtMs: createdAtMs ?? this.createdAtMs,
+      updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (storeId.present) {
+      map['store_id'] = Variable<String>(storeId.value);
+    }
+    if (normalizedName.present) {
+      map['normalized_name'] = Variable<String>(normalizedName.value);
+    }
+    if (normalizerVersion.present) {
+      map['normalizer_version'] = Variable<int>(normalizerVersion.value);
+    }
+    if (productId.present) {
+      map['product_id'] = Variable<String>(productId.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<int>(isActive.value);
+    }
+    if (currentRevisionOrigin.present) {
+      map['current_revision_origin'] = Variable<String>(
+        currentRevisionOrigin.value,
+      );
+    }
+    if (currentRevisionSeq.present) {
+      map['current_revision_seq'] = Variable<int>(currentRevisionSeq.value);
+    }
+    if (createdAtMs.present) {
+      map['created_at_ms'] = Variable<int>(createdAtMs.value);
+    }
+    if (updatedAtMs.present) {
+      map['updated_at_ms'] = Variable<int>(updatedAtMs.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProductAliasesCompanion(')
+          ..write('id: $id, ')
+          ..write('storeId: $storeId, ')
+          ..write('normalizedName: $normalizedName, ')
+          ..write('normalizerVersion: $normalizerVersion, ')
+          ..write('productId: $productId, ')
+          ..write('isActive: $isActive, ')
+          ..write('currentRevisionOrigin: $currentRevisionOrigin, ')
+          ..write('currentRevisionSeq: $currentRevisionSeq, ')
+          ..write('createdAtMs: $createdAtMs, ')
+          ..write('updatedAtMs: $updatedAtMs, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class CatalogMutations extends Table
+    with TableInfo<CatalogMutations, CatalogMutation> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  CatalogMutations(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _mutationIdMeta = const VerificationMeta(
+    'mutationId',
+  );
+  late final GeneratedColumn<String> mutationId = GeneratedColumn<String>(
+    'mutation_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL PRIMARY KEY',
+  );
+  static const VerificationMeta _commandSha256Meta = const VerificationMeta(
+    'commandSha256',
+  );
+  late final GeneratedColumn<String> commandSha256 = GeneratedColumn<String>(
+    'command_sha256',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (length(command_sha256) = 64 AND command_sha256 NOT GLOB \'*[^0-9a-f]*\')',
+  );
+  static const VerificationMeta _entityKindMeta = const VerificationMeta(
+    'entityKind',
+  );
+  late final GeneratedColumn<String> entityKind = GeneratedColumn<String>(
+    'entity_kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints:
+        'NOT NULL CHECK (entity_kind IN (\'product\', \'alias\'))',
+  );
+  static const VerificationMeta _entityIdMeta = const VerificationMeta(
+    'entityId',
+  );
+  late final GeneratedColumn<String> entityId = GeneratedColumn<String>(
+    'entity_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  static const VerificationMeta _resultOriginMeta = const VerificationMeta(
+    'resultOrigin',
+  );
+  late final GeneratedColumn<String> resultOrigin = GeneratedColumn<String>(
+    'result_origin',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  static const VerificationMeta _resultSeqMeta = const VerificationMeta(
+    'resultSeq',
+  );
+  late final GeneratedColumn<int> resultSeq = GeneratedColumn<int>(
+    'result_seq',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    mutationId,
+    commandSha256,
+    entityKind,
+    entityId,
+    resultOrigin,
+    resultSeq,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'catalog_mutations';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CatalogMutation> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('mutation_id')) {
+      context.handle(
+        _mutationIdMeta,
+        mutationId.isAcceptableOrUnknown(data['mutation_id']!, _mutationIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_mutationIdMeta);
+    }
+    if (data.containsKey('command_sha256')) {
+      context.handle(
+        _commandSha256Meta,
+        commandSha256.isAcceptableOrUnknown(
+          data['command_sha256']!,
+          _commandSha256Meta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_commandSha256Meta);
+    }
+    if (data.containsKey('entity_kind')) {
+      context.handle(
+        _entityKindMeta,
+        entityKind.isAcceptableOrUnknown(data['entity_kind']!, _entityKindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entityKindMeta);
+    }
+    if (data.containsKey('entity_id')) {
+      context.handle(
+        _entityIdMeta,
+        entityId.isAcceptableOrUnknown(data['entity_id']!, _entityIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entityIdMeta);
+    }
+    if (data.containsKey('result_origin')) {
+      context.handle(
+        _resultOriginMeta,
+        resultOrigin.isAcceptableOrUnknown(
+          data['result_origin']!,
+          _resultOriginMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_resultOriginMeta);
+    }
+    if (data.containsKey('result_seq')) {
+      context.handle(
+        _resultSeqMeta,
+        resultSeq.isAcceptableOrUnknown(data['result_seq']!, _resultSeqMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_resultSeqMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {mutationId};
+  @override
+  CatalogMutation map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CatalogMutation(
+      mutationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mutation_id'],
+      )!,
+      commandSha256: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}command_sha256'],
+      )!,
+      entityKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entity_kind'],
+      )!,
+      entityId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entity_id'],
+      )!,
+      resultOrigin: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}result_origin'],
+      )!,
+      resultSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}result_seq'],
+      )!,
+    );
+  }
+
+  @override
+  CatalogMutations createAlias(String alias) {
+    return CatalogMutations(attachedDatabase, alias);
+  }
+
+  @override
+  bool get isStrict => true;
+  @override
+  List<String> get customConstraints => const [
+    'FOREIGN KEY(result_origin, result_seq, entity_kind, entity_id)REFERENCES change_log(origin_device_id, origin_seq, entity_kind, entity_id)',
+  ];
+  @override
+  bool get dontWriteConstraints => true;
+}
+
+class CatalogMutation extends DataClass implements Insertable<CatalogMutation> {
+  final String mutationId;
+  final String commandSha256;
+  final String entityKind;
+  final String entityId;
+  final String resultOrigin;
+  final int resultSeq;
+  const CatalogMutation({
+    required this.mutationId,
+    required this.commandSha256,
+    required this.entityKind,
+    required this.entityId,
+    required this.resultOrigin,
+    required this.resultSeq,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['mutation_id'] = Variable<String>(mutationId);
+    map['command_sha256'] = Variable<String>(commandSha256);
+    map['entity_kind'] = Variable<String>(entityKind);
+    map['entity_id'] = Variable<String>(entityId);
+    map['result_origin'] = Variable<String>(resultOrigin);
+    map['result_seq'] = Variable<int>(resultSeq);
+    return map;
+  }
+
+  CatalogMutationsCompanion toCompanion(bool nullToAbsent) {
+    return CatalogMutationsCompanion(
+      mutationId: Value(mutationId),
+      commandSha256: Value(commandSha256),
+      entityKind: Value(entityKind),
+      entityId: Value(entityId),
+      resultOrigin: Value(resultOrigin),
+      resultSeq: Value(resultSeq),
+    );
+  }
+
+  factory CatalogMutation.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CatalogMutation(
+      mutationId: serializer.fromJson<String>(json['mutation_id']),
+      commandSha256: serializer.fromJson<String>(json['command_sha256']),
+      entityKind: serializer.fromJson<String>(json['entity_kind']),
+      entityId: serializer.fromJson<String>(json['entity_id']),
+      resultOrigin: serializer.fromJson<String>(json['result_origin']),
+      resultSeq: serializer.fromJson<int>(json['result_seq']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'mutation_id': serializer.toJson<String>(mutationId),
+      'command_sha256': serializer.toJson<String>(commandSha256),
+      'entity_kind': serializer.toJson<String>(entityKind),
+      'entity_id': serializer.toJson<String>(entityId),
+      'result_origin': serializer.toJson<String>(resultOrigin),
+      'result_seq': serializer.toJson<int>(resultSeq),
+    };
+  }
+
+  CatalogMutation copyWith({
+    String? mutationId,
+    String? commandSha256,
+    String? entityKind,
+    String? entityId,
+    String? resultOrigin,
+    int? resultSeq,
+  }) => CatalogMutation(
+    mutationId: mutationId ?? this.mutationId,
+    commandSha256: commandSha256 ?? this.commandSha256,
+    entityKind: entityKind ?? this.entityKind,
+    entityId: entityId ?? this.entityId,
+    resultOrigin: resultOrigin ?? this.resultOrigin,
+    resultSeq: resultSeq ?? this.resultSeq,
+  );
+  CatalogMutation copyWithCompanion(CatalogMutationsCompanion data) {
+    return CatalogMutation(
+      mutationId: data.mutationId.present
+          ? data.mutationId.value
+          : this.mutationId,
+      commandSha256: data.commandSha256.present
+          ? data.commandSha256.value
+          : this.commandSha256,
+      entityKind: data.entityKind.present
+          ? data.entityKind.value
+          : this.entityKind,
+      entityId: data.entityId.present ? data.entityId.value : this.entityId,
+      resultOrigin: data.resultOrigin.present
+          ? data.resultOrigin.value
+          : this.resultOrigin,
+      resultSeq: data.resultSeq.present ? data.resultSeq.value : this.resultSeq,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CatalogMutation(')
+          ..write('mutationId: $mutationId, ')
+          ..write('commandSha256: $commandSha256, ')
+          ..write('entityKind: $entityKind, ')
+          ..write('entityId: $entityId, ')
+          ..write('resultOrigin: $resultOrigin, ')
+          ..write('resultSeq: $resultSeq')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    mutationId,
+    commandSha256,
+    entityKind,
+    entityId,
+    resultOrigin,
+    resultSeq,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CatalogMutation &&
+          other.mutationId == this.mutationId &&
+          other.commandSha256 == this.commandSha256 &&
+          other.entityKind == this.entityKind &&
+          other.entityId == this.entityId &&
+          other.resultOrigin == this.resultOrigin &&
+          other.resultSeq == this.resultSeq);
+}
+
+class CatalogMutationsCompanion extends UpdateCompanion<CatalogMutation> {
+  final Value<String> mutationId;
+  final Value<String> commandSha256;
+  final Value<String> entityKind;
+  final Value<String> entityId;
+  final Value<String> resultOrigin;
+  final Value<int> resultSeq;
+  final Value<int> rowid;
+  const CatalogMutationsCompanion({
+    this.mutationId = const Value.absent(),
+    this.commandSha256 = const Value.absent(),
+    this.entityKind = const Value.absent(),
+    this.entityId = const Value.absent(),
+    this.resultOrigin = const Value.absent(),
+    this.resultSeq = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CatalogMutationsCompanion.insert({
+    required String mutationId,
+    required String commandSha256,
+    required String entityKind,
+    required String entityId,
+    required String resultOrigin,
+    required int resultSeq,
+    this.rowid = const Value.absent(),
+  }) : mutationId = Value(mutationId),
+       commandSha256 = Value(commandSha256),
+       entityKind = Value(entityKind),
+       entityId = Value(entityId),
+       resultOrigin = Value(resultOrigin),
+       resultSeq = Value(resultSeq);
+  static Insertable<CatalogMutation> custom({
+    Expression<String>? mutationId,
+    Expression<String>? commandSha256,
+    Expression<String>? entityKind,
+    Expression<String>? entityId,
+    Expression<String>? resultOrigin,
+    Expression<int>? resultSeq,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (mutationId != null) 'mutation_id': mutationId,
+      if (commandSha256 != null) 'command_sha256': commandSha256,
+      if (entityKind != null) 'entity_kind': entityKind,
+      if (entityId != null) 'entity_id': entityId,
+      if (resultOrigin != null) 'result_origin': resultOrigin,
+      if (resultSeq != null) 'result_seq': resultSeq,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CatalogMutationsCompanion copyWith({
+    Value<String>? mutationId,
+    Value<String>? commandSha256,
+    Value<String>? entityKind,
+    Value<String>? entityId,
+    Value<String>? resultOrigin,
+    Value<int>? resultSeq,
+    Value<int>? rowid,
+  }) {
+    return CatalogMutationsCompanion(
+      mutationId: mutationId ?? this.mutationId,
+      commandSha256: commandSha256 ?? this.commandSha256,
+      entityKind: entityKind ?? this.entityKind,
+      entityId: entityId ?? this.entityId,
+      resultOrigin: resultOrigin ?? this.resultOrigin,
+      resultSeq: resultSeq ?? this.resultSeq,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (mutationId.present) {
+      map['mutation_id'] = Variable<String>(mutationId.value);
+    }
+    if (commandSha256.present) {
+      map['command_sha256'] = Variable<String>(commandSha256.value);
+    }
+    if (entityKind.present) {
+      map['entity_kind'] = Variable<String>(entityKind.value);
+    }
+    if (entityId.present) {
+      map['entity_id'] = Variable<String>(entityId.value);
+    }
+    if (resultOrigin.present) {
+      map['result_origin'] = Variable<String>(resultOrigin.value);
+    }
+    if (resultSeq.present) {
+      map['result_seq'] = Variable<int>(resultSeq.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CatalogMutationsCompanion(')
+          ..write('mutationId: $mutationId, ')
+          ..write('commandSha256: $commandSha256, ')
+          ..write('entityKind: $entityKind, ')
+          ..write('entityId: $entityId, ')
+          ..write('resultOrigin: $resultOrigin, ')
+          ..write('resultSeq: $resultSeq, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$ReceiptDatabase extends GeneratedDatabase {
   _$ReceiptDatabase(QueryExecutor e) : super(e);
   late final DatasetState datasetState = DatasetState(this);
@@ -6728,6 +8504,41 @@ abstract class _$ReceiptDatabase extends GeneratedDatabase {
     'CREATE TRIGGER local_mutations_no_delete BEFORE DELETE ON local_mutations BEGIN SELECT RAISE (ABORT, \'immutable_mutation\');END',
     'local_mutations_no_delete',
   );
+  late final Products products = Products(this);
+  late final Index productsBranchName = Index(
+    'products_branch_name',
+    'CREATE INDEX products_branch_name ON products (store_id, canonical_name, id)',
+  );
+  late final Index productsRevision = Index(
+    'products_revision',
+    'CREATE INDEX products_revision ON products (current_revision_origin, current_revision_seq)',
+  );
+  late final ProductAliases productAliases = ProductAliases(this);
+  late final Index productAliasesActiveName = Index(
+    'product_aliases_active_name',
+    'CREATE UNIQUE INDEX product_aliases_active_name ON product_aliases (store_id, normalized_name) WHERE is_active = 1',
+  );
+  late final Index productAliasesProduct = Index(
+    'product_aliases_product',
+    'CREATE INDEX product_aliases_product ON product_aliases (store_id, product_id)',
+  );
+  late final Index productAliasesRevision = Index(
+    'product_aliases_revision',
+    'CREATE INDEX product_aliases_revision ON product_aliases (current_revision_origin, current_revision_seq)',
+  );
+  late final CatalogMutations catalogMutations = CatalogMutations(this);
+  late final Index catalogMutationsRevision = Index(
+    'catalog_mutations_revision',
+    'CREATE INDEX catalog_mutations_revision ON catalog_mutations (result_origin, result_seq)',
+  );
+  late final Trigger catalogMutationsNoUpdate = Trigger(
+    'CREATE TRIGGER catalog_mutations_no_update BEFORE UPDATE ON catalog_mutations BEGIN SELECT RAISE (ABORT, \'immutable_mutation\');END',
+    'catalog_mutations_no_update',
+  );
+  late final Trigger catalogMutationsNoDelete = Trigger(
+    'CREATE TRIGGER catalog_mutations_no_delete BEFORE DELETE ON catalog_mutations BEGIN SELECT RAISE (ABORT, \'immutable_mutation\');END',
+    'catalog_mutations_no_delete',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -6765,6 +8576,17 @@ abstract class _$ReceiptDatabase extends GeneratedDatabase {
     localMutationsReceipt,
     localMutationsNoUpdate,
     localMutationsNoDelete,
+    products,
+    productsBranchName,
+    productsRevision,
+    productAliases,
+    productAliasesActiveName,
+    productAliasesProduct,
+    productAliasesRevision,
+    catalogMutations,
+    catalogMutationsRevision,
+    catalogMutationsNoUpdate,
+    catalogMutationsNoDelete,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -6834,6 +8656,20 @@ abstract class _$ReceiptDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'local_mutations',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'catalog_mutations',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'catalog_mutations',
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [],

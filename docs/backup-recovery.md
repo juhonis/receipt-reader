@@ -15,7 +15,7 @@ projections. Export does not allocate sequences or change dataset/device identit
 `ReceiptRepository.restoreBackup(bytes, stagingParent: privateDirectory)` validates
 the bytes and creates a unique `receipt-restore-*` subdirectory under the existing
 caller-selected directory. It never chooses or replaces an active database path.
-It rebuilds a new schema-3 database transactionally from immutable events, audits
+It rebuilds a new schema-4 database transactionally from immutable events, audits
 it, checks the rebuilt manifest and heads, and closes it before returning a
 `RestoredReceiptBackup`. The result exposes its directory, database file, fresh
 identity and counts. It can be opened with `ReceiptRepository.open` for inspection.
@@ -27,9 +27,14 @@ can leave staging output; the workspace now cleans unregistered staging on start
 and retains all activated slots. This API is not a restore-over-existing-data operation and
 has no hidden replace or merge fallback.
 
-## Version-1 format
+## Structured formats 1 and 2
 
-The envelope has a fixed format name (`receipt_reader_backup`), string version
+[Catalog storage](product-catalog.md) adds inner version 2 for datasets with
+products/aliases, including their full event history and manifest counts. Datasets
+without catalog records retain the exact v1 format. Both restore; older builds
+reject version 2. Password encryption is independently versioned and unchanged.
+
+The v1 envelope has a fixed format name (`receipt_reader_backup`), string version
 `1`, SHA-256 of canonical content, and content. Content contains:
 
 - Dataset ID and event-envelope version.
@@ -50,8 +55,8 @@ Checksums detect corruption; they do not authenticate who created a package.
 Current bounds are 64 MiB per package, 20,000 events, 1 MiB per canonical event,
 128 event origins and 200,000 historical row identities. Exports exceeding a bound
 fail explicitly rather than truncating history. Schema, backup, event, review and
-deletion-policy versions are separate. No new SQL schema migration is needed for
-this format; existing schema-1/2-to-3 migration checks still pass.
+deletion-policy versions are separate. Recovery now targets schema 4;
+existing schema-1/2/3 migration and legacy-v1 recovery checks remain required.
 
 The core representation is plaintext and contains financial history, including
 prior corrected/deleted records. It excludes receipt images, raw OCR dumps,
