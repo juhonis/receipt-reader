@@ -89,6 +89,39 @@ void main() {
           alias(),
           mutationId: aliasMutation,
         );
+        final original = (await workspace.repository.read(receipt.id))!;
+        final linkedReceipt = ReceiptSnapshot(
+          id: receipt.id,
+          branch: branch,
+          date: receipt.date,
+          totalCents: receipt.totalCents,
+          items: [
+            ReceiptItemSnapshot(
+              id: receipt.items.single.id,
+              name: receipt.items.single.name,
+              rawName: 'TEST MILK 1 L',
+              kind: LineKind.product,
+              cents: receipt.items.single.cents,
+              product: (await workspace.repository.readProduct(
+                product.product.id,
+              ))!.link,
+            ),
+          ],
+        );
+        final linkCommand = ReviewedReceipt.manual(
+          current: linkedReceipt,
+          expectedHeads: [original.revision],
+          confirmation: ManualReviewChecks(
+            snapshot: linkedReceipt,
+            expectedHeads: [original.revision],
+            mutationId: DurableId.generate(),
+            branchReviewed: true,
+            dateReviewed: true,
+            totalReviewed: true,
+            reviewedRowIds: linkedReceipt.items.map((r) => r.id),
+          ).confirm(reviewedAtMs: BigInt.from(4), appVersion: 'catalog-smoke'),
+        );
+        await workspace.repository.saveManual(linkCommand);
         final prior = await workspace.repository.identity();
         final before = await workspace.repository.exportBackup();
         const password = 'synthetic catalog password';
@@ -100,13 +133,17 @@ void main() {
           password,
         );
         expect(preview.receipts, 1);
-        expect(preview.events, 4);
+        expect(preview.events, 5);
         await workspace.activate(preview);
         expect(
           (await workspace.repository.identity()).deviceId,
           isNot(prior.deviceId),
         );
         expect(await workspace.repository.exportBackup(), before);
+        expect(
+          (await workspace.repository.saveManual(linkCommand)).replayed,
+          isTrue,
+        );
         expect(
           (await workspace.repository.saveProduct(
             product,
@@ -180,8 +217,9 @@ void main() {
               .snapshot
               .items
               .single
-              .product,
-          isNull,
+              .product!
+              .id,
+          product.product.id,
         );
         await workspace.repository.verifyIntegrity();
         expect(tester.takeException(), isNull);

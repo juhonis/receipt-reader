@@ -37,6 +37,11 @@ class _OcrSaveDialogState extends State<OcrSaveDialog> {
         setState(() {
           _failed = true;
           _stale =
+              {
+                'staleProduct',
+                'missingProduct',
+                'crossStoreProduct',
+              }.contains(error.code) ||
               error.code == 'staleReceipt' ||
               error.code == 'staleBranch' ||
               error.code == 'receiptDeleted';

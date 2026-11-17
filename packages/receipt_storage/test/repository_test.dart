@@ -101,7 +101,7 @@ void main() {
   });
 
   test(
-    'product links wait for a catalog workflow rather than dropping references',
+    'missing product links fail atomically rather than dropping references',
     () async {
       final linked = ReceiptSnapshot(
         id: id(1),
@@ -124,7 +124,7 @@ void main() {
       );
       await expectLater(
         h.repository.saveManual(command(linked)),
-        fails('unsupportedProductLink'),
+        fails('missingProduct'),
       );
       expect(h.count('change_log'), 0);
       expect((await h.repository.identity()).nextLocalSequence, BigInt.one);

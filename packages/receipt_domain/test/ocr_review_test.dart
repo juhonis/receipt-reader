@@ -10,6 +10,52 @@ import 'support.dart' show id;
 
 final rejects = throwsA(isA<ReceiptDataException>());
 void main() {
+  test('explicit product selection is frozen in OCR confirmation without changing provenance', () {
+    final f = OcrFixture();
+    final link = ReceiptProductLink(
+      id: id(70),
+      storeId: f.branch.id,
+      revision: RevisionId(id(71), BigInt.one),
+    );
+    final details = {f.rows.single.id: OcrRowDetails(product: link)};
+    final confirmation = f.confirm(details: details);
+    final saved = f.save(details: details, confirmation: confirmation).document;
+    expect(saved.snapshot.items.single.product!.id, link.id);
+    expect(saved.snapshot.items.single.rawName, 'MILK');
+    expect(saved.review.source, 'ocr');
+    expect(saved.snapshot.items.single.id, id(3));
+    expect(saved.snapshot.items.single.cents, BigInt.from(200));
+    expect(() => f.save(confirmation: confirmation), rejects);
+    expect(
+      () => f.save(
+        details: {
+          f.rows.single.id: OcrRowDetails(
+            product: ReceiptProductLink(
+              id: id(72),
+              storeId: f.branch.id,
+              revision: link.revision,
+            ),
+          ),
+        },
+        confirmation: confirmation,
+      ),
+      rejects,
+    );
+    expect(
+      () => f.save(
+        details: {
+          f.rows.single.id: OcrRowDetails(
+            product: ReceiptProductLink(
+              id: link.id,
+              storeId: id(73),
+              revision: link.revision,
+            ),
+          ),
+        },
+      ),
+      rejects,
+    );
+  });
   test('ready OCR command has separate provenance, canonical bytes, and no pixels or free-text evidence', () {
     final f = OcrFixture(), saved = OcrFixture();
     final command = f.save();

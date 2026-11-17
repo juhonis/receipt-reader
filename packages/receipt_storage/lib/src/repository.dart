@@ -442,10 +442,26 @@ final class ReceiptRepository {
         );
         return SaveResult(revision, replayed: true);
       }
-      _check(
-        snapshot.items.every((item) => item.product == null),
-        'unsupportedProductLink',
-      );
+      final productRevisions = <RevisionId>{};
+      final productHeads = <DurableId, RevisionId>{};
+      for (final row in snapshot.items) {
+        if (row.product case final link?) {
+          final product = await _product(link.id);
+          _check(
+            product.document.product.storeId == snapshot.branch.id &&
+                link.storeId == snapshot.branch.id,
+            'crossStoreProduct',
+          );
+          _check(product.revision == link.revision, 'staleProduct');
+          _check(
+            productHeads[link.id] == null ||
+                productHeads[link.id] == link.revision,
+            'staleProduct',
+          );
+          productHeads[link.id] = link.revision;
+          productRevisions.add(link.revision);
+        }
+      }
       _check(
         (await _rows('SELECT is_deleted FROM receipts WHERE id = ?', [
           snapshot.id.value,
@@ -554,7 +570,7 @@ final class ReceiptRepository {
         count,
         auditAt,
         expected,
-        [branchRevision],
+        [branchRevision, ...productRevisions],
       );
       // Deferred self-foreign keys permit a discount to precede its product, and
       // allow the complete collection to be replaced without partial projections.
@@ -932,7 +948,7 @@ Map<String, Object?> _itemFields(ReceiptSnapshot snapshot, int position) {
     'kind': row.kind.name,
     'parent_item_id': row.parentItemId?.value,
     'discount_scope': row.discountScope?.name,
-    'product_id': null,
+    'product_id': row.product?.id.value,
     'raw_name': row.rawName,
     'name': row.name,
     'normalized_name': row.normalizedName,

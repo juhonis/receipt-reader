@@ -5,6 +5,8 @@ import 'package:receipt_storage/receipt_storage.dart';
 
 import 'l10n/generated/app_localizations.dart';
 import 'local_store.dart';
+import 'catalog_service.dart';
+import 'product_picker.dart';
 import 'receipt_format.dart';
 
 // Keep aligned with pubspec.yaml when cutting a release.
@@ -43,6 +45,7 @@ class _ManualRow {
     kind = item.kind;
     rawName = item.rawName;
     product = item.product;
+    productName = item.name;
     if (item.quantityValue != null) {
       originalQuantityScale = item.quantityScale!;
       originalQuantityText = formatFixed(
@@ -62,6 +65,7 @@ class _ManualRow {
   String? rawName, originalQuantityText;
   int originalQuantityScale = 6;
   ReceiptProductLink? product;
+  String? productName;
   final name = TextEditingController();
   final amount = TextEditingController();
   final quantity = TextEditingController();
@@ -146,6 +150,11 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
     _branchReviewed = _dateReviewed = _totalReviewed = false;
     for (final row in _rows) {
       row.reviewed = false;
+      if (row.kind != LineKind.product ||
+          row.name.text.trim() != row.productName ||
+          row.product?.storeId.value != _branchChoice) {
+        row.product = null;
+      }
     }
   });
 
@@ -246,6 +255,21 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(snapshot.branch.name),
+            if (widget.store is CatalogService) ...[
+              Text(s.productLinksReview),
+              for (final item in snapshot.items.where(
+                (r) => r.kind == LineKind.product,
+              )) ...[
+                Text(item.name),
+                if (item.product == null)
+                  Text(s.productUnlinked)
+                else
+                  ProductLinkLabel(
+                    service: widget.store as CatalogService,
+                    link: item.product!,
+                  ),
+              ],
+            ],
             Text(_date.text),
             Text('${formatCents(snapshot.totalCents)} €'),
             Text(
@@ -306,6 +330,11 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
         setState(() {
           _saveFailed = true;
           _stale =
+              {
+                'staleProduct',
+                'missingProduct',
+                'crossStoreProduct',
+              }.contains(error.code) ||
               error.code == 'staleReceipt' ||
               error.code == 'staleBranch' ||
               error.code == 'receiptDeleted';
@@ -595,6 +624,23 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
           children: [
             Text(s.manualRowNumber(index + 1)),
             field('manual-row-name-$index', row.name, s.rowNameLabel),
+            if (row.kind == LineKind.product && widget.store is CatalogService)
+              ReceiptProductSelector(
+                key: ValueKey('manual-product-$index'),
+                service: widget.store as CatalogService,
+                storeId: _branches
+                    ?.where((b) => b.id.value == _branchChoice)
+                    .firstOrNull
+                    ?.id,
+                receiptName: row.name.text,
+                link: row.product,
+                enabled: !locked,
+                onChanged: (link) {
+                  row.product = link;
+                  row.productName = row.name.text.trim();
+                  _edit();
+                },
+              ),
             field(
               'manual-row-amount-$index',
               row.amount,

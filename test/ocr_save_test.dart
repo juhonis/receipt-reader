@@ -11,6 +11,9 @@ import 'package:receipt_reader/receipt_import.dart';
 import 'package:receipt_reader/review_page.dart';
 
 import 'support/fake_store.dart';
+import 'support/fake_catalog_store.dart';
+
+import 'package:receipt_reader/product_picker.dart';
 
 void main() {
   Future<void> visible(WidgetTester tester, String key) async {
@@ -137,6 +140,52 @@ void main() {
     await tester.tap(find.byKey(const Key('ocr-confirm-save')));
     await tester.pumpAndSettle();
   }
+
+  testWidgets(
+    'OCR product selection is explicit, invalidates approval and preserves source',
+    (tester) async {
+      final store = FakeCatalogStore();
+      final product = store.seedProduct();
+      final evidence = await open(tester, store);
+      await approve(tester);
+      await visible(tester, 'ocr-product-0');
+      expect(
+        tester
+            .widget<ReceiptProductSelector>(
+              find.byKey(const Key('ocr-product-0')),
+            )
+            .link,
+        isNull,
+      );
+      await tester.tap(find.text('Valitse tuote'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          ValueKey('pick-product-${product.document.product.id.value}'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await visible(tester, 'review-confirmation');
+      expect(
+        tester
+            .widget<CheckboxListTile>(
+              find.byKey(const Key('review-confirmation')),
+            )
+            .value,
+        isFalse,
+      );
+      await approve(tester);
+      await finalSave(tester);
+      expect(
+        store.saved.single.document.snapshot.items.single.product!.id,
+        product.document.product.id,
+      );
+      expect(store.saved.single.document.snapshot.items.single.rawName, 'MILK');
+      expect(store.saved.single.document.review.source, 'ocr');
+      evidence.dispose();
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   StoredReceipt original(FakeStore store, {int rows = 1}) {
     final json = jsonDecode(

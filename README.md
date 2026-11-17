@@ -12,12 +12,14 @@ SQLite. [Manual saving](docs/manual-saving.md),
 [reviewed manual corrections](docs/manual-corrections.md),
 [fresh-image OCR corrections](docs/ocr-corrections.md) and
 [reviewed receipt deletion](docs/receipt-deletion.md) have synthetic native
-integration checks on both platforms. SQLite schema 3 migrates existing data
-from schemas 1 and 2 without changing prior event bytes. The
+integration checks on both platforms. SQLite schema 5 migrates existing data
+from schemas 1–4 without changing prior event bytes. The
 [structured backup/recovery core](docs/backup-recovery.md) and
 [password-protected backup UI](docs/password-backups.md) include reviewed recovery
-and retained previous datasets, with native checks on both platforms. The Windows
-OCR adapter/packaging, products/aliases, analytics and sync remain open.
+and retained previous datasets, with native checks on both platforms.
+[Product/alias management](docs/product-catalog.md) provides Finnish catalog
+screens and explicit reviewed receipt links, preserved through encrypted recovery.
+Windows OCR packaging, price history/charts and sync remain open.
 
 See [the project plan](docs/plan.md) for the next milestone and
 [OCR spike findings](docs/ocr-spike.md) for engine evidence and remaining

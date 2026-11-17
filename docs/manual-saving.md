@@ -84,9 +84,10 @@ ties. Money stays exact signed integer cents throughout, including returns.
 Details show row types, quantities/rates, discount/deposit parents and adjustment
 reasons. [History filters](history-filters.md) and
 [reviewed manual corrections](manual-corrections.md) and
-[fresh-image OCR corrections](ocr-corrections.md) are now implemented. Deletion,
-branch/catalog management, products/aliases, analytics,
-export/restore and synchronization remain later work. Images and OCR
+[fresh-image OCR corrections](ocr-corrections.md) are now implemented. [Reviewed deletion](receipt-deletion.md),
+[product/alias management and explicit links](product-catalog.md), and
+[encrypted export/restore](password-backups.md) are also available. Branch editing,
+analytics and synchronization remain later work. Images and OCR
 text dumps are not stored. `lib/manual_receipt_page.dart` records application
 version `0.1.0+1`; keep its version constant aligned with `pubspec.yaml` when
 cutting a release.

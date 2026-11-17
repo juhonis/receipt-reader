@@ -1,9 +1,8 @@
 # Store-scoped product and alias storage
 
-Status: storage foundation implemented on 2026-11-17. Product-management screens,
-reviewed receipt matching/correction and price trends are the next increment.
-The normal receipt save paths still reject product links until that workflow is
-implemented. Existing receipts are not automatically matched or rewritten.
+Status: Finnish catalog management and explicit reviewed receipt linking implemented
+on 2026-11-17. Existing receipts are never automatically matched or rewritten.
+Price history and trends are the next increment.
 
 ## Identity and matching rules
 
@@ -60,10 +59,11 @@ Identical retries return the original result after edits, reopen or backup resto
 Reusing a UUID for a different command fails. Stale edits, cross-branch references,
 missing products and alias collisions fail before committing an event. Catalog
 writes also invalidate a prepared workspace restore preview through the shared
-sequence stamp. The app's serialized storage adapter will need catalog methods
-when the UI is added.
+sequence stamp. The app exposes these calls through `CatalogService`; the
+workspace adapter queues them with receipt reads/writes and backup
+preparation/activation.
 
-## Schema 4 and integrity
+## Schema 5 and integrity
 
 Schema 4 adds strict `products`, `product_aliases` and `catalog_mutations` tables,
 indexes and immutable retry triggers. A composite foreign key enforces alias
@@ -71,12 +71,16 @@ branch ownership; a partial unique index enforces active alias keys. Event and
 head constraints now accept `product` and `alias` snapshot kinds. Receipt tables,
 row identities and released canonical receipt/event bytes are unchanged.
 
-Migrations from schemas 1, 2 and 3 run transactionally with foreign keys disabled
+Schema 5 rebuilds receipt items to allow product links only on product rows, with
+a composite foreign key enforcing the product and receipt branch. Canonical receipt
+bytes remain v1; they already defined optional versioned product links.
+
+Migrations from schemas 1, 2, 3 and 4 run transactionally with foreign keys disabled
 only outside the DDL transaction, followed by foreign-key validation and atomic
 version assignment. Existing installation identity, history, tombstones and retry
 results survive. A failed upgrade rolls back DDL, values and schema version so
 opening can retry. Released schema snapshots remain committed unchanged, alongside
-the new schema-4 snapshot and generated migration verification helper.
+the schema-4 and schema-5 snapshots and generated migration verification helper.
 
 The complete integrity audit replays catalog history in causal order. It checks
 canonical bytes/digests, parents, dependency types/identities, immutable ownership
@@ -92,15 +96,20 @@ The **inner structured format** is independently versioned:
 
 - Datasets with no catalog records continue to export the exact v1 format.
   Existing v1 packages and the independent encrypted fixture still restore.
-- Datasets containing products or aliases export inner version 2. It adds
+- Datasets containing products or aliases, but no linked receipt history, export
+  inner version 2. It adds
   `products` and `aliases` counts after the existing count fields and includes all
   catalog events/heads, inactive aliases and historical product/alias edits.
   Alias events have both store and product revision dependencies.
-- Older builds reject inner version 2; they cannot silently discard catalog data.
+- A linked receipt snapshot anywhere in retained history selects inner version 3,
+  including after unlinking or deleting its current receipt. It retains the v2
+  catalog manifest and permits one branch plus distinct product dependencies per
+  receipt. Restore verifies dependency kinds, identities, ownership and revisions.
+- Older builds reject unsupported inner versions; they cannot silently discard links.
   Returning to an older executable after migrating a database also fails its
   schema-version check. Keep the newer app available to restore these backups.
 
-Recovery rebuilds schema 4 and all catalog projections, audits complete history,
+Recovery rebuilds schema 5 and all catalog projections, audits complete history,
 and compares the canonical manifest. Original event bytes and retry results remain
 intact. Only the active installation identity is fresh. Subsequent catalog edits
 start the new device's stream at sequence 1 and retain historical parents.
@@ -114,7 +123,9 @@ From the repository root, run the app checks and native synthetic smoke:
 ```powershell
 flutter analyze
 flutter test
+flutter test integration_test/catalog_review_test.dart -d windows
 flutter test integration_test/product_catalog_test.dart -d windows
+flutter test integration_test/catalog_review_test.dart -d emulator-5554
 flutter test integration_test/product_catalog_test.dart -d emulator-5554
 ```
 
@@ -124,11 +135,14 @@ isolation, package rules, exact suggestions, separate equal-name identities,
 stale edits, deactivation/reactivation/remapping, collisions, global mutation IDs,
 write rollback, corrupt projections, modified backup histories, repeated encrypted
 restore/write cycles and a catalog write invalidating a prepared replacement.
-Migration tests include populated released schemas 1/2/3 and failed-upgrade retry.
-Verified on 2026-11-17: 45 domain tests, 163 storage tests and 115 app tests pass,
-with clean analysis for all three. The native catalog smoke passes on Windows
-and Android in airplane mode; normal app builds and the prior network setting
-were restored afterwards.
+Migration tests include populated released schemas 1/2/3/4 and failed-upgrade retry.
+Current verification includes the existing suites plus explicit product selection,
+catalog create/edit/deactivate/remap, frozen retries, stale writes, pagination,
+large-text layouts, OCR confirmation binding and linked-history recovery tests.
+Verified on 2026-11-17: 124 app tests, 46 domain tests and 175 storage tests pass,
+with clean analysis. Both native catalog workflows pass on Windows and Android
+in airplane mode. Normal Windows release/Android debug builds and the prior
+emulator network setting are restored after verification.
 
 The native test uses a guarded `catalog-storage-smoke-*` app-support directory.
 It exercises package metadata, encrypted file I/O, workspace activation, historical
@@ -137,10 +151,51 @@ dataset. It never opens or clears the normal app database. Run Android offline,
 restore the prior airplane setting, and rebuild/reinstall normal app entry points
 afterwards as described in [Windows development](windows-development.md).
 
+## Using the catalog and linking receipts
+
+Open **Tuotteet ja kuittinimet** on the home screen and select an existing branch.
+Save a receipt first if the branch does not exist. Products and aliases have
+separate paginated lists (30 entries). Add or edit a product's canonical name and
+optional exact package quantity/unit, then check the review box before saving.
+Package details describe the package, not the quantity bought on a receipt.
+A short identity code distinguishes independent same-name products.
+
+Add a kuittinimi with the printed receipt name and an explicitly selected product.
+You can remap or deactivate it later. Its normalized key and branch are immutable;
+for another spelling, deactivate the old key and create another. A collision or
+stale edit requires closing and reloading; it never replaces a different mapping.
+After an uncertain save, fields freeze and retry sends the identical reviewed
+command and mutation identity. Closing refreshes the list because the write may
+already have committed.
+
+During manual or OCR review, **Valitse tuote** opens the branch's products. An exact
+active alias appears as a suggestion and requires an explicit tap. Cancel preserves
+the previous choice; **Jätä ilman tuoteliitosta** explicitly removes it. A new branch
+cannot use catalog products until its first receipt is saved. Linking is optional.
+Changing the row name, row kind or branch clears an inapplicable choice and review
+checks. The final confirmation shows each product row's link or unlinked status.
+A catalog edit after selection makes a save stale; reopen and review current data.
+
+History displays the current catalog label, with a notice if its revision is newer
+than the receipt's recorded link. Fetch failure does not hide financial history.
+Manual corrections retain row identity, raw name, amounts, quantities and related
+rows. OCR corrections retain the fresh-image evidence workflow and start with no
+product links: select them again and explicitly map saved row identities. Changing
+an OCR row's identity also clears its product. Links are included in the reviewed
+snapshot digest, so changing one invalidates the final approval. Every linked
+save depends on the reviewed branch and distinct current product revisions.
+Later catalog changes do not rewrite the saved receipt or its historical links.
+
+The native UI test uses guarded `catalog-review-smoke-*` app-support storage. It
+creates products and aliases through Finnish screens, explicitly accepts a
+suggestion, saves a linked receipt, reviews its removal while retaining row
+identity, and restores the encrypted full history. The storage smoke separately
+checks linked receipt replay after encrypted activation and previous-data recovery.
+Neither test opens or clears the normal database.
+
 ## Remaining work
 
-Add Finnish product/alias management, explicit selection during manual/OCR review,
-reviewed correction of stored receipt links, and SQL/causal validation of those
-links. Preserve source provenance and receipt/row identities. Only then build
-comparable product history and price trends. Windows OCR packaging and all sync
-transport/conflict workflows remain separate work.
+Build comparable product history and price trends from reviewed product links.
+Keep package quantity separate from purchased quantity and define discount,
+deposit and unit-comparability rules before displaying inferred unit prices.
+Windows OCR packaging and sync transport/conflict workflows remain separate work.

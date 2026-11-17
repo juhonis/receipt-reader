@@ -36,7 +36,9 @@ Passwords protect exported files; live, previous and staged SQLite data still re
 on private OS application storage. Retaining an old slot is not secure erasure.
 
 The encrypted envelope remains v1 when the inner package contains catalog data.
-[Product/alias backups](product-catalog.md) use structured inner version 2; legacy
+[Product/alias backups](product-catalog.md) use structured inner version 2, or
+version 3 when retained receipts have product links. The encrypted envelope stays
+v1; legacy
 receipt-only packages retain inner version 1. Both recover through this workflow.
 
 ## Encrypted envelope v1

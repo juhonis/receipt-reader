@@ -136,7 +136,8 @@ adds schema-3 tombstones while retaining prior history and row ownership.
 The [backup/recovery core](backup-recovery.md) now rebuilds validated history in
 isolated staging with a fresh installation identity. [Password-protected backup
 UI and slot activation](password-backups.md) now select validated recovered data
-and preserve previous local slots. Product/alias management and sync conflicts
-remain later work.
+and preserve previous local slots. [Product/alias management](product-catalog.md)
+now adds schema-5 reviewed receipt links with exact optional suggestions. Price
+history and sync conflicts remain later work.
 Existing verification counts above describe the manual-saving baseline; the
 recovery guide records the current suites and native checks.

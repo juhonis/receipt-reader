@@ -10,6 +10,8 @@ import 'l10n/generated/app_localizations.dart';
 import 'review_page.dart';
 import 'receipt_import.dart';
 import 'local_store.dart';
+import 'catalog_service.dart';
+import 'catalog_page.dart';
 import 'manual_receipt_page.dart';
 import 'history_page.dart';
 import 'backup_files.dart';
@@ -216,6 +218,20 @@ class _HomePageState extends State<_HomePage> {
                       onPressed: _history,
                       icon: const Icon(Icons.history),
                       label: Text(strings.historyTitle),
+                    ),
+                  if (widget.store is CatalogService && !recovery)
+                    TextButton.icon(
+                      key: const Key('open-catalog'),
+                      onPressed: () => Navigator.of(context).push<void>(
+                        MaterialPageRoute(
+                          builder: (_) => CatalogPage(
+                            store: widget.store!,
+                            catalog: widget.store! as CatalogService,
+                          ),
+                        ),
+                      ),
+                      icon: const Icon(Icons.inventory_2_outlined),
+                      label: Text(strings.catalogTitle),
                     ),
                   if (recovery) Text(strings.backupRecoveryMode),
                   if (widget.store is BackupService)

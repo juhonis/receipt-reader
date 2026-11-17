@@ -5,6 +5,8 @@ import 'package:receipt_storage/receipt_storage.dart';
 
 import 'l10n/generated/app_localizations.dart';
 import 'local_store.dart';
+import 'catalog_service.dart';
+import 'product_picker.dart';
 import 'history_filter_dialog.dart';
 import 'manual_receipt_page.dart';
 import 'receipt_format.dart';
@@ -303,6 +305,15 @@ class ReceiptDetailPage extends StatelessWidget {
                         children: [
                           Text(s.manualRowNumber(i + 1)),
                           Text(snapshot.items[i].name),
+                          if (snapshot.items[i].kind == LineKind.product &&
+                              store is CatalogService)
+                            if (snapshot.items[i].product == null)
+                              Text(s.productUnlinked)
+                            else
+                              ProductLinkLabel(
+                                service: store as CatalogService,
+                                link: snapshot.items[i].product!,
+                              ),
                           Text(kinds[snapshot.items[i].kind]!),
                           Text('${formatCents(snapshot.items[i].cents)} €'),
                           if (snapshot.items[i].quantityValue != null)

@@ -290,7 +290,7 @@ void main() {
   });
 
   final malformed = <String, Uint8List Function(Uint8List)>{
-    'future format': (b) => changed(b, (m) => m['format_version'] = '2'),
+    'future format': (b) => changed(b, (m) => m['format_version'] = '4'),
     'future event': (b) =>
         changed(b, (m) => changeEvent(m, 0, (e) => e['event_version'] = '2')),
     'unknown field': (b) =>

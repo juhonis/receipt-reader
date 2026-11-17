@@ -14,6 +14,8 @@ import 'row_evidence_dialog.dart';
 import 'layout_review_dialog.dart';
 import 'page_evidence_dialog.dart';
 import 'local_store.dart';
+import 'catalog_service.dart';
+import 'product_picker.dart';
 import 'ocr_save_dialog.dart';
 import 'manual_receipt_page.dart' show receiptAppVersion;
 
@@ -69,6 +71,8 @@ class _RowFields {
   final rate = TextEditingController();
   final reason = TextEditingController();
   Object? depositParent;
+  ReceiptProductLink? product;
+  String? productName;
   bool standaloneDeposit = false;
   QuantityUnit unit = QuantityUnit.unknown;
   bool imageCompared = false;
@@ -132,6 +136,7 @@ class _ReviewPageState extends State<ReviewPage> {
   Map<Object, OcrRowDetails> get _rowDetails => {
     for (final row in _rows)
       row: OcrRowDetails(
+        product: row.product,
         depositParent: row.kind == LineKind.deposit ? row.depositParent : null,
         standaloneDeposit:
             row.kind == LineKind.deposit && row.standaloneDeposit,
@@ -226,6 +231,22 @@ class _ReviewPageState extends State<ReviewPage> {
               Text(approved.snapshot.date),
               Text(approved.snapshot.total),
               Text(s.ocrSaveFinalNotice),
+              if (widget.store is CatalogService) ...[
+                Text(s.productLinksReview),
+                if (widget._initial != null) Text(s.productOcrCorrection),
+                for (final row in _rows.where(
+                  (r) => r.kind == LineKind.product,
+                )) ...[
+                  Text(row.name.text),
+                  if (row.product == null)
+                    Text(s.productUnlinked)
+                  else
+                    ProductLinkLabel(
+                      service: widget.store! as CatalogService,
+                      link: row.product!,
+                    ),
+                ],
+              ],
               if (widget._initial != null) ...[
                 for (final label in matchedLabels) Text(label),
                 Text(
@@ -818,6 +839,13 @@ class _ReviewPageState extends State<ReviewPage> {
 
   void _edit([String? _]) => setState(() {
     _savePreparationFailed = false;
+    for (final row in _rows) {
+      if (row.kind != LineKind.product ||
+          row.name.text.trim() != row.productName ||
+          row.product?.storeId.value != _branchChoice) {
+        row.product = null;
+      }
+    }
     _reviewed = false;
     _edited = true;
     _resolvedFindings.clear();
@@ -1308,6 +1336,9 @@ class _ReviewPageState extends State<ReviewPage> {
                       const SizedBox(height: 20),
                       if (widget._initial != null)
                         Text(s.ocrCorrectionMappingRequired),
+                      if (widget._initial != null &&
+                          widget.store is CatalogService)
+                        Text(s.productOcrCorrection),
                       Text(
                         s.rowsHeading,
                         style: Theme.of(context).textTheme.titleLarge,
@@ -1357,6 +1388,7 @@ class _ReviewPageState extends State<ReviewPage> {
                                     ],
                                     onChanged: (value) {
                                       _rows[i].savedRowChoice = value;
+                                      _rows[i].product = null;
                                       _edit();
                                     },
                                   ),
@@ -1369,6 +1401,24 @@ class _ReviewPageState extends State<ReviewPage> {
                                   ),
                                   onChanged: _edit,
                                 ),
+                                if (_rows[i].kind == LineKind.product &&
+                                    widget.store is CatalogService)
+                                  ReceiptProductSelector(
+                                    key: ValueKey('ocr-product-$i'),
+                                    service: widget.store! as CatalogService,
+                                    storeId: _branchChoice == 'new'
+                                        ? null
+                                        : _selectedBranch?.id,
+                                    receiptName: _rows[i].name.text,
+                                    link: _rows[i].product,
+                                    enabled: !_recognizing,
+                                    onChanged: (link) {
+                                      _rows[i].product = link;
+                                      _rows[i].productName = _rows[i].name.text
+                                          .trim();
+                                      _edit();
+                                    },
+                                  ),
                                 TextField(
                                   enabled: !_recognizing,
                                   key: ValueKey('row-amount-$i'),

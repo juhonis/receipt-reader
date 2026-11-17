@@ -5,6 +5,7 @@ import 'package:receipt_domain/receipt_domain.dart';
 import 'package:receipt_storage/receipt_storage.dart';
 
 import 'backup_service.dart';
+import 'catalog_service.dart';
 
 /// App-facing seam: widget tests never open the user's real database.
 abstract interface class LocalStore {
@@ -20,9 +21,46 @@ abstract interface class LocalStore {
   Future<void> close();
 }
 
-final class RepositoryStore implements LocalStore {
+final class RepositoryStore implements LocalStore, CatalogService {
   RepositoryStore(this.repository);
   final ReceiptRepository repository;
+  @override
+  Future<List<StoredProduct>> products(
+    DurableId storeId, {
+    int limit = 30,
+    int offset = 0,
+  }) => repository.products(storeId, limit: limit, offset: offset);
+  @override
+  Future<List<StoredProductAlias>> aliases(
+    DurableId storeId, {
+    bool activeOnly = false,
+    int limit = 30,
+    int offset = 0,
+  }) => repository.aliases(
+    storeId,
+    activeOnly: activeOnly,
+    limit: limit,
+    offset: offset,
+  );
+  @override
+  Future<StoredProduct?> readProduct(DurableId id) =>
+      repository.readProduct(id);
+  @override
+  Future<StoredProductAlias?> readAlias(DurableId id) =>
+      repository.readAlias(id);
+  @override
+  Future<ProductAliasMatch?> matchAlias(DurableId storeId, String name) =>
+      repository.matchAlias(storeId, name);
+  @override
+  Future<SaveResult> saveProduct(
+    ProductDocument document, {
+    required DurableId mutationId,
+  }) => repository.saveProduct(document, mutationId: mutationId);
+  @override
+  Future<SaveResult> saveAlias(
+    ProductAliasDocument document, {
+    required DurableId mutationId,
+  }) => repository.saveAlias(document, mutationId: mutationId);
 
   @override
   Future<List<ReceiptBranch>> branches() => repository.branches();
@@ -46,9 +84,56 @@ final class RepositoryStore implements LocalStore {
 }
 
 /// Serializes all app reads/writes with backup preparation and activation.
-final class WorkspaceStore implements LocalStore, BackupService {
+final class WorkspaceStore
+    implements LocalStore, BackupService, CatalogService {
   WorkspaceStore(this.workspace);
   final ReceiptWorkspace workspace;
+  @override
+  Future<List<StoredProduct>> products(
+    DurableId storeId, {
+    int limit = 30,
+    int offset = 0,
+  }) => _run(
+    () => workspace.repository.products(storeId, limit: limit, offset: offset),
+  );
+  @override
+  Future<List<StoredProductAlias>> aliases(
+    DurableId storeId, {
+    bool activeOnly = false,
+    int limit = 30,
+    int offset = 0,
+  }) => _run(
+    () => workspace.repository.aliases(
+      storeId,
+      activeOnly: activeOnly,
+      limit: limit,
+      offset: offset,
+    ),
+  );
+  @override
+  Future<StoredProduct?> readProduct(DurableId id) =>
+      _run(() => workspace.repository.readProduct(id));
+  @override
+  Future<StoredProductAlias?> readAlias(DurableId id) =>
+      _run(() => workspace.repository.readAlias(id));
+  @override
+  Future<ProductAliasMatch?> matchAlias(DurableId storeId, String name) =>
+      _run(() => workspace.repository.matchAlias(storeId, name));
+  @override
+  Future<SaveResult> saveProduct(
+    ProductDocument document, {
+    required DurableId mutationId,
+  }) => _run(
+    () => workspace.repository.saveProduct(document, mutationId: mutationId),
+  );
+  @override
+  Future<SaveResult> saveAlias(
+    ProductAliasDocument document, {
+    required DurableId mutationId,
+  }) => _run(
+    () => workspace.repository.saveAlias(document, mutationId: mutationId),
+  );
+
   Future<void> _tail = Future.value();
   bool _closed = false;
   Future<T> _run<T>(Future<T> Function() action) {

@@ -9,10 +9,12 @@ final class OcrRowDetails {
     this.depositParent,
     this.standaloneDeposit = false,
     this.adjustmentReason,
+    this.product,
   });
   final Object? depositParent;
   final bool standaloneDeposit;
   final String? adjustmentReason;
+  final ReceiptProductLink? product;
 }
 
 /// A structured disposition, deliberately excluding OCR words and free-text notes.
@@ -307,6 +309,7 @@ ReceiptDocument _buildOcr(
             ? null
             : current.draft.rows[sourceIndex].name.trim(),
         kind: input.kind,
+        product: extra.product,
         cents: parseCents(input.amount)!,
         quantityValue: hasQuantity ? parseFixed(input.quantity, 6) : null,
         quantityScale: hasQuantity ? 6 : null,

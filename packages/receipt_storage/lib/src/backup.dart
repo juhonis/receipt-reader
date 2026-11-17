@@ -36,12 +36,27 @@ const _countKeys = [
   'heads',
 ];
 
+String _backupFormat(Map<String, Object?> content) {
+  for (final entry in content['events']! as List) {
+    final event =
+        jsonDecode((entry as Map)['canonical_event']! as String) as Map;
+    if (event['entity_kind'] == 'receipt' && event['operation'] == 'snapshot') {
+      final payload = event['payload'] as Map;
+      final receipt = payload['receipt'] as Map;
+      if ((receipt['items'] as List).any(
+        (row) => (row as Map)['product'] != null,
+      )) {
+        return '3';
+      }
+    }
+  }
+  return (content['counts']! as Map).containsKey('products') ? '2' : '1';
+}
+
 Uint8List _encodeBackup(Map<String, Object?> content) {
   final text = jsonEncode({
     'format': 'receipt_reader_backup',
-    'format_version': (content['counts']! as Map).containsKey('products')
-        ? '2'
-        : '1',
+    'format_version': _backupFormat(content),
     'content_sha256': _sha(jsonEncode(content)),
     'content': content,
   });
@@ -157,7 +172,10 @@ final class _BackupEvent {
       _backupNumber(event['mutation_index']).toInt(),
       _backupNumber(event['mutation_count']).toInt(),
       references(event['parents'], 1),
-      references(event['dependencies'], 2),
+      references(
+        event['dependencies'],
+        ReceiptBackupLimits.maxRowIdentities + 1,
+      ),
       jsonEncode(event['payload']),
     );
     _check(
@@ -218,7 +236,7 @@ _DecodedBackup _decodeBackup(Uint8List bytes) {
     ]);
     _check(
       root['format'] == 'receipt_reader_backup' &&
-          ['1', '2'].contains(root['format_version']),
+          ['1', '2', '3'].contains(root['format_version']),
       'unsupportedBackup',
     );
     _check(jsonEncode(root) == text, 'invalidBackup');
@@ -237,7 +255,7 @@ _DecodedBackup _decodeBackup(Uint8List bytes) {
     final dataset = DurableId.parse(_backupString(content['dataset_id']));
     final countKeys = [
       ..._countKeys,
-      if (root['format_version'] == '2') ...['products', 'aliases'],
+      if (root['format_version'] != '1') ...['products', 'aliases'],
     ];
     final countsObject = _backupObject(content['counts'], countKeys);
     final counts = {
@@ -273,7 +291,7 @@ _DecodedBackup _decodeBackup(Uint8List bytes) {
       for (final entry in raw) _BackupEvent.decode(entry, dataset),
     ];
     _check(
-      root['format_version'] == '2' ||
+      root['format_version'] != '1' ||
           events.every((e) => e.kind == 'store' || e.kind == 'receipt'),
       'unsupportedBackup',
     );
@@ -281,6 +299,10 @@ _DecodedBackup _decodeBackup(Uint8List bytes) {
       events.map((e) => e.revision.origin).toSet().length <=
           ReceiptBackupLimits.maxOrigins,
       'backupTooLarge',
+    );
+    _check(
+      root['format_version'] == _backupFormat(content),
+      'unsupportedBackup',
     );
     return _DecodedBackup(dataset, content, counts, events);
   } on StorageFailure {

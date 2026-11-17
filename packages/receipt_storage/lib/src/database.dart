@@ -27,7 +27,7 @@ class ReceiptDatabase extends _$ReceiptDatabase {
   }
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   Future<void> createInitialSchema(Migrator migrator) => migrator.createAll();
 
@@ -71,16 +71,20 @@ class ReceiptDatabase extends _$ReceiptDatabase {
     }
   }
 
+  Future<void> upgradeProductLinks(Migrator migrator) async {
+    await migrator.alterTable(TableMigration(receiptItems));
+  }
+
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => transaction(() async {
       await createInitialSchema(m);
       // Keep schema and version atomic, including a crash before Drift's own
       // redundant version assignment after this callback returns.
-      await customStatement('PRAGMA user_version = 4');
+      await customStatement('PRAGMA user_version = 5');
     }),
     onUpgrade: (m, from, to) async {
-      if ((from < 1 || from > 3) || to != 4) {
+      if ((from < 1 || from > 4) || to != 5) {
         throw StateError('unsupported_schema');
       }
       await customStatement('PRAGMA foreign_keys = OFF');
@@ -88,13 +92,14 @@ class ReceiptDatabase extends _$ReceiptDatabase {
         await transaction(() async {
           if (from == 1) await upgradeReviewPolicy(m);
           if (from < 3) await upgradeTombstones(m);
-          await upgradeCatalog(m);
+          if (from < 4) await upgradeCatalog(m);
+          await upgradeProductLinks(m);
           if ((await customSelect(
             'PRAGMA foreign_key_check',
           ).get()).isNotEmpty) {
             throw StateError('migration_foreign_keys');
           }
-          await customStatement('PRAGMA user_version = 4');
+          await customStatement('PRAGMA user_version = 5');
         });
       } finally {
         await customStatement('PRAGMA foreign_keys = ON');
@@ -116,7 +121,7 @@ class ReceiptDatabase extends _$ReceiptDatabase {
 void configureSqlite(sqlite.Database database) {
   // Reject future databases before Drift can run any version migration.
   if ((database.select('PRAGMA user_version').single['user_version'] as int) >
-      4) {
+      5) {
     throw StateError('unsupported_schema');
   }
   database.execute('PRAGMA foreign_keys = ON');

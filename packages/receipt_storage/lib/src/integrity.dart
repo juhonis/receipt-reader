@@ -184,7 +184,6 @@ extension _Integrity on ReceiptRepository {
         final snapshot = document.snapshot;
         _check(
           snapshot.id == id &&
-              snapshot.items.every((row) => row.product == null) &&
               document.review.reviewedAtMs ==
                   BigInt.from(event['audit_at_ms']! as int),
           'receiptPayload',
@@ -194,8 +193,37 @@ extension _Integrity on ReceiptRepository {
           expected.length == parents.length && expected.every(parents.contains),
           'reviewParents',
         );
-        _check(dependencies.length == 1, 'receiptDependencies');
-        final branchRevision = dependencies.single;
+        final links = snapshot.items
+            .map((r) => r.product)
+            .whereType<ReceiptProductLink>()
+            .toList();
+        final productRevisions = links.map((p) => p.revision).toSet();
+        final storeDependencies = dependencies
+            .where((r) => knownRevisions[r]!['entity_kind'] == 'store')
+            .toList();
+        _check(
+          storeDependencies.length == 1 &&
+              dependencies.length == productRevisions.length + 1 &&
+              productRevisions.every(dependencies.contains),
+          'receiptDependencies',
+        );
+        for (final link in links) {
+          final productEvent = knownRevisions[link.revision]!;
+          _check(
+            productEvent['entity_kind'] == 'product' &&
+                productEvent['entity_id'] == link.id.value,
+            'productDependency',
+          );
+          final product = ProductDocumentCodec.decode(
+            productEvent['payload']! as String,
+          ).product;
+          _check(
+            product.storeId == snapshot.branch.id &&
+                link.storeId == product.storeId,
+            'crossStoreProduct',
+          );
+        }
+        final branchRevision = storeDependencies.single;
         final branchEvent = knownRevisions[branchRevision]!;
         _check(
           branchEvent['entity_kind'] == 'store' &&

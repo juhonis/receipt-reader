@@ -261,7 +261,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Add original-image-backed correction of saved OCR receipts with explicit row matching, preserved provenance/identity and native synthetic correction/reopen/stale-write checks. See [OCR corrections](ocr-corrections.md). Production Windows recognition remains pending.
 - [x] Add reviewed receipt deletion with immutable tombstone events, schema-3 migration, stale-write rejection, exact retries and native reopen checks on both platforms. See [receipt deletion](receipt-deletion.md).
 - [x] Add store-scoped product/alias storage, immutable revisions, schema-4 migration and encrypted backup recovery. See [product catalog](product-catalog.md).
-- [ ] Add product/alias management UI and explicit reviewed receipt match correction.
+- [x] Add product/alias management UI and explicit reviewed receipt match correction. See [product catalog](product-catalog.md).
 - [ ] Build price trends with unit comparability, discount semantics, and deposit exclusion.
 - [x] Implement the versioned structured backup/isolated recovery core on both platforms, including strict validation, preserved event/tombstone/row identities, fresh device identity and repeated restore/write tests. See [backup recovery](backup-recovery.md).
 - [x] Add password-protected backup files, native export/import UI, validated preview, explicit replacement confirmation, transactional activation/crash recovery and retained previous datasets on both platforms. See [password backups](password-backups.md).
@@ -298,8 +298,8 @@ Restore must assign a fresh local device identity and preserve imported event id
 [fresh-image OCR corrections](ocr-corrections.md) and
 [reviewed receipt deletion](receipt-deletion.md) share reviewed persistence on
 Android and Windows. Production recognition is currently Android-only. The normal
-app owns one application-support database with schema-4 migration from released
-schemas 1, 2 and 3. Native synthetic save/reopen, filtered-history,
+app owns one application-support database with schema-5 migration from released
+schemas 1, 2, 3 and 4. Native synthetic save/reopen, filtered-history,
 correction/stale-write and deletion/tombstone checks pass on both platforms,
 including Android airplane mode. Deletion retains prior structured snapshots;
 it is not secure erasure and receipt undo is not implemented.
@@ -318,12 +318,16 @@ backup files must be kept off-device with their passwords stored separately.
 
 [Store-scoped product and alias storage](product-catalog.md) now provides durable
 branch-owned identities, exact alias suggestions, reviewed revision commands and
-encrypted recovery, with migration from schemas 1/2/3. Existing receipts remain
-unlinked; saving product links still waits for the review workflow.
+encrypted recovery, with migration from schemas 1/2/3/4. Finnish catalog screens
+now support reviewed create/edit/deactivate/remap operations. Manual/OCR receipt
+review and correction expose optional explicit product choices and alias suggestions.
+Links retain reviewed product revisions and receipt/row identities; history and
+inner-v3 encrypted recovery retain earlier linked snapshots after unlink/deletion.
 
-Next, add Finnish product/alias management and explicit reviewed receipt matching
-and match correction. Preserve receipt/row identities, source provenance and causal
-history, keep cross-store links invalid, and make choices visible before price trends.
+Next, add comparable product purchase history and price trends. Start with explicitly
+linked rows in one branch, preserve raw financial values, and define unit/discount/
+deposit comparability before computing normalized prices. Keep unrelated products
+and equal-name identities separate.
 
 Windows OCR packaging and final engine selection remain open. Keep representative
 S-kaupat images and OCR exports in ignored `localreceipts/`; committed fixtures

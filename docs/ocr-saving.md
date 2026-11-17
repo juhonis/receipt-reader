@@ -96,5 +96,6 @@ See [Windows environment setup](windows-development.md), [local storage](local-s
 and [manual saving](manual-saving.md) for paths and commands.
 [History filters](history-filters.md), [manual corrections](manual-corrections.md)
 [fresh-image OCR corrections](ocr-corrections.md) and
-[reviewed deletion](receipt-deletion.md) are available separately. Structured
-backup/restore, products/aliases and synchronization remain open.
+[reviewed deletion](receipt-deletion.md), [catalog management and reviewed product
+links](product-catalog.md), and [encrypted recovery](password-backups.md) are
+available separately. Analytics and synchronization remain open.

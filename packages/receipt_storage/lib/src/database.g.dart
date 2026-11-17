@@ -4324,6 +4324,681 @@ class RowIdentitiesCompanion extends UpdateCompanion<RowIdentity> {
   }
 }
 
+class Products extends Table with TableInfo<Products, Product> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  Products(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL PRIMARY KEY CHECK (length(id) = 36 AND id GLOB \'????????-????-4???-[89ab]???-????????????\' AND length("replace"(id, \'-\', \'\')) = 32 AND "replace"(id, \'-\', \'\') NOT GLOB \'*[^0-9a-f]*\')',
+  );
+  static const VerificationMeta _storeIdMeta = const VerificationMeta(
+    'storeId',
+  );
+  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
+    'store_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES stores(id)',
+  );
+  static const VerificationMeta _canonicalNameMeta = const VerificationMeta(
+    'canonicalName',
+  );
+  late final GeneratedColumn<String> canonicalName = GeneratedColumn<String>(
+    'canonical_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (length(trim(canonical_name)) > 0 AND canonical_name = trim(canonical_name))',
+  );
+  static const VerificationMeta _packageValueMeta = const VerificationMeta(
+    'packageValue',
+  );
+  late final GeneratedColumn<int> packageValue = GeneratedColumn<int>(
+    'package_value',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: '',
+  );
+  static const VerificationMeta _packageScaleMeta = const VerificationMeta(
+    'packageScale',
+  );
+  late final GeneratedColumn<int> packageScale = GeneratedColumn<int>(
+    'package_scale',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: '',
+  );
+  static const VerificationMeta _packageUnitMeta = const VerificationMeta(
+    'packageUnit',
+  );
+  late final GeneratedColumn<String> packageUnit = GeneratedColumn<String>(
+    'package_unit',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: '',
+  );
+  static const VerificationMeta _currentRevisionOriginMeta =
+      const VerificationMeta('currentRevisionOrigin');
+  late final GeneratedColumn<String> currentRevisionOrigin =
+      GeneratedColumn<String>(
+        'current_revision_origin',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+        $customConstraints: 'NOT NULL',
+      );
+  static const VerificationMeta _currentRevisionSeqMeta =
+      const VerificationMeta('currentRevisionSeq');
+  late final GeneratedColumn<int> currentRevisionSeq = GeneratedColumn<int>(
+    'current_revision_seq',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  static const VerificationMeta _createdAtMsMeta = const VerificationMeta(
+    'createdAtMs',
+  );
+  late final GeneratedColumn<int> createdAtMs = GeneratedColumn<int>(
+    'created_at_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (created_at_ms >= 0)',
+  );
+  static const VerificationMeta _updatedAtMsMeta = const VerificationMeta(
+    'updatedAtMs',
+  );
+  late final GeneratedColumn<int> updatedAtMs = GeneratedColumn<int>(
+    'updated_at_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (updated_at_ms >= 0)',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    storeId,
+    canonicalName,
+    packageValue,
+    packageScale,
+    packageUnit,
+    currentRevisionOrigin,
+    currentRevisionSeq,
+    createdAtMs,
+    updatedAtMs,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'products';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Product> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('store_id')) {
+      context.handle(
+        _storeIdMeta,
+        storeId.isAcceptableOrUnknown(data['store_id']!, _storeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_storeIdMeta);
+    }
+    if (data.containsKey('canonical_name')) {
+      context.handle(
+        _canonicalNameMeta,
+        canonicalName.isAcceptableOrUnknown(
+          data['canonical_name']!,
+          _canonicalNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_canonicalNameMeta);
+    }
+    if (data.containsKey('package_value')) {
+      context.handle(
+        _packageValueMeta,
+        packageValue.isAcceptableOrUnknown(
+          data['package_value']!,
+          _packageValueMeta,
+        ),
+      );
+    }
+    if (data.containsKey('package_scale')) {
+      context.handle(
+        _packageScaleMeta,
+        packageScale.isAcceptableOrUnknown(
+          data['package_scale']!,
+          _packageScaleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('package_unit')) {
+      context.handle(
+        _packageUnitMeta,
+        packageUnit.isAcceptableOrUnknown(
+          data['package_unit']!,
+          _packageUnitMeta,
+        ),
+      );
+    }
+    if (data.containsKey('current_revision_origin')) {
+      context.handle(
+        _currentRevisionOriginMeta,
+        currentRevisionOrigin.isAcceptableOrUnknown(
+          data['current_revision_origin']!,
+          _currentRevisionOriginMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_currentRevisionOriginMeta);
+    }
+    if (data.containsKey('current_revision_seq')) {
+      context.handle(
+        _currentRevisionSeqMeta,
+        currentRevisionSeq.isAcceptableOrUnknown(
+          data['current_revision_seq']!,
+          _currentRevisionSeqMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_currentRevisionSeqMeta);
+    }
+    if (data.containsKey('created_at_ms')) {
+      context.handle(
+        _createdAtMsMeta,
+        createdAtMs.isAcceptableOrUnknown(
+          data['created_at_ms']!,
+          _createdAtMsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMsMeta);
+    }
+    if (data.containsKey('updated_at_ms')) {
+      context.handle(
+        _updatedAtMsMeta,
+        updatedAtMs.isAcceptableOrUnknown(
+          data['updated_at_ms']!,
+          _updatedAtMsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMsMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {storeId, id},
+  ];
+  @override
+  Product map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Product(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      storeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}store_id'],
+      )!,
+      canonicalName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}canonical_name'],
+      )!,
+      packageValue: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}package_value'],
+      ),
+      packageScale: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}package_scale'],
+      ),
+      packageUnit: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}package_unit'],
+      ),
+      currentRevisionOrigin: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}current_revision_origin'],
+      )!,
+      currentRevisionSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}current_revision_seq'],
+      )!,
+      createdAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at_ms'],
+      )!,
+      updatedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at_ms'],
+      )!,
+    );
+  }
+
+  @override
+  Products createAlias(String alias) {
+    return Products(attachedDatabase, alias);
+  }
+
+  @override
+  bool get isStrict => true;
+  @override
+  List<String> get customConstraints => const [
+    'UNIQUE(store_id, id)',
+    'FOREIGN KEY(current_revision_origin, current_revision_seq)REFERENCES change_log(origin_device_id, origin_seq)',
+    'CHECK((package_value IS NULL AND package_scale IS NULL AND package_unit IS NULL)OR(package_value IS NOT NULL AND package_value > 0 AND package_scale IS NOT NULL AND package_scale BETWEEN 0 AND 6 AND package_unit IS NOT NULL AND package_unit IN (\'piece\', \'kg\', \'litre\')))',
+  ];
+  @override
+  bool get dontWriteConstraints => true;
+}
+
+class Product extends DataClass implements Insertable<Product> {
+  final String id;
+  final String storeId;
+  final String canonicalName;
+  final int? packageValue;
+  final int? packageScale;
+  final String? packageUnit;
+  final String currentRevisionOrigin;
+  final int currentRevisionSeq;
+  final int createdAtMs;
+  final int updatedAtMs;
+  const Product({
+    required this.id,
+    required this.storeId,
+    required this.canonicalName,
+    this.packageValue,
+    this.packageScale,
+    this.packageUnit,
+    required this.currentRevisionOrigin,
+    required this.currentRevisionSeq,
+    required this.createdAtMs,
+    required this.updatedAtMs,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['store_id'] = Variable<String>(storeId);
+    map['canonical_name'] = Variable<String>(canonicalName);
+    if (!nullToAbsent || packageValue != null) {
+      map['package_value'] = Variable<int>(packageValue);
+    }
+    if (!nullToAbsent || packageScale != null) {
+      map['package_scale'] = Variable<int>(packageScale);
+    }
+    if (!nullToAbsent || packageUnit != null) {
+      map['package_unit'] = Variable<String>(packageUnit);
+    }
+    map['current_revision_origin'] = Variable<String>(currentRevisionOrigin);
+    map['current_revision_seq'] = Variable<int>(currentRevisionSeq);
+    map['created_at_ms'] = Variable<int>(createdAtMs);
+    map['updated_at_ms'] = Variable<int>(updatedAtMs);
+    return map;
+  }
+
+  ProductsCompanion toCompanion(bool nullToAbsent) {
+    return ProductsCompanion(
+      id: Value(id),
+      storeId: Value(storeId),
+      canonicalName: Value(canonicalName),
+      packageValue: packageValue == null && nullToAbsent
+          ? const Value.absent()
+          : Value(packageValue),
+      packageScale: packageScale == null && nullToAbsent
+          ? const Value.absent()
+          : Value(packageScale),
+      packageUnit: packageUnit == null && nullToAbsent
+          ? const Value.absent()
+          : Value(packageUnit),
+      currentRevisionOrigin: Value(currentRevisionOrigin),
+      currentRevisionSeq: Value(currentRevisionSeq),
+      createdAtMs: Value(createdAtMs),
+      updatedAtMs: Value(updatedAtMs),
+    );
+  }
+
+  factory Product.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Product(
+      id: serializer.fromJson<String>(json['id']),
+      storeId: serializer.fromJson<String>(json['store_id']),
+      canonicalName: serializer.fromJson<String>(json['canonical_name']),
+      packageValue: serializer.fromJson<int?>(json['package_value']),
+      packageScale: serializer.fromJson<int?>(json['package_scale']),
+      packageUnit: serializer.fromJson<String?>(json['package_unit']),
+      currentRevisionOrigin: serializer.fromJson<String>(
+        json['current_revision_origin'],
+      ),
+      currentRevisionSeq: serializer.fromJson<int>(
+        json['current_revision_seq'],
+      ),
+      createdAtMs: serializer.fromJson<int>(json['created_at_ms']),
+      updatedAtMs: serializer.fromJson<int>(json['updated_at_ms']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'store_id': serializer.toJson<String>(storeId),
+      'canonical_name': serializer.toJson<String>(canonicalName),
+      'package_value': serializer.toJson<int?>(packageValue),
+      'package_scale': serializer.toJson<int?>(packageScale),
+      'package_unit': serializer.toJson<String?>(packageUnit),
+      'current_revision_origin': serializer.toJson<String>(
+        currentRevisionOrigin,
+      ),
+      'current_revision_seq': serializer.toJson<int>(currentRevisionSeq),
+      'created_at_ms': serializer.toJson<int>(createdAtMs),
+      'updated_at_ms': serializer.toJson<int>(updatedAtMs),
+    };
+  }
+
+  Product copyWith({
+    String? id,
+    String? storeId,
+    String? canonicalName,
+    Value<int?> packageValue = const Value.absent(),
+    Value<int?> packageScale = const Value.absent(),
+    Value<String?> packageUnit = const Value.absent(),
+    String? currentRevisionOrigin,
+    int? currentRevisionSeq,
+    int? createdAtMs,
+    int? updatedAtMs,
+  }) => Product(
+    id: id ?? this.id,
+    storeId: storeId ?? this.storeId,
+    canonicalName: canonicalName ?? this.canonicalName,
+    packageValue: packageValue.present ? packageValue.value : this.packageValue,
+    packageScale: packageScale.present ? packageScale.value : this.packageScale,
+    packageUnit: packageUnit.present ? packageUnit.value : this.packageUnit,
+    currentRevisionOrigin: currentRevisionOrigin ?? this.currentRevisionOrigin,
+    currentRevisionSeq: currentRevisionSeq ?? this.currentRevisionSeq,
+    createdAtMs: createdAtMs ?? this.createdAtMs,
+    updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+  );
+  Product copyWithCompanion(ProductsCompanion data) {
+    return Product(
+      id: data.id.present ? data.id.value : this.id,
+      storeId: data.storeId.present ? data.storeId.value : this.storeId,
+      canonicalName: data.canonicalName.present
+          ? data.canonicalName.value
+          : this.canonicalName,
+      packageValue: data.packageValue.present
+          ? data.packageValue.value
+          : this.packageValue,
+      packageScale: data.packageScale.present
+          ? data.packageScale.value
+          : this.packageScale,
+      packageUnit: data.packageUnit.present
+          ? data.packageUnit.value
+          : this.packageUnit,
+      currentRevisionOrigin: data.currentRevisionOrigin.present
+          ? data.currentRevisionOrigin.value
+          : this.currentRevisionOrigin,
+      currentRevisionSeq: data.currentRevisionSeq.present
+          ? data.currentRevisionSeq.value
+          : this.currentRevisionSeq,
+      createdAtMs: data.createdAtMs.present
+          ? data.createdAtMs.value
+          : this.createdAtMs,
+      updatedAtMs: data.updatedAtMs.present
+          ? data.updatedAtMs.value
+          : this.updatedAtMs,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Product(')
+          ..write('id: $id, ')
+          ..write('storeId: $storeId, ')
+          ..write('canonicalName: $canonicalName, ')
+          ..write('packageValue: $packageValue, ')
+          ..write('packageScale: $packageScale, ')
+          ..write('packageUnit: $packageUnit, ')
+          ..write('currentRevisionOrigin: $currentRevisionOrigin, ')
+          ..write('currentRevisionSeq: $currentRevisionSeq, ')
+          ..write('createdAtMs: $createdAtMs, ')
+          ..write('updatedAtMs: $updatedAtMs')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    storeId,
+    canonicalName,
+    packageValue,
+    packageScale,
+    packageUnit,
+    currentRevisionOrigin,
+    currentRevisionSeq,
+    createdAtMs,
+    updatedAtMs,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Product &&
+          other.id == this.id &&
+          other.storeId == this.storeId &&
+          other.canonicalName == this.canonicalName &&
+          other.packageValue == this.packageValue &&
+          other.packageScale == this.packageScale &&
+          other.packageUnit == this.packageUnit &&
+          other.currentRevisionOrigin == this.currentRevisionOrigin &&
+          other.currentRevisionSeq == this.currentRevisionSeq &&
+          other.createdAtMs == this.createdAtMs &&
+          other.updatedAtMs == this.updatedAtMs);
+}
+
+class ProductsCompanion extends UpdateCompanion<Product> {
+  final Value<String> id;
+  final Value<String> storeId;
+  final Value<String> canonicalName;
+  final Value<int?> packageValue;
+  final Value<int?> packageScale;
+  final Value<String?> packageUnit;
+  final Value<String> currentRevisionOrigin;
+  final Value<int> currentRevisionSeq;
+  final Value<int> createdAtMs;
+  final Value<int> updatedAtMs;
+  final Value<int> rowid;
+  const ProductsCompanion({
+    this.id = const Value.absent(),
+    this.storeId = const Value.absent(),
+    this.canonicalName = const Value.absent(),
+    this.packageValue = const Value.absent(),
+    this.packageScale = const Value.absent(),
+    this.packageUnit = const Value.absent(),
+    this.currentRevisionOrigin = const Value.absent(),
+    this.currentRevisionSeq = const Value.absent(),
+    this.createdAtMs = const Value.absent(),
+    this.updatedAtMs = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProductsCompanion.insert({
+    required String id,
+    required String storeId,
+    required String canonicalName,
+    this.packageValue = const Value.absent(),
+    this.packageScale = const Value.absent(),
+    this.packageUnit = const Value.absent(),
+    required String currentRevisionOrigin,
+    required int currentRevisionSeq,
+    required int createdAtMs,
+    required int updatedAtMs,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       storeId = Value(storeId),
+       canonicalName = Value(canonicalName),
+       currentRevisionOrigin = Value(currentRevisionOrigin),
+       currentRevisionSeq = Value(currentRevisionSeq),
+       createdAtMs = Value(createdAtMs),
+       updatedAtMs = Value(updatedAtMs);
+  static Insertable<Product> custom({
+    Expression<String>? id,
+    Expression<String>? storeId,
+    Expression<String>? canonicalName,
+    Expression<int>? packageValue,
+    Expression<int>? packageScale,
+    Expression<String>? packageUnit,
+    Expression<String>? currentRevisionOrigin,
+    Expression<int>? currentRevisionSeq,
+    Expression<int>? createdAtMs,
+    Expression<int>? updatedAtMs,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (storeId != null) 'store_id': storeId,
+      if (canonicalName != null) 'canonical_name': canonicalName,
+      if (packageValue != null) 'package_value': packageValue,
+      if (packageScale != null) 'package_scale': packageScale,
+      if (packageUnit != null) 'package_unit': packageUnit,
+      if (currentRevisionOrigin != null)
+        'current_revision_origin': currentRevisionOrigin,
+      if (currentRevisionSeq != null)
+        'current_revision_seq': currentRevisionSeq,
+      if (createdAtMs != null) 'created_at_ms': createdAtMs,
+      if (updatedAtMs != null) 'updated_at_ms': updatedAtMs,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProductsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? storeId,
+    Value<String>? canonicalName,
+    Value<int?>? packageValue,
+    Value<int?>? packageScale,
+    Value<String?>? packageUnit,
+    Value<String>? currentRevisionOrigin,
+    Value<int>? currentRevisionSeq,
+    Value<int>? createdAtMs,
+    Value<int>? updatedAtMs,
+    Value<int>? rowid,
+  }) {
+    return ProductsCompanion(
+      id: id ?? this.id,
+      storeId: storeId ?? this.storeId,
+      canonicalName: canonicalName ?? this.canonicalName,
+      packageValue: packageValue ?? this.packageValue,
+      packageScale: packageScale ?? this.packageScale,
+      packageUnit: packageUnit ?? this.packageUnit,
+      currentRevisionOrigin:
+          currentRevisionOrigin ?? this.currentRevisionOrigin,
+      currentRevisionSeq: currentRevisionSeq ?? this.currentRevisionSeq,
+      createdAtMs: createdAtMs ?? this.createdAtMs,
+      updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (storeId.present) {
+      map['store_id'] = Variable<String>(storeId.value);
+    }
+    if (canonicalName.present) {
+      map['canonical_name'] = Variable<String>(canonicalName.value);
+    }
+    if (packageValue.present) {
+      map['package_value'] = Variable<int>(packageValue.value);
+    }
+    if (packageScale.present) {
+      map['package_scale'] = Variable<int>(packageScale.value);
+    }
+    if (packageUnit.present) {
+      map['package_unit'] = Variable<String>(packageUnit.value);
+    }
+    if (currentRevisionOrigin.present) {
+      map['current_revision_origin'] = Variable<String>(
+        currentRevisionOrigin.value,
+      );
+    }
+    if (currentRevisionSeq.present) {
+      map['current_revision_seq'] = Variable<int>(currentRevisionSeq.value);
+    }
+    if (createdAtMs.present) {
+      map['created_at_ms'] = Variable<int>(createdAtMs.value);
+    }
+    if (updatedAtMs.present) {
+      map['updated_at_ms'] = Variable<int>(updatedAtMs.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProductsCompanion(')
+          ..write('id: $id, ')
+          ..write('storeId: $storeId, ')
+          ..write('canonicalName: $canonicalName, ')
+          ..write('packageValue: $packageValue, ')
+          ..write('packageScale: $packageScale, ')
+          ..write('packageUnit: $packageUnit, ')
+          ..write('currentRevisionOrigin: $currentRevisionOrigin, ')
+          ..write('currentRevisionSeq: $currentRevisionSeq, ')
+          ..write('createdAtMs: $createdAtMs, ')
+          ..write('updatedAtMs: $updatedAtMs, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class ReceiptItems extends Table with TableInfo<ReceiptItems, ReceiptItem> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -4411,7 +5086,7 @@ class ReceiptItems extends Table with TableInfo<ReceiptItems, ReceiptItem> {
     true,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    $customConstraints: 'CHECK (product_id IS NULL)',
+    $customConstraints: '',
   );
   static const VerificationMeta _rawNameMeta = const VerificationMeta(
     'rawName',
@@ -4807,6 +5482,8 @@ class ReceiptItems extends Table with TableInfo<ReceiptItems, ReceiptItem> {
     'UNIQUE(receipt_id, position)',
     'UNIQUE(receipt_id, id)',
     'FOREIGN KEY(receipt_id, store_id)REFERENCES receipts(id, store_id)',
+    'FOREIGN KEY(store_id, product_id)REFERENCES products(store_id, id)',
+    'CHECK(product_id IS NULL OR kind = \'product\')',
     'FOREIGN KEY(receipt_id, id)REFERENCES row_identities(receipt_id, row_id)',
     'FOREIGN KEY(receipt_id, parent_item_id)REFERENCES receipt_items(receipt_id, id)DEFERRABLE INITIALLY DEFERRED',
     'CHECK(parent_item_id IS NULL OR(parent_item_id <> id AND kind IN (\'discount\', \'deposit\')))',
@@ -6632,681 +7309,6 @@ class LocalMutationsCompanion extends UpdateCompanion<LocalMutation> {
   }
 }
 
-class Products extends Table with TableInfo<Products, Product> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  Products(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL PRIMARY KEY CHECK (length(id) = 36 AND id GLOB \'????????-????-4???-[89ab]???-????????????\' AND length("replace"(id, \'-\', \'\')) = 32 AND "replace"(id, \'-\', \'\') NOT GLOB \'*[^0-9a-f]*\')',
-  );
-  static const VerificationMeta _storeIdMeta = const VerificationMeta(
-    'storeId',
-  );
-  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
-    'store_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL REFERENCES stores(id)',
-  );
-  static const VerificationMeta _canonicalNameMeta = const VerificationMeta(
-    'canonicalName',
-  );
-  late final GeneratedColumn<String> canonicalName = GeneratedColumn<String>(
-    'canonical_name',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL CHECK (length(trim(canonical_name)) > 0 AND canonical_name = trim(canonical_name))',
-  );
-  static const VerificationMeta _packageValueMeta = const VerificationMeta(
-    'packageValue',
-  );
-  late final GeneratedColumn<int> packageValue = GeneratedColumn<int>(
-    'package_value',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    $customConstraints: '',
-  );
-  static const VerificationMeta _packageScaleMeta = const VerificationMeta(
-    'packageScale',
-  );
-  late final GeneratedColumn<int> packageScale = GeneratedColumn<int>(
-    'package_scale',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    $customConstraints: '',
-  );
-  static const VerificationMeta _packageUnitMeta = const VerificationMeta(
-    'packageUnit',
-  );
-  late final GeneratedColumn<String> packageUnit = GeneratedColumn<String>(
-    'package_unit',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    $customConstraints: '',
-  );
-  static const VerificationMeta _currentRevisionOriginMeta =
-      const VerificationMeta('currentRevisionOrigin');
-  late final GeneratedColumn<String> currentRevisionOrigin =
-      GeneratedColumn<String>(
-        'current_revision_origin',
-        aliasedName,
-        false,
-        type: DriftSqlType.string,
-        requiredDuringInsert: true,
-        $customConstraints: 'NOT NULL',
-      );
-  static const VerificationMeta _currentRevisionSeqMeta =
-      const VerificationMeta('currentRevisionSeq');
-  late final GeneratedColumn<int> currentRevisionSeq = GeneratedColumn<int>(
-    'current_revision_seq',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
-  );
-  static const VerificationMeta _createdAtMsMeta = const VerificationMeta(
-    'createdAtMs',
-  );
-  late final GeneratedColumn<int> createdAtMs = GeneratedColumn<int>(
-    'created_at_ms',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL CHECK (created_at_ms >= 0)',
-  );
-  static const VerificationMeta _updatedAtMsMeta = const VerificationMeta(
-    'updatedAtMs',
-  );
-  late final GeneratedColumn<int> updatedAtMs = GeneratedColumn<int>(
-    'updated_at_ms',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL CHECK (updated_at_ms >= 0)',
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    storeId,
-    canonicalName,
-    packageValue,
-    packageScale,
-    packageUnit,
-    currentRevisionOrigin,
-    currentRevisionSeq,
-    createdAtMs,
-    updatedAtMs,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'products';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<Product> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('store_id')) {
-      context.handle(
-        _storeIdMeta,
-        storeId.isAcceptableOrUnknown(data['store_id']!, _storeIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_storeIdMeta);
-    }
-    if (data.containsKey('canonical_name')) {
-      context.handle(
-        _canonicalNameMeta,
-        canonicalName.isAcceptableOrUnknown(
-          data['canonical_name']!,
-          _canonicalNameMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_canonicalNameMeta);
-    }
-    if (data.containsKey('package_value')) {
-      context.handle(
-        _packageValueMeta,
-        packageValue.isAcceptableOrUnknown(
-          data['package_value']!,
-          _packageValueMeta,
-        ),
-      );
-    }
-    if (data.containsKey('package_scale')) {
-      context.handle(
-        _packageScaleMeta,
-        packageScale.isAcceptableOrUnknown(
-          data['package_scale']!,
-          _packageScaleMeta,
-        ),
-      );
-    }
-    if (data.containsKey('package_unit')) {
-      context.handle(
-        _packageUnitMeta,
-        packageUnit.isAcceptableOrUnknown(
-          data['package_unit']!,
-          _packageUnitMeta,
-        ),
-      );
-    }
-    if (data.containsKey('current_revision_origin')) {
-      context.handle(
-        _currentRevisionOriginMeta,
-        currentRevisionOrigin.isAcceptableOrUnknown(
-          data['current_revision_origin']!,
-          _currentRevisionOriginMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_currentRevisionOriginMeta);
-    }
-    if (data.containsKey('current_revision_seq')) {
-      context.handle(
-        _currentRevisionSeqMeta,
-        currentRevisionSeq.isAcceptableOrUnknown(
-          data['current_revision_seq']!,
-          _currentRevisionSeqMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_currentRevisionSeqMeta);
-    }
-    if (data.containsKey('created_at_ms')) {
-      context.handle(
-        _createdAtMsMeta,
-        createdAtMs.isAcceptableOrUnknown(
-          data['created_at_ms']!,
-          _createdAtMsMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_createdAtMsMeta);
-    }
-    if (data.containsKey('updated_at_ms')) {
-      context.handle(
-        _updatedAtMsMeta,
-        updatedAtMs.isAcceptableOrUnknown(
-          data['updated_at_ms']!,
-          _updatedAtMsMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_updatedAtMsMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  List<Set<GeneratedColumn>> get uniqueKeys => [
-    {storeId, id},
-  ];
-  @override
-  Product map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return Product(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}id'],
-      )!,
-      storeId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}store_id'],
-      )!,
-      canonicalName: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}canonical_name'],
-      )!,
-      packageValue: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}package_value'],
-      ),
-      packageScale: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}package_scale'],
-      ),
-      packageUnit: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}package_unit'],
-      ),
-      currentRevisionOrigin: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}current_revision_origin'],
-      )!,
-      currentRevisionSeq: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}current_revision_seq'],
-      )!,
-      createdAtMs: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}created_at_ms'],
-      )!,
-      updatedAtMs: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}updated_at_ms'],
-      )!,
-    );
-  }
-
-  @override
-  Products createAlias(String alias) {
-    return Products(attachedDatabase, alias);
-  }
-
-  @override
-  bool get isStrict => true;
-  @override
-  List<String> get customConstraints => const [
-    'UNIQUE(store_id, id)',
-    'FOREIGN KEY(current_revision_origin, current_revision_seq)REFERENCES change_log(origin_device_id, origin_seq)',
-    'CHECK((package_value IS NULL AND package_scale IS NULL AND package_unit IS NULL)OR(package_value IS NOT NULL AND package_value > 0 AND package_scale IS NOT NULL AND package_scale BETWEEN 0 AND 6 AND package_unit IS NOT NULL AND package_unit IN (\'piece\', \'kg\', \'litre\')))',
-  ];
-  @override
-  bool get dontWriteConstraints => true;
-}
-
-class Product extends DataClass implements Insertable<Product> {
-  final String id;
-  final String storeId;
-  final String canonicalName;
-  final int? packageValue;
-  final int? packageScale;
-  final String? packageUnit;
-  final String currentRevisionOrigin;
-  final int currentRevisionSeq;
-  final int createdAtMs;
-  final int updatedAtMs;
-  const Product({
-    required this.id,
-    required this.storeId,
-    required this.canonicalName,
-    this.packageValue,
-    this.packageScale,
-    this.packageUnit,
-    required this.currentRevisionOrigin,
-    required this.currentRevisionSeq,
-    required this.createdAtMs,
-    required this.updatedAtMs,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<String>(id);
-    map['store_id'] = Variable<String>(storeId);
-    map['canonical_name'] = Variable<String>(canonicalName);
-    if (!nullToAbsent || packageValue != null) {
-      map['package_value'] = Variable<int>(packageValue);
-    }
-    if (!nullToAbsent || packageScale != null) {
-      map['package_scale'] = Variable<int>(packageScale);
-    }
-    if (!nullToAbsent || packageUnit != null) {
-      map['package_unit'] = Variable<String>(packageUnit);
-    }
-    map['current_revision_origin'] = Variable<String>(currentRevisionOrigin);
-    map['current_revision_seq'] = Variable<int>(currentRevisionSeq);
-    map['created_at_ms'] = Variable<int>(createdAtMs);
-    map['updated_at_ms'] = Variable<int>(updatedAtMs);
-    return map;
-  }
-
-  ProductsCompanion toCompanion(bool nullToAbsent) {
-    return ProductsCompanion(
-      id: Value(id),
-      storeId: Value(storeId),
-      canonicalName: Value(canonicalName),
-      packageValue: packageValue == null && nullToAbsent
-          ? const Value.absent()
-          : Value(packageValue),
-      packageScale: packageScale == null && nullToAbsent
-          ? const Value.absent()
-          : Value(packageScale),
-      packageUnit: packageUnit == null && nullToAbsent
-          ? const Value.absent()
-          : Value(packageUnit),
-      currentRevisionOrigin: Value(currentRevisionOrigin),
-      currentRevisionSeq: Value(currentRevisionSeq),
-      createdAtMs: Value(createdAtMs),
-      updatedAtMs: Value(updatedAtMs),
-    );
-  }
-
-  factory Product.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return Product(
-      id: serializer.fromJson<String>(json['id']),
-      storeId: serializer.fromJson<String>(json['store_id']),
-      canonicalName: serializer.fromJson<String>(json['canonical_name']),
-      packageValue: serializer.fromJson<int?>(json['package_value']),
-      packageScale: serializer.fromJson<int?>(json['package_scale']),
-      packageUnit: serializer.fromJson<String?>(json['package_unit']),
-      currentRevisionOrigin: serializer.fromJson<String>(
-        json['current_revision_origin'],
-      ),
-      currentRevisionSeq: serializer.fromJson<int>(
-        json['current_revision_seq'],
-      ),
-      createdAtMs: serializer.fromJson<int>(json['created_at_ms']),
-      updatedAtMs: serializer.fromJson<int>(json['updated_at_ms']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<String>(id),
-      'store_id': serializer.toJson<String>(storeId),
-      'canonical_name': serializer.toJson<String>(canonicalName),
-      'package_value': serializer.toJson<int?>(packageValue),
-      'package_scale': serializer.toJson<int?>(packageScale),
-      'package_unit': serializer.toJson<String?>(packageUnit),
-      'current_revision_origin': serializer.toJson<String>(
-        currentRevisionOrigin,
-      ),
-      'current_revision_seq': serializer.toJson<int>(currentRevisionSeq),
-      'created_at_ms': serializer.toJson<int>(createdAtMs),
-      'updated_at_ms': serializer.toJson<int>(updatedAtMs),
-    };
-  }
-
-  Product copyWith({
-    String? id,
-    String? storeId,
-    String? canonicalName,
-    Value<int?> packageValue = const Value.absent(),
-    Value<int?> packageScale = const Value.absent(),
-    Value<String?> packageUnit = const Value.absent(),
-    String? currentRevisionOrigin,
-    int? currentRevisionSeq,
-    int? createdAtMs,
-    int? updatedAtMs,
-  }) => Product(
-    id: id ?? this.id,
-    storeId: storeId ?? this.storeId,
-    canonicalName: canonicalName ?? this.canonicalName,
-    packageValue: packageValue.present ? packageValue.value : this.packageValue,
-    packageScale: packageScale.present ? packageScale.value : this.packageScale,
-    packageUnit: packageUnit.present ? packageUnit.value : this.packageUnit,
-    currentRevisionOrigin: currentRevisionOrigin ?? this.currentRevisionOrigin,
-    currentRevisionSeq: currentRevisionSeq ?? this.currentRevisionSeq,
-    createdAtMs: createdAtMs ?? this.createdAtMs,
-    updatedAtMs: updatedAtMs ?? this.updatedAtMs,
-  );
-  Product copyWithCompanion(ProductsCompanion data) {
-    return Product(
-      id: data.id.present ? data.id.value : this.id,
-      storeId: data.storeId.present ? data.storeId.value : this.storeId,
-      canonicalName: data.canonicalName.present
-          ? data.canonicalName.value
-          : this.canonicalName,
-      packageValue: data.packageValue.present
-          ? data.packageValue.value
-          : this.packageValue,
-      packageScale: data.packageScale.present
-          ? data.packageScale.value
-          : this.packageScale,
-      packageUnit: data.packageUnit.present
-          ? data.packageUnit.value
-          : this.packageUnit,
-      currentRevisionOrigin: data.currentRevisionOrigin.present
-          ? data.currentRevisionOrigin.value
-          : this.currentRevisionOrigin,
-      currentRevisionSeq: data.currentRevisionSeq.present
-          ? data.currentRevisionSeq.value
-          : this.currentRevisionSeq,
-      createdAtMs: data.createdAtMs.present
-          ? data.createdAtMs.value
-          : this.createdAtMs,
-      updatedAtMs: data.updatedAtMs.present
-          ? data.updatedAtMs.value
-          : this.updatedAtMs,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('Product(')
-          ..write('id: $id, ')
-          ..write('storeId: $storeId, ')
-          ..write('canonicalName: $canonicalName, ')
-          ..write('packageValue: $packageValue, ')
-          ..write('packageScale: $packageScale, ')
-          ..write('packageUnit: $packageUnit, ')
-          ..write('currentRevisionOrigin: $currentRevisionOrigin, ')
-          ..write('currentRevisionSeq: $currentRevisionSeq, ')
-          ..write('createdAtMs: $createdAtMs, ')
-          ..write('updatedAtMs: $updatedAtMs')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    id,
-    storeId,
-    canonicalName,
-    packageValue,
-    packageScale,
-    packageUnit,
-    currentRevisionOrigin,
-    currentRevisionSeq,
-    createdAtMs,
-    updatedAtMs,
-  );
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is Product &&
-          other.id == this.id &&
-          other.storeId == this.storeId &&
-          other.canonicalName == this.canonicalName &&
-          other.packageValue == this.packageValue &&
-          other.packageScale == this.packageScale &&
-          other.packageUnit == this.packageUnit &&
-          other.currentRevisionOrigin == this.currentRevisionOrigin &&
-          other.currentRevisionSeq == this.currentRevisionSeq &&
-          other.createdAtMs == this.createdAtMs &&
-          other.updatedAtMs == this.updatedAtMs);
-}
-
-class ProductsCompanion extends UpdateCompanion<Product> {
-  final Value<String> id;
-  final Value<String> storeId;
-  final Value<String> canonicalName;
-  final Value<int?> packageValue;
-  final Value<int?> packageScale;
-  final Value<String?> packageUnit;
-  final Value<String> currentRevisionOrigin;
-  final Value<int> currentRevisionSeq;
-  final Value<int> createdAtMs;
-  final Value<int> updatedAtMs;
-  final Value<int> rowid;
-  const ProductsCompanion({
-    this.id = const Value.absent(),
-    this.storeId = const Value.absent(),
-    this.canonicalName = const Value.absent(),
-    this.packageValue = const Value.absent(),
-    this.packageScale = const Value.absent(),
-    this.packageUnit = const Value.absent(),
-    this.currentRevisionOrigin = const Value.absent(),
-    this.currentRevisionSeq = const Value.absent(),
-    this.createdAtMs = const Value.absent(),
-    this.updatedAtMs = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  ProductsCompanion.insert({
-    required String id,
-    required String storeId,
-    required String canonicalName,
-    this.packageValue = const Value.absent(),
-    this.packageScale = const Value.absent(),
-    this.packageUnit = const Value.absent(),
-    required String currentRevisionOrigin,
-    required int currentRevisionSeq,
-    required int createdAtMs,
-    required int updatedAtMs,
-    this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       storeId = Value(storeId),
-       canonicalName = Value(canonicalName),
-       currentRevisionOrigin = Value(currentRevisionOrigin),
-       currentRevisionSeq = Value(currentRevisionSeq),
-       createdAtMs = Value(createdAtMs),
-       updatedAtMs = Value(updatedAtMs);
-  static Insertable<Product> custom({
-    Expression<String>? id,
-    Expression<String>? storeId,
-    Expression<String>? canonicalName,
-    Expression<int>? packageValue,
-    Expression<int>? packageScale,
-    Expression<String>? packageUnit,
-    Expression<String>? currentRevisionOrigin,
-    Expression<int>? currentRevisionSeq,
-    Expression<int>? createdAtMs,
-    Expression<int>? updatedAtMs,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (storeId != null) 'store_id': storeId,
-      if (canonicalName != null) 'canonical_name': canonicalName,
-      if (packageValue != null) 'package_value': packageValue,
-      if (packageScale != null) 'package_scale': packageScale,
-      if (packageUnit != null) 'package_unit': packageUnit,
-      if (currentRevisionOrigin != null)
-        'current_revision_origin': currentRevisionOrigin,
-      if (currentRevisionSeq != null)
-        'current_revision_seq': currentRevisionSeq,
-      if (createdAtMs != null) 'created_at_ms': createdAtMs,
-      if (updatedAtMs != null) 'updated_at_ms': updatedAtMs,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  ProductsCompanion copyWith({
-    Value<String>? id,
-    Value<String>? storeId,
-    Value<String>? canonicalName,
-    Value<int?>? packageValue,
-    Value<int?>? packageScale,
-    Value<String?>? packageUnit,
-    Value<String>? currentRevisionOrigin,
-    Value<int>? currentRevisionSeq,
-    Value<int>? createdAtMs,
-    Value<int>? updatedAtMs,
-    Value<int>? rowid,
-  }) {
-    return ProductsCompanion(
-      id: id ?? this.id,
-      storeId: storeId ?? this.storeId,
-      canonicalName: canonicalName ?? this.canonicalName,
-      packageValue: packageValue ?? this.packageValue,
-      packageScale: packageScale ?? this.packageScale,
-      packageUnit: packageUnit ?? this.packageUnit,
-      currentRevisionOrigin:
-          currentRevisionOrigin ?? this.currentRevisionOrigin,
-      currentRevisionSeq: currentRevisionSeq ?? this.currentRevisionSeq,
-      createdAtMs: createdAtMs ?? this.createdAtMs,
-      updatedAtMs: updatedAtMs ?? this.updatedAtMs,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (storeId.present) {
-      map['store_id'] = Variable<String>(storeId.value);
-    }
-    if (canonicalName.present) {
-      map['canonical_name'] = Variable<String>(canonicalName.value);
-    }
-    if (packageValue.present) {
-      map['package_value'] = Variable<int>(packageValue.value);
-    }
-    if (packageScale.present) {
-      map['package_scale'] = Variable<int>(packageScale.value);
-    }
-    if (packageUnit.present) {
-      map['package_unit'] = Variable<String>(packageUnit.value);
-    }
-    if (currentRevisionOrigin.present) {
-      map['current_revision_origin'] = Variable<String>(
-        currentRevisionOrigin.value,
-      );
-    }
-    if (currentRevisionSeq.present) {
-      map['current_revision_seq'] = Variable<int>(currentRevisionSeq.value);
-    }
-    if (createdAtMs.present) {
-      map['created_at_ms'] = Variable<int>(createdAtMs.value);
-    }
-    if (updatedAtMs.present) {
-      map['updated_at_ms'] = Variable<int>(updatedAtMs.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('ProductsCompanion(')
-          ..write('id: $id, ')
-          ..write('storeId: $storeId, ')
-          ..write('canonicalName: $canonicalName, ')
-          ..write('packageValue: $packageValue, ')
-          ..write('packageScale: $packageScale, ')
-          ..write('packageUnit: $packageUnit, ')
-          ..write('currentRevisionOrigin: $currentRevisionOrigin, ')
-          ..write('currentRevisionSeq: $currentRevisionSeq, ')
-          ..write('createdAtMs: $createdAtMs, ')
-          ..write('updatedAtMs: $updatedAtMs, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
 class ProductAliases extends Table
     with TableInfo<ProductAliases, ProductAliase> {
   @override
@@ -8480,6 +8482,7 @@ abstract class _$ReceiptDatabase extends GeneratedDatabase {
     'CREATE TRIGGER row_identities_no_delete BEFORE DELETE ON row_identities BEGIN SELECT RAISE (ABORT, \'immutable_row_identity\');END',
     'row_identities_no_delete',
   );
+  late final Products products = Products(this);
   late final ReceiptItems receiptItems = ReceiptItems(this);
   late final Index receiptItemsParent = Index(
     'receipt_items_parent',
@@ -8504,7 +8507,6 @@ abstract class _$ReceiptDatabase extends GeneratedDatabase {
     'CREATE TRIGGER local_mutations_no_delete BEFORE DELETE ON local_mutations BEGIN SELECT RAISE (ABORT, \'immutable_mutation\');END',
     'local_mutations_no_delete',
   );
-  late final Products products = Products(this);
   late final Index productsBranchName = Index(
     'products_branch_name',
     'CREATE INDEX products_branch_name ON products (store_id, canonical_name, id)',
@@ -8567,6 +8569,7 @@ abstract class _$ReceiptDatabase extends GeneratedDatabase {
     rowIdentitiesRevision,
     rowIdentitiesNoUpdate,
     rowIdentitiesNoDelete,
+    products,
     receiptItems,
     receiptItemsParent,
     receiptReviews,
@@ -8576,7 +8579,6 @@ abstract class _$ReceiptDatabase extends GeneratedDatabase {
     localMutationsReceipt,
     localMutationsNoUpdate,
     localMutationsNoDelete,
-    products,
     productsBranchName,
     productsRevision,
     productAliases,

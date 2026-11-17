@@ -521,7 +521,7 @@ void main() {
 
   for (final invalid in <String, void Function(Map<String, dynamic>)>{
     'downgraded format': (b) => b['format_version'] = '1',
-    'future format': (b) => b['format_version'] = '3',
+    'future format': (b) => b['format_version'] = '4',
     'missing catalog manifest': (b) =>
         b['content']['counts'].remove('products'),
     'wrong product count': (b) => b['content']['counts']['products'] = '0',
