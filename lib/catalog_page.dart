@@ -5,6 +5,8 @@ import 'package:receipt_storage/receipt_storage.dart';
 
 import 'catalog_service.dart';
 import 'local_store.dart';
+import 'purchase_history_service.dart';
+import 'purchase_history_page.dart';
 import 'manual_receipt_page.dart' show receiptAppVersion;
 import 'product_picker.dart';
 import 'l10n/generated/app_localizations.dart';
@@ -150,6 +152,28 @@ class _CatalogPageState extends State<CatalogPage> {
                                 'catalog-product-${item.document.product.id.value}',
                               ),
                               title: Text(productLabel(item)),
+                              trailing: widget.store is PurchaseHistoryService
+                                  ? IconButton(
+                                      key: ValueKey(
+                                        'product-history-${item.document.product.id.value}',
+                                      ),
+                                      tooltip: s.purchaseHistory,
+                                      icon: const Icon(Icons.show_chart),
+                                      onPressed: () => Navigator.push<void>(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => PurchaseHistoryPage(
+                                            store: widget.store,
+                                            service:
+                                                widget.store
+                                                    as PurchaseHistoryService,
+                                            product: item,
+                                            branchName: _branch!.name,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  : null,
                               onTap: () => _open(product: item),
                             )
                           else if (item is StoredProductAlias)

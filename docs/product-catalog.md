@@ -195,7 +195,8 @@ Neither test opens or clears the normal database.
 
 ## Remaining work
 
-Build comparable product history and price trends from reviewed product links.
-Keep package quantity separate from purchased quantity and define discount,
-deposit and unit-comparability rules before displaying inferred unit prices.
-Windows OCR packaging and sync transport/conflict workflows remain separate work.
+[Purchase history and prices](purchase-history.md) now reads explicitly linked rows,
+with page-scoped price charts, exact quantities, linked item discounts, deposit
+exclusion and separate unit/revision groups. Full date-range analytics and any further
+package conversions remain open. Windows OCR packaging and sync transport/conflict
+workflows remain separate work.

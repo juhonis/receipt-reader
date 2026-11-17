@@ -19,7 +19,10 @@ from schemas 1–4 without changing prior event bytes. The
 and retained previous datasets, with native checks on both platforms.
 [Product/alias management](docs/product-catalog.md) provides Finnish catalog
 screens and explicit reviewed receipt links, preserved through encrypted recovery.
-Windows OCR packaging, price history/charts and sync remain open.
+[Product purchase history](docs/purchase-history.md) adds linked purchase rows and
+page-scoped comparable price charts, preserving raw amounts and separating discounts,
+deposits, returns and unit/revision groups. Full date-range analytics, Windows OCR
+packaging and sync remain open.
 
 See [the project plan](docs/plan.md) for the next milestone and
 [OCR spike findings](docs/ocr-spike.md) for engine evidence and remaining

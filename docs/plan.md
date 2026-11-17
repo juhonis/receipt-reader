@@ -262,7 +262,8 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Add reviewed receipt deletion with immutable tombstone events, schema-3 migration, stale-write rejection, exact retries and native reopen checks on both platforms. See [receipt deletion](receipt-deletion.md).
 - [x] Add store-scoped product/alias storage, immutable revisions, schema-4 migration and encrypted backup recovery. See [product catalog](product-catalog.md).
 - [x] Add product/alias management UI and explicit reviewed receipt match correction. See [product catalog](product-catalog.md).
-- [ ] Build price trends with unit comparability, discount semantics, and deposit exclusion.
+- [x] Add linked product purchase history and page-scoped price charts with exact quantity arithmetic, unit/revision comparability, linked item discounts, deposit exclusion and explicit receipt-wide discount/adjustment warnings. See [purchase history](purchase-history.md).
+- [ ] Extend price trends to date-range summaries over all selected observations with bounded aggregation and missing-data counts.
 - [x] Implement the versioned structured backup/isolated recovery core on both platforms, including strict validation, preserved event/tombstone/row identities, fresh device identity and repeated restore/write tests. See [backup recovery](backup-recovery.md).
 - [x] Add password-protected backup files, native export/import UI, validated preview, explicit replacement confirmation, transactional activation/crash recovery and retained previous datasets on both platforms. See [password backups](password-backups.md).
 - [ ] Test migrations and data integrity before using real financial history as the only copy.
@@ -324,10 +325,16 @@ review and correction expose optional explicit product choices and alias suggest
 Links retain reviewed product revisions and receipt/row identities; history and
 inner-v3 encrypted recovery retain earlier linked snapshots after unlink/deletion.
 
-Next, add comparable product purchase history and price trends. Start with explicitly
-linked rows in one branch, preserve raw financial values, and define unit/discount/
-deposit comparability before computing normalized prices. Keep unrelated products
-and equal-name identities separate.
+[Product purchase history](purchase-history.md) now shows explicitly linked rows in
+one branch, original financial data and page-scoped price charts. Normalized prices
+require reviewed purchased quantities; linked item discounts apply, deposits stay
+separate, and receipt discounts/adjustments remain unallocated and flagged. Returns
+and missing-quantity rows stay visible outside price charts. Piece comparisons keep
+saved product revisions separate; weight and volume use distinct purchased units.
+
+Next, extend these comparisons to a selected date range across all matching rows,
+with bounded aggregation, clear counts of excluded observations and the same exact
+financial rules. Current chart ranges and counts describe only their visible page.
 
 Windows OCR packaging and final engine selection remain open. Keep representative
 S-kaupat images and OCR exports in ignored `localreceipts/`; committed fixtures

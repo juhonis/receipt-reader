@@ -6,6 +6,7 @@ import 'package:receipt_storage/receipt_storage.dart';
 
 import 'backup_service.dart';
 import 'catalog_service.dart';
+import 'purchase_history_service.dart';
 
 /// App-facing seam: widget tests never open the user's real database.
 abstract interface class LocalStore {
@@ -21,9 +22,17 @@ abstract interface class LocalStore {
   Future<void> close();
 }
 
-final class RepositoryStore implements LocalStore, CatalogService {
+final class RepositoryStore
+    implements LocalStore, CatalogService, PurchaseHistoryService {
   RepositoryStore(this.repository);
   final ReceiptRepository repository;
+  @override
+  Future<List<StoredProductPurchase>> purchases(
+    DurableId storeId,
+    DurableId productId, {
+    int limit = 30,
+    int offset = 0,
+  }) => repository.purchases(storeId, productId, limit: limit, offset: offset);
   @override
   Future<List<StoredProduct>> products(
     DurableId storeId, {
@@ -85,9 +94,27 @@ final class RepositoryStore implements LocalStore, CatalogService {
 
 /// Serializes all app reads/writes with backup preparation and activation.
 final class WorkspaceStore
-    implements LocalStore, BackupService, CatalogService {
+    implements
+        LocalStore,
+        BackupService,
+        CatalogService,
+        PurchaseHistoryService {
   WorkspaceStore(this.workspace);
   final ReceiptWorkspace workspace;
+  @override
+  Future<List<StoredProductPurchase>> purchases(
+    DurableId storeId,
+    DurableId productId, {
+    int limit = 30,
+    int offset = 0,
+  }) => _run(
+    () => workspace.repository.purchases(
+      storeId,
+      productId,
+      limit: limit,
+      offset: offset,
+    ),
+  );
   @override
   Future<List<StoredProduct>> products(
     DurableId storeId, {

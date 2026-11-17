@@ -14,6 +14,7 @@ import 'history_filter.dart';
 part 'integrity.dart';
 part 'backup.dart';
 part 'catalog.dart';
+part 'purchases.dart';
 
 final class StorageFailure implements Exception {
   const StorageFailure(this.code);
