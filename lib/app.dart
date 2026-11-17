@@ -17,6 +17,8 @@ import 'history_page.dart';
 import 'backup_files.dart';
 import 'backup_page.dart';
 import 'backup_service.dart';
+import 'spending_service.dart';
+import 'spending_page.dart';
 
 class ReceiptReaderApp extends StatelessWidget {
   const ReceiptReaderApp({
@@ -218,6 +220,20 @@ class _HomePageState extends State<_HomePage> {
                       onPressed: _history,
                       icon: const Icon(Icons.history),
                       label: Text(strings.historyTitle),
+                    ),
+                  if (widget.store is SpendingService && !recovery)
+                    TextButton.icon(
+                      key: const Key('open-spending'),
+                      onPressed: () => Navigator.of(context).push<void>(
+                        MaterialPageRoute(
+                          builder: (_) => SpendingPage(
+                            store: widget.store!,
+                            service: widget.store! as SpendingService,
+                          ),
+                        ),
+                      ),
+                      icon: const Icon(Icons.account_balance_wallet_outlined),
+                      label: Text(strings.spendingTitle),
                     ),
                   if (widget.store is CatalogService && !recovery)
                     TextButton.icon(

@@ -410,5 +410,22 @@
   "purchaseBucketPolicy": "Pylväät näyttävät jakson alimman ja ylimmän hinnan, enintään 24 kalenterijaksossa. Tyhjät jaksot jäävät tyhjiksi. Pylväät eivät kuvaa keskihintaa.",
   "purchaseBucketDetails": "Jaksojen tarkat hinnat ja havaintomäärät",
   "purchaseTooManyGroups": "Aikavälillä on liian monta eri tuoteversiota vertailuun. Valitse lyhyempi aikaväli. Osittaista yhteenvetoa ei näytetä.",
-  "purchasePageEmpty": "Tällä sivulla ei ole enää rivejä. Palaa edelliselle sivulle."
+  "purchasePageEmpty": "Tällä sivulla ei ole enää rivejä. Palaa edelliselle sivulle.",
+  "spendingTitle": "Kulutus",
+  "spendingScope": "Mukana ovat vain tähän laitteeseen tallennetut, tarkistetut kuitit. Koko kuitin loppusumma sisältää myös liittämättömät tuotteet, pantit, alennukset, palautukset ja oikaisut. Tämä ei ole tuotteiden yksikköhintavertailu eikä kuvaa kaikkea kulutustasi.",
+  "spendingFilters": "Toimipiste ja aikaväli",
+  "spendingDateNotice": "Rajaus koskee kuitin painettua kalenteripäivää. Molemmat rajapäivät ovat mukana. Tyhjä raja on avoin.",
+  "spendingNet": "Kuittien loppusummat yhteensä",
+  "spendingCount": "Kuitteja",
+  "spendingNegative": "Negatiivisen loppusumman kuitteja",
+  "spendingAdjusted": "Kuitteja, joilla on tarkistettu oikaisu",
+  "spendingUnlinked": "Kuitteja, joilla on tuoteluetteloon liittämättömiä tuotteita (summat mukana)",
+  "spendingBranches": "Toimipisteittäin",
+  "spendingMonths": "Kalenterikuukausittain",
+  "spendingMonthNotice": "Vain kuitteja sisältävät kuukaudet näytetään. Puuttuva kuukausi ei tarkoita nollakulutusta. Negatiivinen kuittisumma pienentää yhteissummaa.",
+  "spendingBranchNotice": "Toimipisteen nimi on viimeisimmältä rajaukseen kuuluvalta kuittipäivältä. Eri toimipisteet pysyvät erillään myös samannimisinä.",
+  "spendingEmpty": "Rajauksella ei löytynyt tallennettuja kuitteja.",
+  "spendingFailed": "Kulutuksen lataaminen epäonnistui. Yhteenvetoa ei näytetä osittaisena.",
+  "spendingLimit": "Rajauksessa on yli 128 toimipistettä. Rajaa toimipiste tai lyhyempi aikaväli. Osittaista yhteenvetoa ei näytetä.",
+  "spendingAll": "Kaikki toimipisteet ja päivät"
 }

@@ -146,6 +146,7 @@ calendar/leap/DST boundaries and aggregate cents beyond SQLite int64.
 
 ## Remaining work
 
-Broader receipt-level spending analytics, sync conflict exclusions once conflicts
-exist, and production Windows OCR packaging remain separate milestones. Package
+[Receipt-level spending](spending-summary.md) now has a separate screen using full
+receipt totals. Sync conflict exclusions once conflicts exist and production Windows
+OCR packaging remain separate milestones. Package
 conversions beyond the conservative price policy need their own explicit rules.

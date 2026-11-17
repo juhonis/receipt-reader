@@ -7,6 +7,7 @@ import 'package:receipt_storage/receipt_storage.dart';
 import 'backup_service.dart';
 import 'catalog_service.dart';
 import 'purchase_history_service.dart';
+import 'spending_service.dart';
 
 /// App-facing seam: widget tests never open the user's real database.
 abstract interface class LocalStore {
@@ -23,9 +24,16 @@ abstract interface class LocalStore {
 }
 
 final class RepositoryStore
-    implements LocalStore, CatalogService, PurchaseHistoryService {
+    implements
+        LocalStore,
+        CatalogService,
+        PurchaseHistoryService,
+        SpendingService {
   RepositoryStore(this.repository);
   final ReceiptRepository repository;
+  @override
+  Future<SpendingSummary> spendingSummary({HistoryFilter? filter}) =>
+      repository.spendingSummary(filter: filter);
   @override
   Future<List<StoredProductPurchase>> purchases(
     DurableId storeId,
@@ -119,9 +127,13 @@ final class WorkspaceStore
         LocalStore,
         BackupService,
         CatalogService,
-        PurchaseHistoryService {
+        PurchaseHistoryService,
+        SpendingService {
   WorkspaceStore(this.workspace);
   final ReceiptWorkspace workspace;
+  @override
+  Future<SpendingSummary> spendingSummary({HistoryFilter? filter}) =>
+      _run(() => workspace.repository.spendingSummary(filter: filter));
   @override
   Future<PurchaseHistoryResult> purchaseHistory(
     DurableId storeId,

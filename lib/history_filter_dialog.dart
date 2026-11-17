@@ -13,7 +13,16 @@ class HistoryFilterSelection {
 }
 
 class HistoryFilterDialog extends StatefulWidget {
-  const HistoryFilterDialog({super.key, required this.store, this.selection});
+  const HistoryFilterDialog({
+    super.key,
+    required this.store,
+    this.selection,
+    this.amountBounds = true,
+    this.title,
+    this.notice,
+  });
+  final bool amountBounds;
+  final String? title, notice;
   final LocalStore store;
   final HistoryFilterSelection? selection;
 
@@ -101,7 +110,8 @@ class _HistoryFilterDialogState extends State<HistoryFilterDialog> {
     final through = _through.text.trim().isEmpty
         ? null
         : StoredReceiptDate.parse(_through.text);
-    final min = parseCents(_min.text), max = parseCents(_max.text);
+    final min = widget.amountBounds ? parseCents(_min.text) : null;
+    final max = widget.amountBounds ? parseCents(_max.text) : null;
     final s = AppLocalizations.of(context)!;
     int day(StoredReceiptDate date) =>
         date.year * 10000 + date.month * 100 + date.day;
@@ -139,7 +149,7 @@ class _HistoryFilterDialogState extends State<HistoryFilterDialog> {
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: Text(s.historyFilters),
+      title: Text(widget.title ?? s.historyFilters),
       scrollable: true,
       content: SizedBox(
         width: 480,
@@ -148,7 +158,7 @@ class _HistoryFilterDialogState extends State<HistoryFilterDialog> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(s.historyFilterNotice),
+              Text(widget.notice ?? s.historyFilterNotice),
               if (_branches == null && !_branchFailed)
                 const LinearProgressIndicator(),
               if (_branchFailed) ...[
@@ -214,33 +224,35 @@ class _HistoryFilterDialogState extends State<HistoryFilterDialog> {
                 validator: _validateDay,
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                key: const Key('history-filter-min'),
-                controller: _min,
-                decoration: InputDecoration(
-                  labelText: s.historyMinAmount,
-                  hintText: '0,00',
+              if (widget.amountBounds) ...[
+                TextFormField(
+                  key: const Key('history-filter-min'),
+                  controller: _min,
+                  decoration: InputDecoration(
+                    labelText: s.historyMinAmount,
+                    hintText: '0,00',
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                    signed: true,
+                  ),
+                  validator: _validateAmount,
                 ),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                  signed: true,
+                const SizedBox(height: 12),
+                TextFormField(
+                  key: const Key('history-filter-max'),
+                  controller: _max,
+                  decoration: InputDecoration(
+                    labelText: s.historyMaxAmount,
+                    hintText: '0,00',
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                    signed: true,
+                  ),
+                  validator: _validateAmount,
                 ),
-                validator: _validateAmount,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                key: const Key('history-filter-max'),
-                controller: _max,
-                decoration: InputDecoration(
-                  labelText: s.historyMaxAmount,
-                  hintText: '0,00',
-                ),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                  signed: true,
-                ),
-                validator: _validateAmount,
-              ),
+              ],
               if (_rangeError != null)
                 Text(_rangeError!, key: const Key('history-filter-error')),
             ],

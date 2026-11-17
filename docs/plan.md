@@ -264,7 +264,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Add product/alias management UI and explicit reviewed receipt match correction. See [product catalog](product-catalog.md).
 - [x] Add linked product purchase history and page-scoped price charts with exact quantity arithmetic, unit/revision comparability, linked item discounts, deposit exclusion and explicit receipt-wide discount/adjustment warnings. See [purchase history](purchase-history.md).
 - [x] Extend product price trends to inclusive date-range summaries over every matching row, with exact counts/subtotals, bounded calendar min/max charts, exclusion counts and one consistent summary/detail snapshot. See [purchase history](purchase-history.md).
-- [ ] Add receipt-level spending summaries by branch and calendar period, using current receipt totals and retaining returns, adjustments and completeness warnings.
+- [x] Add receipt-level spending summaries by branch and calendar month, using complete current receipt totals, exact signed cents, inclusive branch/date filters and explicit coverage notices. See [spending summaries](spending-summary.md).
 - [x] Implement the versioned structured backup/isolated recovery core on both platforms, including strict validation, preserved event/tombstone/row identities, fresh device identity and repeated restore/write tests. See [backup recovery](backup-recovery.md).
 - [x] Add password-protected backup files, native export/import UI, validated preview, explicit replacement confirmation, transactional activation/crash recovery and retained previous datasets on both platforms. See [password backups](password-backups.md).
 - [ ] Test migrations and data integrity before using real financial history as the only copy.
@@ -338,10 +338,18 @@ matching linked row, with exact exclusion counts and at most 24 calendar min/max
 intervals per unit/revision group. The summary and paginated details share one
 transaction; excessive group counts require a narrower range without partial output.
 
-Next, add receipt-level spending summaries by branch and calendar period. Use full
-current receipt totals rather than summing linked product observations, so unlinked
-products, deposits, receipt discounts, returns and reviewed adjustments contribute
-exactly once. Keep these totals distinct from comparable product prices.
+[Receipt spending](spending-summary.md) now uses full current receipt totals, so
+unlinked products, deposits, receipt discounts, returns and reviewed adjustments
+contribute exactly once. Inclusive branch/day filters cover every selected receipt;
+exact signed totals are broken down by branch and printed calendar month. Coverage
+notices, negative receipt counts and adjustment/unlinked receipt counts stay visible.
+These totals are separate from comparable product prices and update after encrypted
+recovery without changing stored financial data.
+
+Next, rehearse migration and recovery integrity across supported database versions
+on both native platforms before treating the app as the only copy of financial
+history. Check original event bytes, corrections/tombstones, catalog links and both
+spending/price summaries after upgrade, encrypted restore and reopen.
 
 Windows OCR packaging and final engine selection remain open. Keep representative
 S-kaupat images and OCR exports in ignored `localreceipts/`; committed fixtures

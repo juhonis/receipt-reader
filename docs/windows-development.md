@@ -291,3 +291,21 @@ linked-history recovery. Run it with the same device arguments. Run Android in
 airplane mode and
 restore its prior setting. Serialize Flutter commands and restore normal app builds
 using the receipt-deletion commands above; never uninstall or clear normal data.
+
+## Spending summary verification
+
+[Receipt spending](spending-summary.md) uses the existing Flutter/Dart and SQLite
+toolchain without a schema migration or additional dependency. Run the isolated
+native workflow with:
+
+    flutter test integration_test/spending_test.dart -d windows
+    flutter test integration_test/spending_test.dart -d emulator-5554
+
+This covers complete mixed-row receipt totals, more than one history page,
+branch/day filtering, correction, encrypted activation while the page remains open,
+queued reads, deletion, reopen and previous-dataset recovery. Only guarded synthetic
+spending-smoke-* app-support directories are created and removed. Use a temporary
+build-dir when normal Windows Debug sessions hold the executable open, and restore
+the prior build-dir and emulator airplane setting afterward. Rebuild the normal
+Windows release/Android debug entry points and upgrade-install the APK without
+uninstalling or clearing app data.

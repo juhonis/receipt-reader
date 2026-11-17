@@ -198,5 +198,6 @@ Neither test opens or clears the normal database.
 [Purchase history and prices](purchase-history.md) now reads explicitly linked rows,
 with full date-range summaries and bounded calendar price-range charts, exact
 quantities, linked item discounts, deposit exclusion and separate unit/revision
-groups. Broader spending analytics and further package conversions remain open.
+groups. [Receipt spending](spending-summary.md) separately uses complete receipt
+totals, including unlinked products. Further package conversions remain open.
 Windows OCR packaging and sync transport/conflict workflows remain separate work.

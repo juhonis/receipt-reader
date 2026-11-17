@@ -15,6 +15,7 @@ part 'integrity.dart';
 part 'backup.dart';
 part 'catalog.dart';
 part 'purchases.dart';
+part 'spending.dart';
 
 final class StorageFailure implements Exception {
   const StorageFailure(this.code);

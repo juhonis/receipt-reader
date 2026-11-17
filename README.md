@@ -21,8 +21,10 @@ and retained previous datasets, with native checks on both platforms.
 screens and explicit reviewed receipt links, preserved through encrypted recovery.
 [Product purchase history](docs/purchase-history.md) adds linked purchase rows and
 full date-range summaries and calendar price-range charts, preserving raw amounts
-and separating discounts, deposits, returns and unit/revision groups. Receipt-level
-spending analytics, Windows OCR packaging and sync remain open.
+and separating discounts, deposits, returns and unit/revision groups.
+[Receipt spending](docs/spending-summary.md) adds full signed totals by branch and
+calendar month with inclusive branch/date filters and explicit coverage notices.
+Windows OCR packaging and sync remain open.
 
 See [the project plan](docs/plan.md) for the next milestone and
 [OCR spike findings](docs/ocr-spike.md) for engine evidence and remaining
