@@ -11,17 +11,18 @@ and event integrity checks.
 [OCR corrections](ocr-corrections.md) use fresh scans and explicit row identity
 matching; earlier source identities and decisions remain in immutable events.
 [Structured backup/isolated recovery](backup-recovery.md) now preserves event
-history with fresh installation identity. Backup UI/encryption/activation and
-the broader catalog/conflict/sync rules below remain open; this contract exceeds
-the current implementation.
+history with fresh installation identity. [Password-protected backup UI and
+activation](password-backups.md) now provide explicit dataset selection and retained
+previous slots. The broader catalog/conflict/sync rules below remain open.
 
 This document makes the [plan's data and sync rules](plan.md#3-data-architecture--financial-rules)
 concrete. Implement local persistence first on Android and Windows. Network
-transport, pairing, backup UI, and product matching remain separate work.
+transport, pairing and product matching remain separate work.
 
 ## 1. Ownership and database lifecycle
 
-- One private, application-owned database per installation contains one dataset.
+- One active private, application-owned database per installation contains one
+  dataset. Previous complete slots may be retained for explicit recovery.
   Use the platform application-support directory, never the checkout, gallery,
   Downloads directory, or a shared/network folder. Android and Windows have
   independent files even after pairing.
@@ -362,11 +363,13 @@ versions, counts and checksums. Conflicted history remains unsupported until
 conflict workflows exist. Projections can be rebuilt. It contains no receipt images,
 OCR dumps, credentials, private keys, peer trust, or an active-device assignment.
 Historical origin device IDs remain attached to their events.
-Checksums detect corruption, not an authenticated publisher. Export privacy and
-password/encryption policy require a separate user-visible decision before UI.
+Checksums detect corruption, not an authenticated publisher. On 2026-11-17 the
+user selected password-protected files. The app now authenticates/encrypts this
+inner representation; no plaintext export/import fallback is exposed.
 
 The core validates a complete package in isolated temporary storage and rebuilds
-its projections with a fresh device identity. Activation remains pending.
+its projections with a fresh device identity. The workspace activation registry
+now selects a validated slot transactionally while retaining previous slots.
 The complete restore workflow must validate a package, rebuild and check it, then
 atomically activate it while the old dataset remains recoverable.
 Do not restore over a populated active dataset without explicit user choice.

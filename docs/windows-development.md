@@ -250,3 +250,23 @@ Rebuild and launch the normal Windows app and reinstall the normal debug APK
 using the commands above. The smoke preserves normal application data. This
 engine stages recovery only; user-facing file encryption, UI and active-dataset
 replacement remain pending.
+
+## Password-protected backup workflow
+
+[Encrypted backups](password-backups.md) use the pinned Dart cryptography package,
+Android document intents and the existing Windows file selector. No additional
+SDK, native crypto runtime or network service is needed. The emulator AVD remains
+Receipt_Reader_API_36_1; use its current ID from flutter devices.
+
+Run integration_test/protected_backup_test.dart on Windows and emulator-5554 to
+verify UI export, password failures, reviewed activation, previous-data recovery
+and explicit recovery from an unreadable receipt database. The tests use guarded
+synthetic app-support subdirectories. The interactive backup_picker_test.dart
+opens the actual save/open dialogs and expects the same synthetic file back; opt
+in with --dart-define=INTERACTIVE_BACKUP_PICKER=true (otherwise it is skipped).
+
+Restore the prior airplane setting, rebuild normal entry points and reinstall
+the normal debug APK after testing. Do not uninstall or clear app data. The normal
+app now creates workspace.sqlite beside the original receipts.sqlite, with an
+exclusive workspace.lock and retained receipt-restore-* directories after restores.
+WSL Git does not move or back up these private application-support files.

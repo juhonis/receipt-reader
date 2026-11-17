@@ -263,7 +263,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [ ] Add store-scoped products, aliases, and explicit match correction.
 - [ ] Build price trends with unit comparability, discount semantics, and deposit exclusion.
 - [x] Implement the versioned structured backup/isolated recovery core on both platforms, including strict validation, preserved event/tombstone/row identities, fresh device identity and repeated restore/write tests. See [backup recovery](backup-recovery.md).
-- [ ] Choose backup privacy/encryption policy, then add native export/import UI, explicit replacement confirmation and atomic activation/crash recovery with the old dataset recoverable on both platforms.
+- [x] Add password-protected backup files, native export/import UI, validated preview, explicit replacement confirmation, transactional activation/crash recovery and retained previous datasets on both platforms. See [password backups](password-backups.md).
 - [ ] Test migrations and data integrity before using real financial history as the only copy.
 
 ### Phase 4: Adaptive UI & Standalone Feature Parity
@@ -308,13 +308,16 @@ versioned package and validates/rebuilds it in an isolated database with a fresh
 device identity. Event/tombstone bytes, row ownership and retry identities survive
 repeated restore/write cycles. Synthetic native recovery passes on both platforms.
 
-Next, choose password protection versus explicitly plaintext user-facing files,
-then implement native export/import UI, validated preview, explicit replacement
-confirmation and atomic activation/crash recovery. Preserve the old dataset until
-activation succeeds. The core does not yet replace the active database or expose
-a file picker. Finish and test that workflow before relying on the app as the
-only copy of financial history. Exports must be user-initiated and explain that
-backups retain financial records, including deleted receipts in immutable history.
+[Password-protected backups](password-backups.md) now provide the native file
+workflow, explicit reviewed replacement and retained previous datasets. A workspace
+registry selects complete recovered databases atomically; startup also offers
+explicit backup recovery if the selected receipt database cannot open. Unit,
+widget, process-exit and native offline recovery checks pass. Completed encrypted
+backup files must be kept off-device with their passwords stored separately.
+
+Next, add store-scoped product identity and aliases with explicit reviewed match
+correction. Preserve receipt/row identities and causal history, keep cross-store
+links invalid, and make matching choices visible before building price trends.
 
 Windows OCR packaging and final engine selection remain open. Keep representative
 S-kaupat images and OCR exports in ignored `localreceipts/`; committed fixtures

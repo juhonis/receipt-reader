@@ -9,12 +9,14 @@ can be relabelled as manual entry or saved through this screen.
 
 The normal entry point opens one repository through `lib/local_store.dart` and
 keeps it across navigation. The app owns closing it, including when an asynchronous
-open completes after widget disposal. Initialization failures show a retry screen;
-there is no delete, reset, alternate dataset, or temporary-database fallback.
+open completes after widget disposal. Initialization failures offer retry or an
+explicit [encrypted backup recovery](password-backups.md) workflow; they never
+delete/reset data or silently switch datasets.
 
 `path_provider` 2.1.6 resolves the platform application-support directory. The
-file is `receipts.sqlite`, with SQLite-managed WAL/SHM sidecars as needed. For the
-current application identity, the locations are:
+initial file is `receipts.sqlite`, with SQLite-managed WAL/SHM sidecars as needed.
+After restore, `workspace.sqlite` selects a validated `receipt-restore-*` slot under
+the same private root and retains the original file. Initial locations are:
 
 - Android: `/data/user/0/fi.juhonis.receipt_reader/files/receipts.sqlite`
   (the app-private directory; an OS alias may use `/data/data`).
@@ -35,10 +37,10 @@ already outside normal Android backup. The rules compile into the debug APK.
 Actual manufacturer transfer tools and fresh-install release behaviour remain
 part of release testing.
 
-There is no application-level database encryption or structured backup/restore
-feature yet. Keep original receipts and do not rely on this prototype as the only
-copy of financial history. Copying the live SQLite file is not a supported restore
-workflow, and uninstalling/clearing application data can remove local history.
+Live databases rely on private OS storage. [Encrypted backup/restore](password-backups.md)
+is available; retain completed files outside the device and keep their passwords
+separately. Copying a live SQLite file is not a supported restore workflow, and
+uninstalling/clearing application data can remove all local slots.
 
 ## Manual workflow
 

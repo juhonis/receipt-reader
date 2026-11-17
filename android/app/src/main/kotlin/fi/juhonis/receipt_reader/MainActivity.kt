@@ -10,6 +10,7 @@ import java.util.concurrent.Executors
 
 class MainActivity : FlutterActivity() {
     private val ocr = ReceiptOcr()
+    private val backups = BackupDocuments(this)
     private var pending: MethodChannel.Result? = null
     private val reader = Executors.newSingleThreadExecutor()
     private val requestImage = 4101
@@ -17,6 +18,8 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "receipt_reader/backup")
+            .setMethodCallHandler { call, result -> backups.handle(call, result) }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "receipt_reader/ocr")
             .setMethodCallHandler { call, result ->
                 if (call.method == "recognize") ocr.recognize(call.arguments as? ByteArray, result)
@@ -49,6 +52,7 @@ class MainActivity : FlutterActivity() {
     @Deprecated("Activity result compatibility with FlutterActivity")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (backups.onResult(requestCode, resultCode, data)) return
         if (requestCode != requestImage) return
         val result = pending ?: return
         val uri = data?.data
@@ -82,6 +86,7 @@ class MainActivity : FlutterActivity() {
 
     override fun onDestroy() {
         ocr.close()
+        backups.close()
         pending = null
         reader.shutdownNow()
         super.onDestroy()

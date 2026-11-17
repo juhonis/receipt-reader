@@ -1,8 +1,10 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:path_provider/path_provider.dart';
 import 'package:receipt_domain/receipt_domain.dart';
 import 'package:receipt_storage/receipt_storage.dart';
+
+import 'backup_service.dart';
 
 /// App-facing seam: widget tests never open the user's real database.
 abstract interface class LocalStore {
@@ -43,13 +45,87 @@ final class RepositoryStore implements LocalStore {
   Future<void> close() => repository.close();
 }
 
-/// A single connection owned by the app, outside the checkout/import folders.
-Future<LocalStore> openApplicationStore() async {
-  final directory = await getApplicationSupportDirectory();
-  await directory.create(recursive: true);
-  return RepositoryStore(
-    await ReceiptRepository.open(
-      File('${directory.path}${Platform.pathSeparator}receipts.sqlite'),
+/// Serializes all app reads/writes with backup preparation and activation.
+final class WorkspaceStore implements LocalStore, BackupService {
+  WorkspaceStore(this.workspace);
+  final ReceiptWorkspace workspace;
+  Future<void> _tail = Future.value();
+  bool _closed = false;
+  Future<T> _run<T>(Future<T> Function() action) {
+    if (_closed) return Future.error(const StorageFailure('workspaceClosed'));
+    final result = _tail.then((_) {
+      if (!workspace.usable) throw const StorageFailure('workspaceRestart');
+      return action();
+    });
+    _tail = result.then<void>((_) {}, onError: (Object _) {});
+    return result;
+  }
+
+  @override
+  bool get canReturnToPrevious => workspace.canReturnToPrevious;
+  @override
+  bool get datasetAvailable => workspace.datasetAvailable;
+  @override
+  Future<List<ReceiptBranch>> branches() =>
+      _run(() => workspace.repository.branches());
+  @override
+  Future<List<StoredReceipt>> history({
+    int limit = 30,
+    int offset = 0,
+    HistoryFilter? filter,
+  }) => _run(
+    () => workspace.repository.history(
+      limit: limit,
+      offset: offset,
+      filter: filter,
     ),
   );
+  @override
+  Future<SaveResult> saveManual(ReviewedReceipt command) =>
+      _run(() => workspace.repository.saveManual(command));
+  @override
+  Future<SaveResult> saveOcr(ReviewedReceipt command) =>
+      _run(() => workspace.repository.saveOcr(command));
+  @override
+  Future<SaveResult> deleteReceipt(ReviewedReceiptDeletion command) =>
+      _run(() => workspace.repository.deleteReceipt(command));
+  @override
+  Future<Uint8List> exportProtected(String password) =>
+      _run(() => workspace.exportProtected(password));
+  @override
+  Future<BackupCandidate> prepareProtected(Uint8List file, String password) =>
+      _run(() async {
+        final preview = await workspace.prepare(file, password);
+        return BackupCandidate(
+          receipts: preview.receipts,
+          deleted: preview.deleted,
+          events: preview.events,
+          token: preview,
+        );
+      });
+  @override
+  Future<void> activateBackup(BackupCandidate candidate) =>
+      _run(() => workspace.activate(candidate.token as RestorePreview));
+  @override
+  Future<void> discardBackup(BackupCandidate candidate) =>
+      _run(() => workspace.discard(candidate.token as RestorePreview));
+  @override
+  Future<void> returnToPrevious() => _run(workspace.returnToPrevious);
+  @override
+  Future<void> close() {
+    if (_closed) return _tail;
+    _closed = true;
+    return _tail = _tail.then((_) => workspace.close());
+  }
 }
+
+Future<LocalStore> openApplicationStore() async => WorkspaceStore(
+  await ReceiptWorkspace.open(await getApplicationSupportDirectory()),
+);
+
+Future<LocalStore> openApplicationRecoveryStore() async => WorkspaceStore(
+  await ReceiptWorkspace.open(
+    await getApplicationSupportDirectory(),
+    recoverActive: true,
+  ),
+);

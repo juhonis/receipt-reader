@@ -1,9 +1,9 @@
 # Structured backup and isolated recovery core
 
-Status: storage engine implemented, 2026-11-16. Native synthetic recovery checks
-pass on Windows and Android offline. User-facing export/import, encryption policy
-and replacement of the active dataset remain pending. The app must not yet be
-presented as the only recoverable copy of financial history.
+Status: core implemented on 2026-11-16. [Password-protected backup files and
+reviewed activation](password-backups.md) followed on 2026-11-17, with synthetic
+native checks on Windows and Android offline. This document describes the
+plaintext inner format and isolated rebuild API, below the encrypted app workflow.
 
 ## Supported APIs and lifecycle
 
@@ -23,8 +23,8 @@ identity and counts. It can be opened with `ReceiptRepository.open` for inspecti
 The caller owns successful staging output and must keep it private and either
 activate or remove it. On validation/rebuild failure, the connection closes and
 only that attempt's guarded staging directory is removed. A process termination
-can leave staging output; startup cleanup and activation recovery are part of the
-pending app workflow. This API is not a restore-over-existing-data operation and
+can leave staging output; the workspace now cleans unregistered staging on startup
+and retains all activated slots. This API is not a restore-over-existing-data operation and
 has no hidden replace or merge fallback.
 
 ## Version-1 format
@@ -57,8 +57,8 @@ The core representation is plaintext and contains financial history, including
 prior corrected/deleted records. It excludes receipt images, raw OCR dumps,
 free-text evidence notes, credentials, private keys and peer trust. Historical
 origin IDs remain with events; there is no active-device assignment or saved
-sequence allocator in the package. No user file picker/export button is exposed
-before the privacy/encryption decision required by the storage contract.
+sequence allocator in the package. The normal app wraps it in authenticated password encryption; its native pickers
+do not offer this plaintext format. The user chose password protection on 2026-11-17.
 
 ## Identity and replay after restore
 
@@ -110,10 +110,9 @@ database or private receipt images. Android runs in airplane mode. Restore the
 prior airplane setting and normal application builds after native tests; see
 [Windows setup](windows-development.md).
 
-## Remaining app workflow
+## App workflow
 
-Choose whether user-facing files are password-protected or explicitly plaintext.
-Then add native save/open handling on both platforms, a validated restore preview,
-explicit replacement confirmation and atomic activation with the old dataset
-recoverable. Test cancellation, crash recovery and activation failure before
-checking off the full backup/restore milestone in the [plan](plan.md).
+[Password-protected backups](password-backups.md) now add native file selection,
+validated preview, explicit replacement confirmation, transactional slot selection
+and previous-dataset recovery. The current suites contain 115 app tests and 120
+storage tests; the counts above describe the earlier core milestone.

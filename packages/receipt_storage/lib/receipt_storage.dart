@@ -4,3 +4,6 @@ library;
 
 export 'src/repository.dart';
 export 'src/history_filter.dart';
+
+export 'src/protected_backup.dart';
+export 'src/workspace.dart';

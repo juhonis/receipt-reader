@@ -285,5 +285,46 @@
   "deleteReceiptReviewed": "Olen tarkistanut poistettavan kuitin.",
   "deleteReceiptStale": "Kuitti on muuttunut tai poistettu vahvistuksen aikana. Tätä poistoa ei tallennettu. Sulje näkymä historiaan ja tarkista ajantasaiset tiedot.",
   "deleteReceiptFailed": "Poiston tulosta ei voitu varmistaa. Yritä samaa poistoa uudelleen tai sulje historiaan ja tarkista tilanne.",
-  "deleteReceiptPending": "Poisto käsitellään samalla vahvistuksella. Älä aloita uutta poistoa ennen kuin olet tarkistanut tilanteen historiasta."
+  "deleteReceiptPending": "Poisto käsitellään samalla vahvistuksella. Älä aloita uutta poistoa ennen kuin olet tarkistanut tilanteen historiasta.",
+  "backupTitle": "Varmuuskopiointi ja palautus",
+  "backupNotice": "Varmuuskopio sisältää koko tallennetun historian, myös aiemmat korjaukset ja poistetut kuitit. Kuitin kuvat eivät sisälly tiedostoon. Tiedosto suojataan salasanalla. Säilytä salasana erillään: unohtunutta salasanaa ei voi palauttaa.",
+  "backupPassword": "Varmuuskopion salasana",
+  "backupPasswordAgain": "Salasana uudelleen (vain tallennettaessa)",
+  "backupPasswordRule": "Käytä vähintään 12 merkkiä. Välilyönnit ja kirjainkoko ovat merkitseviä. Enintään 1024 UTF-8-tavua.",
+  "backupPasswordsDiffer": "Salasanat eivät täsmää.",
+  "backupExport": "Tallenna salattu varmuuskopio",
+  "backupImport": "Avaa salattu varmuuskopio",
+  "backupBusy": "Käsitellään varmuuskopiota. Odota ennen näkymän sulkemista.",
+  "backupSaved": "Salattu varmuuskopio tallennettiin valitsemaasi paikkaan.",
+  "backupCancelled": "Tiedoston valinta peruttiin. Nykyiset tiedot säilyivät.",
+  "backupAuthentication": "Salasana on väärä tai tiedosto on muuttunut. Tarkista salasana ja tiedosto.",
+  "backupInvalid": "Tiedosto on virheellinen, liian suuri tai sen versiota ei tueta. Nykyisiä tietoja ei korvattu.",
+  "backupFileError": "Tiedostoa ei voitu lukea tai tallentaa. Epäonnistunut tallennus voi jättää keskeneräisen tiedoston.",
+  "backupFileExists": "Valitse uusi tiedostonimi. Aiemman varmuuskopion päälle ei tallenneta.",
+  "backupFailed": "Toimintoa ei voitu vahvistaa. Käynnistä sovellus uudelleen, jos aktivoinnin tulos jäi epäselväksi. Aiempi paikallinen aineisto on säilytetty.",
+  "backupStale": "Nykyiset tiedot muuttuivat esikatselun jälkeen. Peru palautus ja avaa varmuuskopio uudelleen.",
+  "backupPreview": "Tarkistettu varmuuskopio",
+  "backupCounts": "Kuitteja: {receipts}, joista poistettuja: {deleted}. Historiatapahtumia: {events}.",
+  "@backupCounts": {
+    "placeholders": {
+      "receipts": {
+        "type": "int"
+      },
+      "deleted": {
+        "type": "int"
+      },
+      "events": {
+        "type": "int"
+      }
+    }
+  },
+  "backupReplaceNotice": "Palautus vaihtaa koko käytössä olevan aineiston tähän varmuuskopioon. Aineistoja ei yhdistetä. Aiempi paikallinen aineisto säilytetään ja siihen voi palata. Palautettu asennus saa uuden laitetunnisteen.",
+  "backupReviewed": "Olen tarkistanut varmuuskopion ja haluan vaihtaa käytössä olevan aineiston.",
+  "backupActivate": "Ota varmuuskopio käyttöön",
+  "backupDiscard": "Peru palautus",
+  "backupPrevious": "Palaa edelliseen paikalliseen aineistoon",
+  "backupPreviousNotice": "Käyttöön vaihdetaan edellinen paikallinen aineisto. Nykyinen aineisto säilytetään, joten voit vaihtaa siihen takaisin samalla toiminnolla.",
+  "backupConfirmPrevious": "Vaihda edelliseen aineistoon",
+  "backupRecovery": "Palauta varmuuskopiosta",
+  "backupRecoveryMode": "Nykyistä aineistoa ei voitu avata. Voit palauttaa salatun varmuuskopion. Alkuperäiset tiedostot säilytetään."
 }

@@ -12,14 +12,20 @@ import 'receipt_import.dart';
 import 'local_store.dart';
 import 'manual_receipt_page.dart';
 import 'history_page.dart';
+import 'backup_files.dart';
+import 'backup_page.dart';
+import 'backup_service.dart';
 
 class ReceiptReaderApp extends StatelessWidget {
   const ReceiptReaderApp({
     super.key,
     this.imagePicker = pickReceiptImage,
     this.storageOpener,
+    this.recoveryOpener,
+    this.backupFiles = const NativeBackupFiles(),
   });
-  final Future<LocalStore> Function()? storageOpener;
+  final Future<LocalStore> Function()? storageOpener, recoveryOpener;
+  final BackupFiles backupFiles;
   final Future<ReceiptEvidence?> Function() imagePicker;
 
   @override
@@ -40,14 +46,24 @@ class ReceiptReaderApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
       ),
       home: storageOpener == null
-          ? _HomePage(imagePicker: imagePicker)
-          : _StorageGate(opener: storageOpener!, imagePicker: imagePicker),
+          ? _HomePage(imagePicker: imagePicker, backupFiles: backupFiles)
+          : _StorageGate(
+              opener: storageOpener!,
+              recoveryOpener: recoveryOpener,
+              imagePicker: imagePicker,
+              backupFiles: backupFiles,
+            ),
     );
   }
 }
 
 class _HomePage extends StatefulWidget {
-  const _HomePage({required this.imagePicker, this.store});
+  const _HomePage({
+    required this.imagePicker,
+    required this.backupFiles,
+    this.store,
+  });
+  final BackupFiles backupFiles;
   final LocalStore? store;
   final Future<ReceiptEvidence?> Function() imagePicker;
   @override
@@ -76,6 +92,18 @@ class _HomePageState extends State<_HomePage> {
           HistoryPage(store: widget.store!, imagePicker: widget.imagePicker),
     ),
   );
+
+  Future<void> _backup() async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => BackupPage(
+          service: widget.store! as BackupService,
+          files: widget.backupFiles,
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
 
   Future<void> _import() async {
     if (_importing) return;
@@ -127,6 +155,9 @@ class _HomePageState extends State<_HomePage> {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
+    final recovery =
+        widget.store is BackupService &&
+        !(widget.store! as BackupService).datasetAvailable;
     return Scaffold(
       appBar: AppBar(title: Text(strings.appTitle)),
       body: SafeArea(
@@ -153,13 +184,16 @@ class _HomePageState extends State<_HomePage> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),
-                  FilledButton.icon(
-                    onPressed: _importing ? null : _import,
-                    icon: const Icon(Icons.image_outlined),
-                    label: Text(
-                      _importing ? strings.importLoading : strings.importImage,
+                  if (!recovery)
+                    FilledButton.icon(
+                      onPressed: _importing ? null : _import,
+                      icon: const Icon(Icons.image_outlined),
+                      label: Text(
+                        _importing
+                            ? strings.importLoading
+                            : strings.importImage,
+                      ),
                     ),
-                  ),
                   if (_failure != null)
                     Text(switch (_failure!) {
                       ImportFailure.tooLarge => strings.importTooLarge,
@@ -167,20 +201,29 @@ class _HomePageState extends State<_HomePage> {
                       ImportFailure.unreadable => strings.importUnreadable,
                     }),
                   const SizedBox(height: 12),
-                  FilledButton(
-                    onPressed: _manual,
-                    child: Text(
-                      widget.store == null
-                          ? strings.startReview
-                          : strings.manualEntryTitle,
+                  if (!recovery)
+                    FilledButton(
+                      onPressed: _manual,
+                      child: Text(
+                        widget.store == null
+                            ? strings.startReview
+                            : strings.manualEntryTitle,
+                      ),
                     ),
-                  ),
-                  if (widget.store != null)
+                  if (widget.store != null && !recovery)
                     TextButton.icon(
                       key: const Key('open-history'),
                       onPressed: _history,
                       icon: const Icon(Icons.history),
                       label: Text(strings.historyTitle),
+                    ),
+                  if (recovery) Text(strings.backupRecoveryMode),
+                  if (widget.store is BackupService)
+                    TextButton.icon(
+                      key: const Key("open-backups"),
+                      onPressed: _backup,
+                      icon: const Icon(Icons.backup_outlined),
+                      label: Text(strings.backupTitle),
                     ),
                 ],
               ),
@@ -195,7 +238,14 @@ class _HomePageState extends State<_HomePage> {
 /// Opens once, retains the connection across routes, and closes even when the
 /// widget is disposed before the asynchronous open completes. No reset fallback.
 class _StorageGate extends StatefulWidget {
-  const _StorageGate({required this.opener, required this.imagePicker});
+  const _StorageGate({
+    required this.opener,
+    required this.recoveryOpener,
+    required this.imagePicker,
+    required this.backupFiles,
+  });
+  final Future<LocalStore> Function()? recoveryOpener;
+  final BackupFiles backupFiles;
   final Future<LocalStore> Function() opener;
   final Future<ReceiptEvidence?> Function() imagePicker;
   @override
@@ -212,10 +262,12 @@ class _StorageGateState extends State<_StorageGate> {
     _open();
   }
 
-  Future<void> _open() async {
+  Future<void> _open({bool recovering = false}) async {
     setState(() => _failed = false);
     try {
-      final store = await widget.opener();
+      final store = await (recovering
+          ? widget.recoveryOpener!
+          : widget.opener)();
       if (!mounted) {
         await store.close();
         return;
@@ -236,7 +288,11 @@ class _StorageGateState extends State<_StorageGate> {
   @override
   Widget build(BuildContext context) {
     if (_store case final store?) {
-      return _HomePage(imagePicker: widget.imagePicker, store: store);
+      return _HomePage(
+        imagePicker: widget.imagePicker,
+        store: store,
+        backupFiles: widget.backupFiles,
+      );
     }
     final s = AppLocalizations.of(context)!;
     return Scaffold(
@@ -254,6 +310,12 @@ class _StorageGateState extends State<_StorageGate> {
                   key: const Key('retry-storage'),
                   onPressed: _open,
                   child: Text(s.retryAction),
+                ),
+              if (_failed && widget.recoveryOpener != null)
+                TextButton(
+                  key: const Key("open-backup-recovery"),
+                  onPressed: () => _open(recovering: true),
+                  child: Text(s.backupRecovery),
                 ),
             ],
           ),

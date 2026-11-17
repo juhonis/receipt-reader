@@ -15,7 +15,8 @@ receipt images/exports are unused.
 `ReceiptRepository.open(File)` explicitly opens a caller-selected private file.
 The app adapter provides its application-support path; this package
 does not choose Downloads, the checkout, or an imported source path. One
-repository/connection owns the normal application lifecycle. Queries currently
+active repository owns the normal application lifecycle; isolated restore candidates
+use distinct connections and a workspace registry selects the active slot. Queries currently
 return futures; reactive history queries and update notifications are later work.
 
 Opening creates dataset/device UUIDs only for a new empty dataset. Normal
@@ -23,7 +24,8 @@ close/reopen preserves them. `identity`, `branches`, `read`, `readDeleted`,
 `history`, `saveManual`, `saveOcr`, `deleteReceipt`, and `verifyIntegrity` expose
 the current supported receipt operations. The [backup/recovery core](backup-recovery.md)
 adds `exportBackup` and static `restoreBackup` for isolated staging. No receiving,
-pairing, active-dataset replacement, catalog mutation, or conflict-resolution API exists. Product links are explicitly
+pairing, catalog mutation, or conflict-resolution API exists.
+The [encrypted backup workspace](password-backups.md) adds reviewed dataset selection. Product links are explicitly
 rejected until catalog workflows and constraints exist. The UI creates,
 corrects and explicitly deletes reviewed receipts. The repository supports
 reviewed revisions with the same source; provenance is never inferred from UI flags.
@@ -131,7 +133,9 @@ source-specific reviewed command and expected-head transaction from history.
 matching without changing source policy. [Receipt deletion](receipt-deletion.md)
 adds schema-3 tombstones while retaining prior history and row ownership.
 The [backup/recovery core](backup-recovery.md) now rebuilds validated history in
-isolated staging with a fresh installation identity. User-facing backup policy,
-UI and activation, product/alias management and sync conflicts remain later work.
+isolated staging with a fresh installation identity. [Password-protected backup
+UI and slot activation](password-backups.md) now select validated recovered data
+and preserve previous local slots. Product/alias management and sync conflicts
+remain later work.
 Existing verification counts above describe the manual-saving baseline; the
 recovery guide records the current suites and native checks.

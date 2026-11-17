@@ -11,9 +11,20 @@ part 'database.g.dart';
 class ReceiptDatabase extends _$ReceiptDatabase {
   ReceiptDatabase(QueryExecutor executor) : super(executor);
 
-  factory ReceiptDatabase.file(File file) => ReceiptDatabase(
-    NativeDatabase.createInBackground(file, setup: configureSqlite),
-  );
+  factory ReceiptDatabase.file(File file) {
+    // Every call creates a distinct executor. Restore deliberately opens an
+    // isolated candidate alongside the active DB; Drift's shared-executor
+    // warning cannot apply here. Restore the global option synchronously.
+    final warning = driftRuntimeOptions.dontWarnAboutMultipleDatabases;
+    driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+    try {
+      return ReceiptDatabase(
+        NativeDatabase.createInBackground(file, setup: configureSqlite),
+      );
+    } finally {
+      driftRuntimeOptions.dontWarnAboutMultipleDatabases = warning;
+    }
+  }
 
   @override
   int get schemaVersion => 3;
