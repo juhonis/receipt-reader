@@ -263,7 +263,8 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Add store-scoped product/alias storage, immutable revisions, schema-4 migration and encrypted backup recovery. See [product catalog](product-catalog.md).
 - [x] Add product/alias management UI and explicit reviewed receipt match correction. See [product catalog](product-catalog.md).
 - [x] Add linked product purchase history and page-scoped price charts with exact quantity arithmetic, unit/revision comparability, linked item discounts, deposit exclusion and explicit receipt-wide discount/adjustment warnings. See [purchase history](purchase-history.md).
-- [ ] Extend price trends to date-range summaries over all selected observations with bounded aggregation and missing-data counts.
+- [x] Extend product price trends to inclusive date-range summaries over every matching row, with exact counts/subtotals, bounded calendar min/max charts, exclusion counts and one consistent summary/detail snapshot. See [purchase history](purchase-history.md).
+- [ ] Add receipt-level spending summaries by branch and calendar period, using current receipt totals and retaining returns, adjustments and completeness warnings.
 - [x] Implement the versioned structured backup/isolated recovery core on both platforms, including strict validation, preserved event/tombstone/row identities, fresh device identity and repeated restore/write tests. See [backup recovery](backup-recovery.md).
 - [x] Add password-protected backup files, native export/import UI, validated preview, explicit replacement confirmation, transactional activation/crash recovery and retained previous datasets on both platforms. See [password backups](password-backups.md).
 - [ ] Test migrations and data integrity before using real financial history as the only copy.
@@ -326,15 +327,21 @@ Links retain reviewed product revisions and receipt/row identities; history and
 inner-v3 encrypted recovery retain earlier linked snapshots after unlink/deletion.
 
 [Product purchase history](purchase-history.md) now shows explicitly linked rows in
-one branch, original financial data and page-scoped price charts. Normalized prices
+one branch, original financial data and full date-range price summaries. Normalized prices
 require reviewed purchased quantities; linked item discounts apply, deposits stay
 separate, and receipt discounts/adjustments remain unallocated and flagged. Returns
 and missing-quantity rows stay visible outside price charts. Piece comparisons keep
 saved product revisions separate; weight and volume use distinct purchased units.
 
-Next, extend these comparisons to a selected date range across all matching rows,
-with bounded aggregation, clear counts of excluded observations and the same exact
-financial rules. Current chart ranges and counts describe only their visible page.
+Date filters now include whole Helsinki calendar days. Summaries cover every
+matching linked row, with exact exclusion counts and at most 24 calendar min/max
+intervals per unit/revision group. The summary and paginated details share one
+transaction; excessive group counts require a narrower range without partial output.
+
+Next, add receipt-level spending summaries by branch and calendar period. Use full
+current receipt totals rather than summing linked product observations, so unlinked
+products, deposits, receipt discounts, returns and reviewed adjustments contribute
+exactly once. Keep these totals distinct from comparable product prices.
 
 Windows OCR packaging and final engine selection remain open. Keep representative
 S-kaupat images and OCR exports in ignored `localreceipts/`; committed fixtures

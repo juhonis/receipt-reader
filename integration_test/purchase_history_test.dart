@@ -8,7 +8,7 @@ import 'package:receipt_storage/receipt_storage.dart';
 import 'package:receipt_reader/app.dart';
 import 'package:receipt_reader/local_store.dart';
 
-import '../test/manual_save_test.dart' show tapKey;
+import '../test/manual_save_test.dart' show tapKey, enter;
 
 ReviewedReceipt approve(
   ReceiptSnapshot snapshot, {
@@ -151,9 +151,26 @@ void main() {
         }
 
         final range = find.text(
-          'Sivun alin ja ylin vertailuhinta: 1,5000–2,0000 €/kg',
+          'Aikavälin alin ja ylin vertailuhinta: 1,5000–2,0000 €/kg',
         );
         await waitFor(range);
+        expect(find.text('Ostorivejä yhteensä: 2'), findsOneWidget);
+        await tapKey(t, 'purchases-range');
+        await enter(t, 'purchase-from', '16.11.2026');
+        await enter(t, 'purchase-through', '16.11.2026');
+        await tapKey(t, 'purchase-range-apply');
+        await waitFor(find.text('Ostorivejä yhteensä: 1'));
+        await waitFor(
+          find.text('Aikavälin alin ja ylin vertailuhinta: 2,0000–2,0000 €/kg'),
+        );
+        await tapKey(t, 'purchases-reset-range');
+        await waitFor(range);
+        final complete = await store.purchaseHistory(branch.id, productId);
+        expect(complete.summary.totalRows, 2);
+        expect(
+          complete.summary.groups.single.buckets.fold(0, (n, b) => n + b.count),
+          2,
+        );
         expect(await workspace.repository.exportBackup(), before);
         final backup = await store.exportProtected(
           'synthetic-purchase-test-passphrase',
@@ -167,7 +184,7 @@ void main() {
         );
         await tapKey(t, 'purchases-refresh');
         await waitFor(
-          find.text('Sivun alin ja ylin vertailuhinta: 1,0000–2,0000 €/kg'),
+          find.text('Aikavälin alin ja ylin vertailuhinta: 1,0000–2,0000 €/kg'),
         );
         final candidate = await store.prepareProtected(
           backup,

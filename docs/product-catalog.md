@@ -196,7 +196,7 @@ Neither test opens or clears the normal database.
 ## Remaining work
 
 [Purchase history and prices](purchase-history.md) now reads explicitly linked rows,
-with page-scoped price charts, exact quantities, linked item discounts, deposit
-exclusion and separate unit/revision groups. Full date-range analytics and any further
-package conversions remain open. Windows OCR packaging and sync transport/conflict
-workflows remain separate work.
+with full date-range summaries and bounded calendar price-range charts, exact
+quantities, linked item discounts, deposit exclusion and separate unit/revision
+groups. Broader spending analytics and further package conversions remain open.
+Windows OCR packaging and sync transport/conflict workflows remain separate work.

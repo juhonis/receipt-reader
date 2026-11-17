@@ -45,23 +45,60 @@ saved reviewed rate remains separate: dividing the rounded line amount by quanti
 may differ from that rate. Only relative chart coordinates use floating point,
 computed after exact comparison and scaling.
 
-## Chart scope and accessibility
+## Date ranges, summary and charts
 
-Charts, counts, minima and maxima cover **only the visible page**, explicitly
-labelled in Finnish. Each compatible group has its own range. The horizontal axis
-is observation order, oldest first, with equal spacing; it does not represent
-elapsed time. Date labels retain available precision. A single observation shows
-its value and an explanation that a change cannot yet be assessed. Exact prices
-and full observation details remain available as text independently of the drawing.
+Use **Valitse aikaväli** to enter inclusive Finnish calendar days (1970–2099).
+Either bound can be blank. Times, invalid calendar dates and reversed ranges are
+rejected. Cancel keeps the existing selection; **Tyhjennä suodattimet** restores
+all dates. Changing the range resets the receipt page to the beginning.
+
+The summary and charts cover **every matching product row across all pages**.
+Detail rows remain paginated in groups of 30. Total rows partition exactly into
+comparable rows, returns, missing-quantity rows and negative-effective-price rows,
+in that priority order. A return without quantity counts as a return once.
+Receipt-discount and adjustment warnings have separate, potentially overlapping
+row counts. Product row subtotals include returns and linked item discounts where
+labelled, but exclude deposits and unallocated receipt-wide amounts; these are
+not whole-receipt spending totals. Unlinked rows never enter this product summary.
+
+Each compatible group shows its exact count and minimum/maximum over the entire
+selected range. The chart has at most 24 calendar intervals of approximately equal
+length. Each nonempty interval shows its minimum and maximum as a vertical bar.
+Empty intervals stay empty; there is no interpolation or inferred average. The
+horizontal axis represents calendar days. Explicit date bounds set its extent;
+an open bound uses the earliest/latest matching row, including excluded rows.
+Expand **Jaksojen tarkat hinnat ja havaintomäärät** for accessible text containing
+each nonempty interval's dates, exact displayed range and observation count.
 The layout wraps on a 320 px screen with doubled text size.
 
-**Avaa kuitti** opens the existing saved-receipt view, including correction and
-deletion. Returning reloads purchase history. Refresh and retry use a fresh bounded
-query and clear obsolete charts while loading. All workspace reads share the queue
-used for saves and backup activation, resolving the active repository when executed.
-The feature is read-only and introduces no schema, event, backup-format or dependency
-changes. The initial small chart uses Flutter painting rather than adding fl_chart;
-a future interactive date-range chart can revisit the library choice.
+No-data and no-comparable-data states are distinct. A single observation retains
+its price and an explanation that a change cannot yet be assessed. Pagination
+never narrows the summary or chart scope. **Avaa kuitti** opens the saved receipt,
+including correction and deletion. Returning reloads the summary and detail page.
+Refresh/retry/range changes clear obsolete results while loading.
+
+## Consistency and resource bounds
+
+The repository computes the full summary and detail page in **one read
+transaction**. It scans matching current receipts by durable-ID keyset in batches
+of 16, verifies canonical receipts through the existing read path, and feeds their
+linked rows into an exact streaming accumulator. It does not collect the complete
+receipt history in Dart or use a limited sample for counts and extrema. Pagination
+and summary share the same branch/product/date predicates. Workspace calls use the
+same queue as saves and backup activation, resolving the active database at execution.
+
+The accumulator retains at most 64 comparison groups with 24 calendar buckets
+each, plus exact counts and signed BigInt subtotals. Details keep their existing
+bounded page. More than 64 unit/revision groups fails the complete operation with
+`purchaseGroupLimit`; the UI asks for a narrower date range and displays no partial
+summary. Runtime still grows with matching history, so long ranges can take longer
+to load. Every page/refresh recomputes the summary against its own consistent
+snapshot instead of reusing a potentially stale total.
+
+The feature remains read-only and adds no schema, event, backup-format or package
+dependency changes. Flutter painting renders the small range chart. Only chart
+coordinates use floating point; prices, extrema, bucket boundaries and counts use
+integer/rational arithmetic.
 
 ## Verification
 
@@ -88,12 +125,13 @@ user session to unlock its executable. Android smoke testing can run in airplane
 mode; restore the previous airplane setting and upgrade-install a normal debug APK
 afterward. A normal Windows release build avoids locking an open Debug session.
 
-Verified on November 17, 2026: clean app/domain/storage analysis; 129 app tests,
-51 domain tests and 178 storage tests passed. The native purchase-history workflow
-passed on Windows and on the Android emulator in airplane mode.
+Verified on November 17, 2026: clean app/domain/storage analysis; 132 app tests,
+57 domain tests and 181 storage tests passed. The native workflow passed on
+Windows and on the Android emulator in airplane mode, including date selection,
+correction, encrypted restore, deletion and previous-dataset recovery.
 
 The native test creates only a guarded `purchase-history-smoke-*` directory under
-app support. It seeds synthetic linked purchases, checks the Finnish chart and
+app support. It seeds synthetic linked purchases, checks the Finnish chart, inclusive date selection, complete summary and
 read-only backup bytes, corrects a receipt, restores encrypted history while the
 page is open, deletes an observation, reopens storage and recovers the previous
 dataset. It never opens, clears or replaces the normal application dataset.
@@ -101,12 +139,13 @@ Domain tests cover discount/deposit separation, returns, missing quantity, unit 
 revision groups, fractional-cent rates and values beyond double precision. Storage
 tests cover filtering before pagination, duplicate rows, date precision, exact
 financial rows, catalog edits, correction/unlink/deletion and reopen. Widget tests
-cover navigation, charts, retry/loading, pagination and narrow enlarged-text layout.
+cover navigation, charts, retry/loading, date validation/cancel/reset, full-range
+pagination, exclusions, bucket text and narrow enlarged-text layout. Additional
+summary tests cover 67 receipts across scan batches/pages, the 64-group guard,
+calendar/leap/DST boundaries and aggregate cents beyond SQLite int64.
 
 ## Remaining work
 
-Add date-range summaries and charts spanning all selected observations, with a
-bounded aggregation strategy and clear treatment of missing/comparable observations.
-Package-based conversions beyond the rules above need their own explicit policy.
-Broader spending analytics, sync conflict exclusions once conflicts exist, and
-production Windows OCR packaging remain separate milestones.
+Broader receipt-level spending analytics, sync conflict exclusions once conflicts
+exist, and production Windows OCR packaging remain separate milestones. Package
+conversions beyond the conservative price policy need their own explicit rules.

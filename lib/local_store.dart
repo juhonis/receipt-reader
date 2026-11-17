@@ -30,9 +30,30 @@ final class RepositoryStore
   Future<List<StoredProductPurchase>> purchases(
     DurableId storeId,
     DurableId productId, {
+    PurchaseDateRange? range,
     int limit = 30,
     int offset = 0,
-  }) => repository.purchases(storeId, productId, limit: limit, offset: offset);
+  }) => repository.purchases(
+    storeId,
+    productId,
+    range: range,
+    limit: limit,
+    offset: offset,
+  );
+  @override
+  Future<PurchaseHistoryResult> purchaseHistory(
+    DurableId storeId,
+    DurableId productId, {
+    PurchaseDateRange? range,
+    int limit = 30,
+    int offset = 0,
+  }) => repository.purchaseHistory(
+    storeId,
+    productId,
+    range: range,
+    limit: limit,
+    offset: offset,
+  );
   @override
   Future<List<StoredProduct>> products(
     DurableId storeId, {
@@ -102,15 +123,33 @@ final class WorkspaceStore
   WorkspaceStore(this.workspace);
   final ReceiptWorkspace workspace;
   @override
+  Future<PurchaseHistoryResult> purchaseHistory(
+    DurableId storeId,
+    DurableId productId, {
+    PurchaseDateRange? range,
+    int limit = 30,
+    int offset = 0,
+  }) => _run(
+    () => workspace.repository.purchaseHistory(
+      storeId,
+      productId,
+      range: range,
+      limit: limit,
+      offset: offset,
+    ),
+  );
+  @override
   Future<List<StoredProductPurchase>> purchases(
     DurableId storeId,
     DurableId productId, {
+    PurchaseDateRange? range,
     int limit = 30,
     int offset = 0,
   }) => _run(
     () => workspace.repository.purchases(
       storeId,
       productId,
+      range: range,
       limit: limit,
       offset: offset,
     ),

@@ -7,6 +7,8 @@ import 'history_page.dart';
 import 'local_store.dart';
 import 'product_picker.dart';
 import 'purchase_history_service.dart';
+import 'purchase_range_dialog.dart';
+import 'purchase_summary_view.dart';
 import 'receipt_format.dart';
 import 'l10n/generated/app_localizations.dart';
 
@@ -37,15 +39,28 @@ class PurchaseHistoryPage extends StatefulWidget {
 
 class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
   int _offset = 0;
-  late Future<List<StoredProductPurchase>> _items = _load();
-  Future<List<StoredProductPurchase>> _load() => widget.service.purchases(
+  PurchaseDateRange _range = PurchaseDateRange();
+  late Future<PurchaseHistoryResult> _items = _load();
+  Future<PurchaseHistoryResult> _load() => widget.service.purchaseHistory(
     widget.product.document.product.storeId,
     widget.product.document.product.id,
     offset: _offset,
+    range: _range,
   );
   void _reload() => setState(() {
     _items = _load();
   });
+  Future<void> _selectRange() async {
+    final range = await showDialog<PurchaseDateRange>(
+      context: context,
+      builder: (_) => PurchaseRangeDialog(range: _range),
+    );
+    if (!mounted || range == null) return;
+    _range = range;
+    _offset = 0;
+    _reload();
+  }
+
   Future<void> _open(StoredProductPurchase item) async {
     await Navigator.push<bool>(
       context,
@@ -76,11 +91,12 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 800),
-            child: FutureBuilder<List<StoredProductPurchase>>(
+            child: FutureBuilder<PurchaseHistoryResult>(
               key: ObjectKey(_items),
               future: _items,
               builder: (context, result) {
-                final items = result.data;
+                final data = result.data;
+                final items = data?.purchases;
                 return ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
@@ -93,23 +109,56 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
                     ),
                     const SizedBox(height: 12),
                     Text(s.purchasePolicy),
+                    Text(
+                      _range.isEmpty
+                          ? s.purchaseAllDates
+                          : '${_range.fromDate == null ? s.purchaseStartOpen : receiptDateText(_range.fromDate!)} – ${_range.throughDate == null ? s.purchaseEndOpen : receiptDateText(_range.throughDate!)}',
+                    ),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        TextButton.icon(
+                          key: const Key('purchases-range'),
+                          onPressed: _selectRange,
+                          icon: const Icon(Icons.date_range),
+                          label: Text(s.purchaseDateRange),
+                        ),
+                        if (!_range.isEmpty)
+                          TextButton(
+                            key: const Key('purchases-reset-range'),
+                            onPressed: () {
+                              _range = PurchaseDateRange();
+                              _offset = 0;
+                              _reload();
+                            },
+                            child: Text(s.historyResetFilters),
+                          ),
+                      ],
+                    ),
                     if (result.hasError)
                       TextButton(
                         key: const Key('purchases-retry'),
                         onPressed: _reload,
-                        child: Text(s.purchaseLoadFailed),
+                        child: Text(
+                          result.error is StorageFailure &&
+                                  (result.error as StorageFailure).code ==
+                                      'purchaseGroupLimit'
+                              ? s.purchaseTooManyGroups
+                              : s.purchaseLoadFailed,
+                        ),
                       )
                     else if (items == null)
                       const LinearProgressIndicator()
                     else ...[
-                      if (items.isEmpty) Text(s.purchaseEmpty),
+                      PurchaseSummaryView(summary: data!.summary),
+                      if (data.summary.totalRows == 0)
+                        Text(s.purchaseEmpty)
+                      else if (items.isEmpty)
+                        Text(s.purchasePageEmpty),
                       if (items.isNotEmpty) ...[
                         Text(
                           '${s.purchaseRows}: ${_offset + 1}–${_offset + items.length}',
                         ),
-                        Text(s.purchasePageScope),
-                        Text(s.purchasePiecePolicy),
-                        ..._charts(context, items),
                       ],
                       for (final item in items) _observation(context, item),
                       Wrap(
@@ -127,7 +176,8 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
                           ),
                           TextButton(
                             key: const Key('purchases-next'),
-                            onPressed: items.length < 30
+                            onPressed:
+                                _offset + items.length >= data.summary.totalRows
                                 ? null
                                 : () {
                                     _offset += 30;
@@ -146,74 +196,6 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
         ),
       ),
     );
-  }
-
-  List<Widget> _charts(
-    BuildContext context,
-    List<StoredProductPurchase> items,
-  ) {
-    final s = AppLocalizations.of(context)!;
-    final groups = <(QuantityUnit, RevisionId?), List<ProductPurchase>>{};
-    for (final item in items.reversed) {
-      final group = item.purchase.comparisonGroup;
-      if (group != null) groups.putIfAbsent(group, () => []).add(item.purchase);
-    }
-    return [
-      for (final entry in groups.entries)
-        Builder(
-          builder: (context) {
-            final observations = entry.value;
-            final prices = observations
-                .map((p) => p.effectiveUnitPrice!)
-                .toList();
-            final sorted = [...prices]..sort();
-            final unit = _unit(entry.key.$1);
-            final label = '${s.purchaseUnitPrice} (€/$unit)';
-            return Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label, style: Theme.of(context).textTheme.titleMedium),
-                    if (entry.key.$2 case final revision?)
-                      Text('${s.purchaseVersion}: ${_revision(revision)}'),
-                    Text('${s.purchaseChartCount}: ${prices.length}'),
-                    Text(
-                      '${s.purchaseRange}: ${sorted.first.euros}–${sorted.last.euros} €/$unit',
-                    ),
-                    if (observations.any(
-                      (p) => p.receiptDiscountCents != BigInt.zero,
-                    ))
-                      Text(s.purchaseReceiptDiscount),
-                    if (observations.any((p) => p.hasReceiptAdjustment))
-                      Text(s.purchaseAdjustment),
-                    if (prices.length == 1)
-                      Text(s.purchaseChartSingle)
-                    else ...[
-                      ExcludeSemantics(
-                        child: SizedBox(
-                          height: 120,
-                          width: double.infinity,
-                          child: CustomPaint(
-                            painter: _PricePainter(
-                              prices,
-                              Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                        ),
-                      ),
-                      Text(
-                        '${receiptDateText(observations.first.date)} → ${receiptDateText(observations.last.date)}',
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-    ];
   }
 
   Widget _observation(BuildContext context, StoredProductPurchase item) {
@@ -272,37 +254,4 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
       ),
     );
   }
-}
-
-class _PricePainter extends CustomPainter {
-  _PricePainter(this.prices, this.color);
-  final List<UnitPrice> prices;
-  final Color color;
-  @override
-  void paint(Canvas canvas, Size size) {
-    final sorted = [...prices]..sort();
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-    final path = Path();
-    for (var i = 0; i < prices.length; i++) {
-      final x = 6 + (size.width - 12) * i / (prices.length - 1);
-      final y =
-          6 +
-          (size.height - 12) *
-              (1 - prices[i].positionBetween(sorted.first, sorted.last));
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-      canvas.drawCircle(Offset(x, y), 3, Paint()..color = color);
-    }
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(_PricePainter oldDelegate) =>
-      oldDelegate.prices != prices || oldDelegate.color != color;
 }
