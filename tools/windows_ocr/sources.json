@@ -1,0 +1,20 @@
+{
+  "tesseract": {
+    "version": "5.5.1",
+    "url": "https://codeload.github.com/tesseract-ocr/tesseract/tar.gz/refs/tags/5.5.1",
+    "sha256": "a7a3f2a7420cb6a6a94d80c24163e183cf1d2f1bed2df3bbc397c81808a57237",
+    "directory": "tesseract-5.5.1"
+  },
+  "leptonica": {
+    "version": "1.85.0",
+    "url": "https://codeload.github.com/DanBloomberg/leptonica/tar.gz/refs/tags/1.85.0",
+    "sha256": "c01376bce0379d4ea4bc2ec5d5cbddaa49e2f06f88242619ab8c059e21adf233",
+    "directory": "leptonica-1.85.0"
+  },
+  "models": {
+    "revision": "87416418657359cb625c412a48b6e1d6d41c29bd",
+    "fin": "61a04cd62b507c3d9ae0e1cda399e6715ebf49dea9df47897c8acdcd3bd3e13c",
+    "eng": "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2",
+    "licenseSha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  }
+}

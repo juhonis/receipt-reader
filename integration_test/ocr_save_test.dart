@@ -12,6 +12,7 @@ import 'package:receipt_reader/app.dart';
 import 'package:receipt_reader/local_store.dart';
 import 'package:receipt_reader/receipt_import.dart';
 import 'package:receipt_reader/review_page.dart';
+import 'package:receipt_reader/receipt_ocr.dart';
 
 class ObservedStore implements LocalStore {
   ObservedStore(this.repository);
@@ -66,10 +67,14 @@ Future<void> tap(WidgetTester tester, String key, {bool scroll = true}) async {
   await tester.pumpAndSettle();
 }
 
-void main() {
+void main() => runOcrSaveSmoke();
+
+void runOcrSaveSmoke({bool recognizeWithEngine = false}) {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   testWidgets(
-    'reviewed synthetic OCR saves offline and survives native reopen',
+    recognizeWithEngine
+        ? 'native recognition, reviewed save and reopen'
+        : 'reviewed synthetic OCR saves offline and survives native reopen',
     (tester) async {
       final support = await getApplicationSupportDirectory();
       final directory = Directory(
@@ -96,6 +101,7 @@ void main() {
         // Synthetic source pixels and seeded geometry test saving, not recognition accuracy.
         final recorder = ui.PictureRecorder();
         final actualCanvas = ui.Canvas(recorder);
+        if (recognizeWithEngine) actualCanvas.scale(2);
         actualCanvas.drawColor(const ui.Color(0xffffffff), ui.BlendMode.src);
         for (final word in words) {
           final b = ui.ParagraphBuilder(ui.ParagraphStyle(fontSize: 14))
@@ -109,16 +115,21 @@ void main() {
           );
         }
         final picture = recorder.endRecording();
-        final image = await picture.toImage(500, 500);
+        final image = await picture.toImage(
+          recognizeWithEngine ? 1000 : 500,
+          recognizeWithEngine ? 1000 : 500,
+        );
         picture.dispose();
         final data = await image.toByteData(format: ui.ImageByteFormat.png);
         image.dispose();
         evidence = await ReceiptEvidence.decode(data!.buffer.asUint8List());
-        final draft = parseReceipt(
-          OcrPage(500, 500, words),
-          itemTop: 40,
-          priceColumnLeft: 350,
-        );
+        final draft = recognizeWithEngine
+            ? null
+            : parseReceipt(
+                OcrPage(500, 500, words),
+                itemTop: 40,
+                priceColumnLeft: 350,
+              );
         Navigator.of(
           tester.element(find.byKey(const Key('open-history'))),
         ).push(
@@ -128,6 +139,32 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
+        if (recognizeWithEngine) {
+          expect(supportsReceiptOcr, isTrue);
+          await tap(tester, 'recognize');
+          for (
+            var i = 0;
+            i < 1800 &&
+                find.byKey(const Key('ocr-use-layout')).evaluate().isEmpty;
+            i++
+          ) {
+            await tester.pump(const Duration(milliseconds: 50));
+          }
+          await visible(tester, 'ocr-layout-item-top');
+          tester
+              .widget<Slider>(find.byKey(const Key('ocr-layout-item-top')))
+              .onChanged!(.08);
+          await tester.pumpAndSettle();
+          await visible(tester, 'ocr-layout-price-left');
+          tester
+              .widget<Slider>(find.byKey(const Key('ocr-layout-price-left')))
+              .onChanged!(.7);
+          await tester.pumpAndSettle();
+          await tap(tester, 'ocr-use-layout');
+          await visible(tester, 'ocr-draft-blocked');
+          expect(find.byKey(const Key('ocr-draft-blocked')), findsOneWidget);
+          expect(await initial.repository.history(), isEmpty);
+        }
         await tap(tester, 'ocr-branch');
         await tester.tap(find.text('Luo uusi toimipiste').last);
         await tester.pumpAndSettle();

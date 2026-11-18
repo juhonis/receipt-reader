@@ -4,8 +4,9 @@ A local-first receipt tracker for Android and Windows, with a Finnish UI.
 
 ## Current state
 
-The app imports receipt images on Android and Windows, recognizes text on
-Android, and supports evidence-backed review with explicit saving to local
+The app imports and recognizes receipt images offline on Android and Windows,
+using bundled ML Kit and [app-bundled Tesseract](docs/windows-ocr.md). It supports
+evidence-backed review with explicit saving to local
 SQLite. [Manual saving](docs/manual-saving.md),
 [reviewed OCR saving](docs/ocr-saving.md),
 [history filters](docs/history-filters.md),
@@ -26,11 +27,12 @@ and separating discounts, deposits, returns and unit/revision groups.
 calendar month with inclusive branch/date filters and explicit coverage notices.
 [Migration/recovery rehearsals](docs/migration-recovery.md) verify supported-schema
 upgrades, retained history and analytics through encrypted restore and reopen.
-Windows OCR packaging and sync remain open.
+A Windows development ZIP includes OCR assets and a synthetic clean-machine test.
+Fresh-PC verification, final redistribution/signing and sync remain open.
 
 See [the project plan](docs/plan.md) for the next milestone and
-[OCR spike findings](docs/ocr-spike.md) for engine evidence and remaining
-selection decisions. The separate [development harness](tools/ocr_spike/README.md)
+[OCR spike findings](docs/ocr-spike.md) and [approved OCR direction](docs/windows-ocr.md)
+for engine evidence and remaining release checks. The separate [development harness](tools/ocr_spike/README.md)
 can reproduce the baseline.
 
 ## Development
@@ -42,6 +44,8 @@ Use Flutter 3.50.0 stable (Dart 3.14.0) from Windows PowerShell. See
 flutter pub get
 flutter analyze
 flutter test
+# Prepare Windows OCR; repeat after flutter clean (downloads public dependencies):
+python tools/windows_ocr/setup.py
 flutter run -d windows
 # Start Receipt_Reader_API_36_1 in Android Studio, then find its ID:
 flutter devices
@@ -54,7 +58,7 @@ Keep app strings in that ARB file. `lib/app.dart` holds the app shell;
 native OCR and storage adapters, with tests in the corresponding packages.
 
 Keep original test receipts in the ignored `localreceipts/` directory.
-Only explicitly anonymized fixtures should enter version control.
+Only synthetic or explicitly anonymized fixtures should enter version control.
 Commit `pubspec.lock` to keep application dependencies reproducible.
 
 Use focused commits with concise one-line messages.

@@ -106,3 +106,12 @@ install(DIRECTORY "${PROJECT_BUILD_DIR}/${FLUTTER_ASSET_DIR_NAME}"
 install(FILES "${AOT_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   CONFIGURATIONS Profile;Release
   COMPONENT Runtime)
+
+# App-owned, explicitly prepared OCR runtime. Never resolve a system Tesseract.
+set(RECEIPT_OCR_BUNDLE "${CMAKE_CURRENT_SOURCE_DIR}/../build/windows-ocr/bundle")
+if(NOT EXISTS "${RECEIPT_OCR_BUNDLE}/manifest.json" OR
+   NOT EXISTS "${RECEIPT_OCR_BUNDLE}/receipt_ocr_worker.exe")
+  message(FATAL_ERROR "Prepare Windows OCR first: python tools/windows_ocr/setup.py")
+endif()
+install(DIRECTORY "${RECEIPT_OCR_BUNDLE}/"
+  DESTINATION "${CMAKE_INSTALL_PREFIX}/ocr" COMPONENT Runtime)

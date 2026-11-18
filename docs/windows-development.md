@@ -325,3 +325,26 @@ build-dir for its Debug executable; restore the previous configuration afterward
 Run Android in airplane mode and restore its prior setting, then rebuild and
 upgrade-install the normal Android app without uninstalling or clearing data.
 The package version runs in packages/receipt_storage/test/upgrade_recovery_test.dart.
+
+## App-owned Windows OCR setup
+
+The approved [OCR bundle](windows-ocr.md) adds a source/model preparation
+step for Windows builds (repeat after flutter clean). Use Windows Python 3.12+ and the existing Visual Studio
+2022 C++/CMake tools (no pip packages needed):
+
+    python tools/windows_ocr/setup.py
+    flutter build windows --release
+    python tools/windows_ocr/package.py
+
+Setup downloads only pinned public source archives and Finnish/English models.
+Build outputs stay under build/windows-ocr. The normal Windows app requires no
+installed Tesseract, Python or model download. Native recognition and saving use:
+
+    flutter test integration_test/receipt_ocr_engine_test.dart -d windows
+    flutter test integration_test/receipt_ocr_engine_test.dart -d emulator-5554
+
+The ZIP and checksum/evidence file are under build/distribution. The included
+synthetic_receipt.png and [clean-machine checklist](windows-ocr-clean-machine.md)
+are for the second Windows PC. Keep it offline from before first launch; do not
+install development dependencies to mask a missing runtime. Restore normal app
+entry points and the prior emulator airplane setting after native tests.

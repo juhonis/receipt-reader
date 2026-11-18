@@ -99,3 +99,9 @@ and [manual saving](manual-saving.md) for paths and commands.
 [reviewed deletion](receipt-deletion.md), [catalog management and reviewed product
 links](product-catalog.md), and [encrypted recovery](password-backups.md) are
 available separately. Analytics and synchronization remain open.
+
+[The bundled OCR adapters](windows-ocr.md) now have a separate real-engine synthetic
+recognition/review/save/reopen check on Windows and offline Android:
+
+    flutter test integration_test/receipt_ocr_engine_test.dart -d windows
+    flutter test integration_test/receipt_ocr_engine_test.dart -d emulator-5554

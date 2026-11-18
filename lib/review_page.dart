@@ -716,6 +716,7 @@ class _ReviewPageState extends State<ReviewPage> {
   List<_RowFields> _sourceRows = [];
   ReceiptDraft? _draft;
   OcrPage? _ocr;
+  ReceiptRecognition? _recognition;
   bool _recognizing = false;
   bool _ocrFailed = false;
   bool _edited = false;
@@ -728,9 +729,16 @@ class _ReviewPageState extends State<ReviewPage> {
       _ocrFailed = false;
     });
     try {
-      final page = await (widget.recognizer ?? recognizeReceipt)(
-        widget.evidence!,
-      );
+      final custom = widget.recognizer;
+      final Future<OcrPage> result;
+      if (custom == null) {
+        final request = ReceiptRecognition(widget.evidence!);
+        _recognition = request;
+        result = request.result;
+      } else {
+        result = custom(widget.evidence!);
+      }
+      final page = await result;
       if (!mounted) return;
       final proposal = proposeLayout(page);
       setState(() {
@@ -827,6 +835,7 @@ class _ReviewPageState extends State<ReviewPage> {
 
   @override
   void dispose() {
+    _recognition?.cancel();
     widget.evidence?.dispose();
     _branch.dispose();
     _date.dispose();
@@ -1026,6 +1035,7 @@ class _ReviewPageState extends State<ReviewPage> {
                           ),
                           Text(s.ocrItemTop),
                           Slider(
+                            key: const Key('ocr-layout-item-top'),
                             value: _itemTop.clamp(0, .99),
                             min: 0,
                             max: .99,
@@ -1035,6 +1045,7 @@ class _ReviewPageState extends State<ReviewPage> {
                           ),
                           Text(s.ocrPriceLeft),
                           Slider(
+                            key: const Key('ocr-layout-price-left'),
                             value: _priceLeft.clamp(.01, .99),
                             min: .01,
                             max: .99,
@@ -1043,6 +1054,7 @@ class _ReviewPageState extends State<ReviewPage> {
                             }),
                           ),
                           OutlinedButton(
+                            key: const Key('ocr-use-layout'),
                             onPressed: _applyLayout,
                             child: Text(s.ocrUseLayout),
                           ),

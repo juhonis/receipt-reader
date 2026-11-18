@@ -1,9 +1,9 @@
 # Experimental Android OCR review
 
-Imported images now offer **Tunnista kuitin teksti** on Android. The candidate
-uses bundled ML Kit Latin text recognition 16.0.1. This is an experiment, not
-the final engine selection. Windows retains image import and manual review;
-its OCR packaging and distribution audit remain open.
+Imported images offer **Tunnista kuitin teksti** using bundled ML Kit Latin
+recognition 16.0.1, now the approved Android MVP engine. The shared review also
+uses [app-bundled Tesseract on Windows](windows-ocr.md). Broader recognition quality,
+clean-machine verification and release licensing remain open.
 
 ## Workflow
 

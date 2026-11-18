@@ -91,9 +91,9 @@ pixels/seeded OCR geometry and an isolated temporary database, never private
 receipts or the normal application-support database. Android is tested in
 airplane mode. Restore normal app builds and the prior airplane setting afterwards.
 
-Android can use its production image import/OCR adapter. Windows shares the
-review and persistence path, but production Windows OCR packaging/recognition
-is still pending. These native tests do not establish recognition accuracy or
-Windows OCR availability. [Reviewed deletion/tombstones](receipt-deletion.md)
+Android and Windows now have their respective [bundled OCR adapters](windows-ocr.md).
+The correction smoke above uses seeded geometry; separate real-engine recognition,
+review/save/reopen checks cover both adapters. Neither establishes broad receipt
+recognition accuracy or clean-machine Windows readiness. [Reviewed deletion/tombstones](receipt-deletion.md)
 are available separately. Structured backup/restore and synchronization remain
 separate milestones.

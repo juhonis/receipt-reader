@@ -31,9 +31,9 @@ A privacy-first receipt, spending, and product-price tracker built as **one Flut
 | Database | Drift / SQLite | Transactions, foreign-key enforcement, migrations, reactive queries, and desktop support. |
 | Android capture | `camera` | Private temporary files only; platform-specific cleanup. |
 | Image import | Platform file picker behind a shared import service | JPEG/PNG on Android and Windows; read originals without modifying them and use private temporary copies only when needed. |
-| Offline OCR | Shared `OcrEngine` interface; engine choice decided by platform spike | Compare one bundled cross-platform engine with Android ML Kit plus a separate Windows engine. Evaluate Finnish accuracy, geometry output, licensing, package size, performance, and native integration. No runtime model downloads or cloud fallback. |
-| Android OCR candidate | `google_mlkit_text_recognition` | If selected, bundle the Latin-script model and verify first-run operation offline. This package does not provide Windows OCR. |
-| Windows OCR candidates | Bundled Tesseract or a suitable ONNX-based engine | Verify available bindings/native packaging, required language assets, and bounding-box output before choosing. Candidates are not committed dependencies. |
+| Offline OCR | Shared recognition request and normalized word geometry | Android bundled ML Kit plus app-owned Windows Tesseract, approved after the spike. Shared parsing/review remains independent. No runtime model downloads or cloud fallback. Broader accuracy and release checks remain open. |
+| Android OCR | Bundled native Google ML Kit Latin recognition | Approved MVP engine; native integration uses com.google.mlkit:text-recognition:16.0.1. Keep first-run offline verification and release terms checks explicit. |
+| Windows OCR | App-owned Tesseract 5.5.1 + Leptonica 1.85.0, pinned Finnish/English models | Approved MVP engine; source-built worker, memory-only IPC and ZIP packaging. Clean-machine and final release licensing/signing remain open. See [Windows OCR](windows-ocr.md). |
 | Windows sync server | `shelf` with Dart HTTPS server support | TLS and certificate/public-key pinning; never transmit credentials or receipts over plaintext HTTP. Serving requests does not make Windows authoritative for data. |
 | Android sync client | Dart HTTP client with explicit pin validation | Pushes and pulls changes during each sync; restrict any self-signed certificate exception to the paired identity and never disable verification globally. |
 | Pairing / discovery | QR pairing; optional `nsd` / `multicast_dns` | Discovery is optional and untrusted. Manual pairing must work without multicast. |
@@ -220,10 +220,11 @@ Restore must assign a fresh local device identity and preserve imported event id
 ### Phase 1: Scope, Platform Spikes & Parser Foundations (Current Phase)
 - [ ] Confirm Android/Windows feature parity, two-writer scope, image-import limits, backup policy, and review rules.
 - [x] Set up the Windows-native Flutter/Android/Windows C++ toolchains and verify both build targets. See [Windows development setup](windows-development.md) for the setup and smoke-build results.
-- [x] Establish private-image baselines with offline Android ML Kit and Windows Tesseract, preserving normalized word geometry. See [OCR spike findings](ocr-spike.md); engine selection and Windows app bundling remain open.
+- [x] Establish private-image baselines with offline Android ML Kit and Windows Tesseract, preserving normalized word geometry. See [OCR spike findings](ocr-spike.md) and the later [approved engines and app bundle](windows-ocr.md).
 - [x] Verify the shared-engine candidate with bundled Finnish/English Tesseract models on a fresh offline Android installation; compare both page segmentation modes against the Windows baseline.
 - [x] Evaluate manually guided Windows preprocessing and a relocatable Tesseract prototype against the private baseline. See [findings and limitations](ocr-spike.md); clean Windows installation and distribution licensing remain open.
-- [ ] Evaluate shared versus platform-specific offline OCR engines on representative Finnish receipts; select and document the adapter contract, packaging, licenses, and model assets.
+- [x] Record the approved MVP engines (bundled Android ML Kit and app-owned Windows Tesseract), normalized geometry, pinned sources/models and Windows development ZIP. See [Windows OCR](windows-ocr.md).
+- [ ] Complete broader representative OCR evaluation, final redistribution-license review and release acceptance.
 - [ ] Verify first-run offline OCR on fresh Android and Windows installs, including Finnish characters and bounding boxes.
 - [ ] Spike pinned HTTPS and secure credential storage on Android and Windows.
 - [x] Define fixed-point arithmetic, financial row semantics, and printed date/time representation with explicit Helsinki DST ambiguity. See [parser conventions](parser-foundations.md); persistence range checks and review resolution remain open.
@@ -237,9 +238,9 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [ ] Separate platform services from shared domain code and adaptive workflows as the OCR spike establishes the adapter contracts.
 - [x] Configure a local manual-receipt Drift schema, strict constraints, foreign keys, atomic transactions, schema baseline/failure tests, and immutable change logging. See [local storage implementation](local-storage.md); the catalog storage extension is implemented; broader conflict/sync schema remains open.
 - [ ] Implement camera guidance and clear warnings for incomplete/long receipts.
-- [ ] Implement JPEG/PNG selection and offline OCR on both platforms using the normalized OCR interface.
-- [x] Add bounded, temporary JPEG/PNG import and zoomable receipt evidence on Android/Windows; originals remain read-only. See [image import](image-import.md). Android OCR and reviewed saving now use the separate workflows below; Windows OCR remains open.
-- [x] Connect the experimental bundled Android OCR candidate to temporary image review with explicit layout confirmation and manual boundary fallback. See [Android OCR review](android-ocr-review.md); Windows OCR remains open; supported issue review and saving are documented below.
+- [x] Implement JPEG/PNG selection and offline OCR on both platforms using shared geometry/review, with real-engine synthetic recognition/save/reopen checks. See [Windows OCR](windows-ocr.md).
+- [x] Add bounded, temporary JPEG/PNG import and zoomable receipt evidence on Android/Windows; originals remain read-only. See [image import](image-import.md). Android OCR and reviewed saving now use the separate workflows below; Windows OCR is now available through the [app-owned bundle](windows-ocr.md).
+- [x] Connect the experimental bundled Android OCR candidate to temporary image review with explicit layout confirmation and manual boundary fallback. See [Android OCR review](android-ocr-review.md); Windows OCR is now available through the [app-owned bundle](windows-ocr.md); supported issue review and saving are documented below.
 - [ ] Build editable store/date/total/row review with independent validation states.
 - [x] Add a temporary manual review prototype with independent checks, editable signed rows, and explicit no-save messaging. Evaluate the parser against private OCR outputs; [real-layout failures remain open](review-prototype.md).
 - [ ] Support adding, removing, and correcting rows and their relationships.
@@ -248,10 +249,10 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Add explicit orphan-quantity attachment and product/receipt-wide discount relationships with evidence-backed confirmation, overwrite protection, stable row targets, and non-financial explanatory price links. Remaining finding types and full evidence coverage still block OCR completion and saving.
 - [x] Add scoped item/total findings, explicit correction/classification of unparsed item text, and a structural source-word coverage inventory that exposes parser omissions. Geometry review, full human evidence review, and OCR completion remain open.
 - [x] Retain layout context and geometry source words, add image overlays and safe re-parsing into a separate temporary review, expose omissions as individual review items, and track per-row image comparison. Overlap/skew resolution and final OCR approval remain open.
-- [x] Add typed overlap/band/skew evidence decisions and a shared final evidence audit with stale-approval rejection, whole-page review, source/quantity preservation, and supported no-save OCR completion. Boundary repair, unsupported conversions and Windows OCR remain open; supported persistence is documented below.
+- [x] Add typed overlap/band/skew evidence decisions and a shared final evidence audit with stale-approval rejection, whole-page review, source/quantity preservation, and supported no-save OCR completion. Boundary repair, unsupported conversions remain open; see the later [Windows OCR integration](windows-ocr.md). supported persistence is documented below.
 - [x] Add independently tested durable UUIDs, range-checked receipt snapshots, canonical JSON/digest fixtures, and snapshot-bound manual confirmation commands. See [storage foundations](storage-foundations.md); the separate OCR evidence adapter is now implemented below.
 - [x] Connect explicit manual review and reconciled saving to atomic domain/change-log writes, with private database ownership and basic read-only history on both platforms. See [manual saving](manual-saving.md).
-- [x] Add the separate live OCR evidence adapter and reviewed OCR saving, with typed provenance, schema-v2 migration/rollback tests, stable source-row ownership and native save/reopen smoke checks. See [OCR saving](ocr-saving.md). Windows OCR packaging remains open.
+- [x] Add the separate live OCR evidence adapter and reviewed OCR saving, with typed provenance, schema-v2 migration/rollback tests, stable source-row ownership and native save/reopen smoke checks. See [OCR saving](ocr-saving.md). Windows OCR is now packaged in the [development bundle](windows-ocr.md).
 - [ ] Test image cleanup on save, cancel, error, and startup after crashes.
 - [ ] Verify that imported original files remain untouched on both platforms.
 
@@ -299,7 +300,8 @@ Restore must assign a fresh local device identity and preserve imported event id
 [reviewed manual corrections](manual-corrections.md),
 [fresh-image OCR corrections](ocr-corrections.md) and
 [reviewed receipt deletion](receipt-deletion.md) share reviewed persistence on
-Android and Windows. Production recognition is currently Android-only. The normal
+Android and Windows. App-bundled recognition now runs on both platforms; broader
+quality and clean-machine release verification remain open. The normal
 app owns one application-support database with schema-5 migration from released
 schemas 1, 2, 3 and 4. Native synthetic save/reopen, filtered-history,
 correction/stale-write and deletion/tombstone checks pass on both platforms,
@@ -354,12 +356,16 @@ Repeated encrypted recovery, fresh-origin writes, reopen and retained previous
 slots preserve history. Future schemas and corrupt projections are refused without
 resetting data. These checks do not replace independent encrypted backups.
 
-Next, close the standalone Windows OCR gap, beginning with an explicit engine and
-packaging decision based on the existing spike results and clean-install testing
-constraints. Then integrate the chosen adapter with the normal review flow and
-verify offline behavior and original-file protection on both platforms.
+The approved [Windows OCR bundle](windows-ocr.md) integrates a source-built worker
+with the normal review flow. Real-engine synthetic recognition/save/reopen passes
+on Windows and offline Android. The development ZIP includes notices, a synthetic
+receipt and a relocation/dependency rehearsal. It is not a signed or clean-machine-
+certified release.
 
-Windows OCR packaging and final engine selection remain open. Keep representative
+Next, run the [clean-machine checklist](windows-ocr-clean-machine.md) on the user's
+second Windows PC before marking first-install standalone Windows OCR complete.
+Resolve any dependency/startup failures, then finish redistribution-license review
+and broaden OCR fixtures before release or networking work. Keep representative
 S-kaupat images and OCR exports in ignored `localreceipts/`; committed fixtures
 remain synthetic or explicitly anonymized. Complete standalone workflows and
 tested recovery before bidirectional sync. Broader parser fixtures, clean-install

@@ -49,6 +49,6 @@ flutter {
 }
 
 dependencies {
-    // Experimental candidate; the Latin model is bundled for first-run offline use.
+    // Approved Android engine; bundle the Latin model for first-run offline use.
     implementation("com.google.mlkit:text-recognition:16.0.1")
 }

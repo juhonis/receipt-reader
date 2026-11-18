@@ -7,6 +7,7 @@ environment:
   sdk: ^3.14.0
 
 dependencies:
+  crypto: 3.0.7
   receipt_domain:
     path: packages/receipt_domain
   receipt_parser:
