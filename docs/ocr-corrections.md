@@ -3,8 +3,9 @@
 Implemented on 2026-11-16. A saved OCR receipt has its own correction action in
 history. It retains source `ocr` and the receipt ID, writes a new causal revision,
 and preserves earlier snapshots and reviews in immutable local events. It uses
-SQLite schema 2, receipt/event payload 1 and OCR review policy 2; no migration or
-historical document rewrite is needed.
+SQLite schema 6, receipt/event payload 1 and OCR review policy 3 for new
+corrections. Historical policy-2 documents remain unchanged and readable. See
+[quick and guided review](receipt-review.md) for the current approval flow.
 
 ## User flow
 
@@ -21,14 +22,15 @@ historical document rewrite is needed.
    position/name similarity never chooses an identity automatically. A saved
    row can be assigned only once. Retained rows keep their IDs even if reordered
    or corrected; new rows get fresh IDs. Unmatched saved rows are removals.
-4. Reconfirm the branch, compare every row and review the entire page. Resolve
+4. Choose the branch and correct the displayed data against the image. Resolve
    every supported finding and relationship, including omitted/removed source
    words. Explicit deposit parents/standalone choices and adjustment reasons
-   are still required. Matching a saved row resets comparisons and approval.
+   remain required. The optional four-part guide has no note; edits need no
+   repeated checklist. Final approval always captures current values.
 5. The final dialog lists the row matches and every saved row being removed.
-   Separately confirm these choices, the date/time and printed total. Cancel
-   writes nothing. Saving creates one immutable command with the opened receipt
-   revision as its only expected head.
+   Confirm these identity changes and the current receipt information. No extra
+   date/total checkboxes are required. Cancel writes nothing. Saving creates one
+   immutable command with the opened receipt revision as its only expected head.
 
 Changing the layout opens another fresh review for the same receipt and base
 revision, with independent image ownership and empty approvals/row matching.

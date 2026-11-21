@@ -89,17 +89,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text(store.branch.name).last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Olen tarkistanut myymälän toimipisteen'));
-    await tester.pumpAndSettle();
     return evidence;
   }
 
   Future<void> approve(WidgetTester tester, {int rows = 1}) async {
-    for (var i = 0; i < rows; i++) {
-      await visible(tester, 'row-image-compared-$i');
-      await tester.tap(find.byKey(Key('row-image-compared-$i')));
-      await tester.pumpAndSettle();
-    }
     await visible(tester, 'review-page-evidence');
     await tester.tap(find.byKey(const Key('review-page-evidence')));
     await tester.pumpAndSettle();
@@ -109,17 +102,14 @@ void main() {
       'page-layout',
       'page-complete-image',
     ]) {
-      await tester.tap(find.byKey(Key(key)));
+      await tester.ensureVisible(find.byKey(Key(key)));
+      if (!tester.widget<CheckboxListTile>(find.byKey(Key(key))).value!) {
+        await tester.tap(find.byKey(Key(key)));
+        await tester.pumpAndSettle();
+      }
     }
-    await tester.enterText(
-      find.byKey(const Key('page-evidence-note')),
-      'PRIVATE TEST NOTE',
-    );
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('approve-page-evidence')));
-    await tester.pumpAndSettle();
-    await visible(tester, 'review-confirmation');
-    await tester.tap(find.byKey(const Key('review-confirmation')));
     await tester.pumpAndSettle();
   }
 
@@ -127,22 +117,11 @@ void main() {
     await visible(tester, 'ocr-save');
     await tester.tap(find.byKey(const Key('ocr-save')));
     await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<FilledButton>(find.byKey(const Key('ocr-confirm-save')))
-          .onPressed,
-      isNull,
-    );
-    for (final key in ['ocr-save-date', 'ocr-save-total']) {
-      await tester.tap(find.byKey(Key(key)));
-    }
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('ocr-confirm-save')));
-    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('ocr-confirm-save')), findsNothing);
   }
 
   testWidgets(
-    'OCR product selection is explicit, invalidates approval and preserves source',
+    'OCR product selection is explicit, remains editable and preserves source',
     (tester) async {
       final store = FakeCatalogStore();
       final product = store.seedProduct();
@@ -165,14 +144,12 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await visible(tester, 'review-confirmation');
+      await visible(tester, 'ocr-save');
       expect(
         tester
-            .widget<CheckboxListTile>(
-              find.byKey(const Key('review-confirmation')),
-            )
-            .value,
-        isFalse,
+            .widget<FilledButton>(find.byKey(const Key('ocr-save')))
+            .onPressed,
+        isNotNull,
       );
       await approve(tester);
       await finalSave(tester);
@@ -224,16 +201,6 @@ void main() {
     await visible(tester, 'ocr-save');
     await tester.tap(find.byKey(const Key('ocr-save')));
     await tester.pumpAndSettle();
-    for (final key in ['ocr-save-date', 'ocr-save-total']) {
-      final checkbox = find.descendant(
-        of: find.byKey(Key(key)),
-        matching: find.byType(Checkbox),
-      );
-      await tester.ensureVisible(checkbox);
-      await tester.pumpAndSettle();
-      await tester.tap(checkbox);
-    }
-    await tester.pumpAndSettle();
     expect(
       tester
           .widget<FilledButton>(find.byKey(const Key('ocr-confirm-save')))
@@ -267,7 +234,7 @@ void main() {
         isNull,
       );
       await matchRow(tester, 0, '1. MILK (2,00 €)');
-      // Matching is a review edit: fresh comparisons and whole-page approval are required.
+      // The optional checklist stays complete; final save approves the new mapping.
       await approve(tester);
       await correctionFinal(tester);
       final saved = store.documents.single;
@@ -402,8 +369,6 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text(store.branch.name).last);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Olen tarkistanut myymälän toimipisteen'));
-      await tester.pumpAndSettle();
       await visible(tester, 'ocr-row-identity-0');
       expect(
         tester
@@ -452,7 +417,7 @@ void main() {
   );
 
   testWidgets(
-    'OCR save requires live review and final fields, preserves source and disposes image',
+    'OCR quick save preserves source and disposes image without extra confirmations',
     (tester) async {
       final store = FakeStore();
       final evidence = await open(tester, store);
@@ -461,7 +426,7 @@ void main() {
         tester
             .widget<FilledButton>(find.byKey(const Key('ocr-save')))
             .onPressed,
-        isNull,
+        isNotNull,
       );
       await approve(tester);
       await finalSave(tester);
@@ -516,19 +481,19 @@ void main() {
     },
   );
   testWidgets(
-    'changing content during final OCR confirmation rejects visibly',
+    'changing content during final OCR correction confirmation rejects visibly',
     (tester) async {
       final store = FakeStore();
-      final evidence = await open(tester, store);
+      final prior = original(store);
+      final evidence = await open(tester, store, correction: prior);
+      await matchRow(tester, 0, '1. MILK (2,00 €)');
       await approve(tester);
       await visible(tester, 'ocr-save');
       await tester.tap(find.byKey(const Key('ocr-save')));
       await tester.pumpAndSettle();
       tester.widget<TextField>(find.byKey(const Key('date'))).controller!.text =
           '17.11.2026';
-      for (final key in ['ocr-save-date', 'ocr-save-total']) {
-        await tester.tap(find.byKey(Key(key)));
-      }
+      await tester.tap(find.byKey(const Key('ocr-save-identities')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('ocr-confirm-save')));
       await tester.pumpAndSettle();
@@ -544,10 +509,12 @@ void main() {
     },
   );
   testWidgets(
-    'cancelling final confirmation does not save and normal exit disposes evidence',
+    'cancelling correction confirmation does not save and normal exit disposes evidence',
     (tester) async {
       final store = FakeStore();
-      final evidence = await open(tester, store);
+      final prior = original(store);
+      final evidence = await open(tester, store, correction: prior);
+      await matchRow(tester, 0, '1. MILK (2,00 €)');
       await approve(tester);
       await visible(tester, 'ocr-save');
       await tester.tap(find.byKey(const Key('ocr-save')));

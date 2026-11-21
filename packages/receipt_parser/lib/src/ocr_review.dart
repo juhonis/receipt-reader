@@ -98,6 +98,29 @@ class PageEvidenceApproval {
       canApprovePageEvidence(current);
 }
 
+/// Legacy detailed evidence remains readable; new receipts use one explicit
+/// receipt-level approval without claiming per-row or per-section comparisons.
+enum OcrReviewPolicy { detailed, receipt }
+
+enum ReceiptReviewMethod { quick, guided }
+
+class ReceiptReviewApproval {
+  const ReceiptReviewApproval(this.snapshot, this.method);
+  final OcrReviewSnapshot snapshot;
+  final ReceiptReviewMethod method;
+  bool validFor(OcrReviewSnapshot current) =>
+      snapshot.matches(current) && canAcceptReceipt(current);
+}
+
+bool canAcceptReceipt(OcrReviewSnapshot snapshot) => ReviewValidation(
+  branch: snapshot.branch,
+  dateText: snapshot.date,
+  totalText: snapshot.total,
+  rows: snapshot.rows.map((r) => r.input).toList(),
+  branchConfirmed: snapshot.branchConfirmed,
+  reviewed: true,
+).complete;
+
 class FindingEvidenceDecision {
   const FindingEvidenceDecision({
     required this.note,
@@ -124,6 +147,7 @@ enum OcrEvidenceBlocker {
   sourceContext,
   rowReview,
   pageReview,
+  receiptApproval,
   originalRows,
   originalQuantities,
   openFindings,
@@ -142,6 +166,8 @@ class OcrEvidenceAudit {
     required List<Object> originalRowIds,
     required bool imageMatchesSource,
     required PageEvidenceApproval? pageApproval,
+    this.policy = OcrReviewPolicy.detailed,
+    this.receiptApproval,
   }) : findings = List.unmodifiable(findings),
        decisions = Map.unmodifiable(decisions),
        originalRowIds = List.unmodifiable(originalRowIds) {
@@ -245,10 +271,21 @@ class OcrEvidenceAudit {
     final rowsReady =
         snapshot.rows.isNotEmpty &&
         snapshot.rows.map((r) => r.id).toSet().length == snapshot.rows.length &&
-        snapshot.rows.every((row) => row.compared && _validRow(row.input));
+        snapshot.rows.every(
+          (row) =>
+              (policy == OcrReviewPolicy.receipt || row.compared) &&
+              _validRow(row.input),
+        );
     if (!rowsReady) _blockers.add(OcrEvidenceBlocker.rowReview);
-    final pageReady = pageApproval?.validFor(snapshot) ?? false;
+    final pageReady =
+        policy == OcrReviewPolicy.receipt ||
+        (pageApproval?.validFor(snapshot) ?? false);
     if (!pageReady) _blockers.add(OcrEvidenceBlocker.pageReview);
+    if ((policy == OcrReviewPolicy.receipt &&
+            !(receiptApproval?.validFor(snapshot) ?? false)) ||
+        (policy == OcrReviewPolicy.detailed && receiptApproval != null)) {
+      _blockers.add(OcrEvidenceBlocker.receiptApproval);
+    }
     for (var i = 0; i < draft.rows.length && i < originalRowIds.length; i++) {
       final current = rowWithId(originalRowIds[i]);
       if (current == null) {
@@ -353,6 +390,8 @@ class OcrEvidenceAudit {
     if (_unresolved.isNotEmpty) _blockers.add(OcrEvidenceBlocker.openFindings);
   }
   final OcrReviewSnapshot snapshot;
+  final OcrReviewPolicy policy;
+  final ReceiptReviewApproval? receiptApproval;
   final List<Object> originalRowIds;
   final List<ParseFinding> findings;
   final Map<int, FindingEvidenceDecision> decisions;
@@ -362,5 +401,11 @@ class OcrEvidenceAudit {
   Set<OcrEvidenceBlocker> get blockers => Set.unmodifiable(_blockers);
   Set<int> get unresolved => Set.unmodifiable(_unresolved);
   Set<int> get resolvableGeometry => Set.unmodifiable(_resolvableGeometry);
+
+  /// Does not establish human approval or authorize persistence.
+  bool get automaticReady =>
+      policy == OcrReviewPolicy.receipt &&
+      _blockers.every((b) => b == OcrEvidenceBlocker.receiptApproval) &&
+      canAcceptReceipt(snapshot);
   bool get ready => _blockers.isEmpty;
 }

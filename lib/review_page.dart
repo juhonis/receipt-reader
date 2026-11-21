@@ -65,6 +65,7 @@ class ReviewPage extends StatefulWidget {
 }
 
 class _RowFields {
+  final anchor = GlobalKey();
   final name = TextEditingController();
   final amount = TextEditingController();
   final quantity = TextEditingController();
@@ -97,12 +98,21 @@ class _RowFields {
 }
 
 class _ReviewPageState extends State<ReviewPage> {
+  final _reviewScroll = ScrollController();
+  final _branchAnchor = GlobalKey(),
+      _dateAnchor = GlobalKey(),
+      _totalAnchor = GlobalKey();
   final _branch = TextEditingController();
   final _date = TextEditingController();
   final _total = TextEditingController();
   final _rows = [_RowFields()];
   bool _branchConfirmed = false;
   bool _reviewed = false;
+  bool _guidedReviewCompleted = false;
+  bool _saving = false;
+  bool get _streamlined => widget.store != null;
+  bool get _branchIsConfirmed =>
+      _streamlined ? _selectedBranch != null : _branchConfirmed;
   late final _receiptId =
       widget._initial?.document.snapshot.id ?? DurableId.generate();
   final _newBranchId = DurableId.generate();
@@ -118,6 +128,49 @@ class _ReviewPageState extends State<ReviewPage> {
                   .toSet()
                   .length ==
               _rows.where((r) => r.savedRowChoice != 'new').length);
+  bool get _detailsReady => _rows.every(
+    (r) =>
+        (r.kind != LineKind.adjustment || r.reason.text.trim().isNotEmpty) &&
+        (r.kind != LineKind.deposit ||
+            r.standaloneDeposit ||
+            _rows.any(
+              (parent) =>
+                  identical(parent, r.depositParent) &&
+                  parent.kind == LineKind.product,
+            )),
+  );
+
+  Future<void> _showField(GlobalKey anchor) async {
+    if (!_reviewScroll.hasClients) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+    // The form is lazy. Materialize the target before asking ensureVisible to
+    // reveal it; this also works with enlarged text and long receipts.
+    if (anchor.currentContext == null) {
+      _reviewScroll.jumpTo(0);
+      for (var i = 0; mounted && i < 200; i++) {
+        await WidgetsBinding.instance.endOfFrame;
+        if (!mounted ||
+            !_reviewScroll.hasClients ||
+            anchor.currentContext != null) {
+          break;
+        }
+        final p = _reviewScroll.position;
+        if (p.pixels >= p.maxScrollExtent) break;
+        _reviewScroll.jumpTo(
+          (p.pixels + p.viewportDimension * .7).clamp(0, p.maxScrollExtent),
+        );
+      }
+    }
+    final target = anchor.currentContext;
+    if (target != null && target.mounted) {
+      await Scrollable.ensureVisible(
+        target,
+        alignment: .15,
+        duration: const Duration(milliseconds: 180),
+      );
+    }
+  }
+
   String _savedRowLabel(ReceiptItemSnapshot item) {
     final items = widget._initial!.document.snapshot.items;
     return '${items.indexOf(item) + 1}. ${item.name} (${formatCents(item.cents)} €)';
@@ -163,11 +216,33 @@ class _ReviewPageState extends State<ReviewPage> {
   }
 
   Future<void> _saveOcr() async {
-    final approved = _evidenceAudit, branch = _selectedBranch;
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      await _performSaveOcr();
+    } finally {
+      if (mounted && (ModalRoute.of(context)?.isCurrent ?? false)) {
+        setState(() => _saving = false);
+      }
+    }
+  }
+
+  Future<void> _performSaveOcr() async {
+    // The user's save action approves these exact current values. This does not
+    // synthesize legacy per-row comparisons or section-specific approvals.
+    final receiptApproval = _streamlined
+        ? ReceiptReviewApproval(
+            _snapshot,
+            _guidedReviewCompleted
+                ? ReceiptReviewMethod.guided
+                : ReceiptReviewMethod.quick,
+          )
+        : null;
+    final approved = _auditFor(receiptApproval), branch = _selectedBranch;
     if (approved == null ||
         !approved.ready ||
         branch == null ||
-        !_reviewed ||
+        (!_streamlined && !_reviewed) ||
         !_mappingReady) {
       return;
     }
@@ -175,7 +250,7 @@ class _ReviewPageState extends State<ReviewPage> {
       _rowDetails,
     );
     final s = AppLocalizations.of(context)!;
-    var dateChecked = false, totalChecked = false;
+    var dateChecked = _streamlined, totalChecked = _streamlined;
     var identitiesChecked = widget._initial == null;
     final mapping = {for (final row in _rows) row: row.savedRowChoice};
     final rowIds = ReviewRowIds();
@@ -194,8 +269,8 @@ class _ReviewPageState extends State<ReviewPage> {
         rowDetails: approvedDetails,
         expectedHeads: _expectedHeads,
         mutationId: DurableId.generate(),
-        // Capture content before the modal. Confirmation is issued only after
-        // the dialog has collected the separate date and total checks.
+        // Quick saving explicitly approves date and total along with the
+        // displayed receipt. Corrections also confirm identity changes below.
         dateReviewed: true,
         totalReviewed: true,
       );
@@ -219,86 +294,94 @@ class _ReviewPageState extends State<ReviewPage> {
             for (final row in _rows)
               '${row.name.text}: ${row.savedRowChoice == 'new' ? s.ocrCorrectionNewRow : _savedRowLabel(widget._initial!.document.snapshot.items.firstWhere((item) => item.id.value == row.savedRowChoice))}',
           ];
-    final yes = await showDialog<bool>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, update) => AlertDialog(
-          title: Text(
-            widget._initial == null
-                ? s.ocrSaveFinalTitle
-                : s.manualCorrectionFinalTitle,
-          ),
-          scrollable: true,
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(branch.name),
-              Text(approved.snapshot.date),
-              Text(approved.snapshot.total),
-              Text(s.ocrSaveFinalNotice),
-              if (widget.store is CatalogService) ...[
-                Text(s.productLinksReview),
-                if (widget._initial != null) Text(s.productOcrCorrection),
-                for (final row in _rows.where(
-                  (r) => r.kind == LineKind.product,
-                )) ...[
-                  Text(row.name.text),
-                  if (row.product == null)
-                    Text(s.productUnlinked)
-                  else
-                    ProductLinkLabel(
-                      service: widget.store! as CatalogService,
-                      link: row.product!,
+    final yes = _streamlined && widget._initial == null
+        ? true
+        : await showDialog<bool>(
+            context: context,
+            builder: (context) => StatefulBuilder(
+              builder: (context, update) => AlertDialog(
+                title: Text(
+                  widget._initial == null
+                      ? s.ocrSaveFinalTitle
+                      : s.manualCorrectionFinalTitle,
+                ),
+                scrollable: true,
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(branch.name),
+                    Text(approved.snapshot.date),
+                    Text(approved.snapshot.total),
+                    Text(
+                      _streamlined ? s.ocrAcceptNotice : s.ocrSaveFinalNotice,
                     ),
+                    if (widget.store is CatalogService) ...[
+                      Text(s.productLinksReview),
+                      if (widget._initial != null) Text(s.productOcrCorrection),
+                      for (final row in _rows.where(
+                        (r) => r.kind == LineKind.product,
+                      )) ...[
+                        Text(row.name.text),
+                        if (row.product == null)
+                          Text(s.productUnlinked)
+                        else
+                          ProductLinkLabel(
+                            service: widget.store! as CatalogService,
+                            link: row.product!,
+                          ),
+                      ],
+                    ],
+                    if (widget._initial != null) ...[
+                      for (final label in matchedLabels) Text(label),
+                      Text(
+                        removed.isEmpty
+                            ? s.ocrCorrectionNoRemoved
+                            : s.ocrCorrectionRemoved,
+                      ),
+                      for (final item in removed) Text(_savedRowLabel(item)),
+                      Text(s.ocrCorrectionFinal),
+                      CheckboxListTile(
+                        key: const Key('ocr-save-identities'),
+                        title: Text(s.ocrCorrectionIdentitiesReviewed),
+                        value: identitiesChecked,
+                        onChanged: (v) =>
+                            update(() => identitiesChecked = v ?? false),
+                      ),
+                    ],
+                    if (!_streamlined)
+                      CheckboxListTile(
+                        key: const Key('ocr-save-date'),
+                        title: Text(s.manualDateReviewed),
+                        value: dateChecked,
+                        onChanged: (v) =>
+                            update(() => dateChecked = v ?? false),
+                      ),
+                    if (!_streamlined)
+                      CheckboxListTile(
+                        key: const Key('ocr-save-total'),
+                        title: Text(s.manualTotalReviewed),
+                        value: totalChecked,
+                        onChanged: (v) =>
+                            update(() => totalChecked = v ?? false),
+                      ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: Text(s.cancelAction),
+                  ),
+                  FilledButton(
+                    key: const Key('ocr-confirm-save'),
+                    onPressed: dateChecked && totalChecked && identitiesChecked
+                        ? () => Navigator.pop(context, true)
+                        : null,
+                    child: Text(s.saveReceipt),
+                  ),
                 ],
-              ],
-              if (widget._initial != null) ...[
-                for (final label in matchedLabels) Text(label),
-                Text(
-                  removed.isEmpty
-                      ? s.ocrCorrectionNoRemoved
-                      : s.ocrCorrectionRemoved,
-                ),
-                for (final item in removed) Text(_savedRowLabel(item)),
-                Text(s.ocrCorrectionFinal),
-                CheckboxListTile(
-                  key: const Key('ocr-save-identities'),
-                  title: Text(s.ocrCorrectionIdentitiesReviewed),
-                  value: identitiesChecked,
-                  onChanged: (v) =>
-                      update(() => identitiesChecked = v ?? false),
-                ),
-              ],
-              CheckboxListTile(
-                key: const Key('ocr-save-date'),
-                title: Text(s.manualDateReviewed),
-                value: dateChecked,
-                onChanged: (v) => update(() => dateChecked = v ?? false),
               ),
-              CheckboxListTile(
-                key: const Key('ocr-save-total'),
-                title: Text(s.manualTotalReviewed),
-                value: totalChecked,
-                onChanged: (v) => update(() => totalChecked = v ?? false),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(s.cancelAction),
             ),
-            FilledButton(
-              key: const Key('ocr-confirm-save'),
-              onPressed: dateChecked && totalChecked && identitiesChecked
-                  ? () => Navigator.pop(context, true)
-                  : null,
-              child: Text(s.saveReceipt),
-            ),
-          ],
-        ),
-      ),
-    );
+          );
     if (!mounted ||
         yes != true ||
         !dateChecked ||
@@ -308,7 +391,7 @@ class _ReviewPageState extends State<ReviewPage> {
     }
     ReviewedReceipt command;
     try {
-      if (!_reviewed ||
+      if ((!_streamlined && !_reviewed) ||
           !_hasLayoutContext ||
           _selectedBranch == null ||
           _evidenceAudit == null ||
@@ -321,7 +404,7 @@ class _ReviewPageState extends State<ReviewPage> {
         throw const ReceiptDataException('review', 'staleEvidence');
       }
       command = ReviewedReceipt.ocr(
-        current: _evidenceAudit!,
+        current: _auditFor(receiptApproval)!,
         branch: _selectedBranch!,
         rowDetails: _rowDetails,
         expectedHeads: _expectedHeads,
@@ -364,14 +447,17 @@ class _ReviewPageState extends State<ReviewPage> {
     _branch.text,
     _date.text,
     _total.text,
-    _branchConfirmed,
+    _branchIsConfirmed,
     [
       for (final row in _rows)
         OcrReviewRow(row, row.input, row.imageCompared, _rowEvidence(row)),
     ],
   );
 
-  OcrEvidenceAudit? get _evidenceAudit => _draft == null
+  OcrEvidenceAudit? get _evidenceAudit => _auditFor();
+
+  OcrEvidenceAudit? _auditFor([ReceiptReviewApproval? approval]) =>
+      _draft == null
       ? null
       : OcrEvidenceAudit(
           snapshot: _snapshot,
@@ -379,6 +465,10 @@ class _ReviewPageState extends State<ReviewPage> {
           originalRowIds: _sourceRows,
           imageMatchesSource: _hasLayoutContext,
           pageApproval: _pageApproval,
+          policy: _streamlined
+              ? OcrReviewPolicy.receipt
+              : OcrReviewPolicy.detailed,
+          receiptApproval: approval,
           decisions: {
             for (final index in _resolvedFindings)
               index: FindingEvidenceDecision(
@@ -409,18 +499,25 @@ class _ReviewPageState extends State<ReviewPage> {
 
   Future<void> _reviewPageEvidence() async {
     if (!_hasLayoutContext) return;
-    final approval = await showDialog<PageEvidenceApproval>(
+    final approval = await showDialog<Object>(
       context: context,
       builder: (_) => PageEvidenceDialog(
         image: widget.evidence!.image,
         snapshot: _snapshot,
+        guided: _streamlined,
+        initiallyCompleted: _guidedReviewCompleted,
       ),
     );
-    if (!mounted || approval == null || !approval.validFor(_snapshot)) return;
-    setState(() {
-      _pageApproval = approval;
-      _reviewed = false;
-    });
+    if (!mounted || approval == null) return;
+    if (_streamlined) {
+      if (approval == true) setState(() => _guidedReviewCompleted = true);
+    } else if (approval is PageEvidenceApproval &&
+        approval.validFor(_snapshot)) {
+      setState(() {
+        _pageApproval = approval;
+        _reviewed = false;
+      });
+    }
   }
 
   Future<void> _reviewGeometry(int index) async {
@@ -842,6 +939,7 @@ class _ReviewPageState extends State<ReviewPage> {
   void dispose() {
     _recognition?.cancel();
     widget.evidence?.dispose();
+    _reviewScroll.dispose();
     _branch.dispose();
     _date.dispose();
     _total.dispose();
@@ -918,10 +1016,12 @@ class _ReviewPageState extends State<ReviewPage> {
       branch: _branch.text,
       dateText: _date.text,
       totalText: _total.text,
-      branchConfirmed: _branchConfirmed,
-      reviewed: _reviewed,
+      branchConfirmed: _branchIsConfirmed,
+      reviewed: _streamlined || _reviewed,
       hasUnresolvedParserIssues: _draft != null
-          ? !(audit?.ready ?? false)
+          ? !(_streamlined
+                ? (audit?.automaticReady ?? false)
+                : (audit?.ready ?? false))
           : _ocr != null,
       rows: [for (final row in _rows) row.input],
     );
@@ -1005,12 +1105,13 @@ class _ReviewPageState extends State<ReviewPage> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 760),
                   child: ListView(
+                    controller: _reviewScroll,
                     padding: const EdgeInsets.all(20),
                     children: [
                       Text(
                         widget.store == null
                             ? s.reviewNotice
-                            : s.ocrSaveReviewNotice,
+                            : s.ocrQuickReviewNotice,
                       ),
                       if (widget.evidence != null && !wide) ...[
                         Text(s.imageEvidenceHint),
@@ -1081,7 +1182,9 @@ class _ReviewPageState extends State<ReviewPage> {
                       if (_draft case final draft?) ...[
                         const SizedBox(height: 16),
                         Text(
-                          s.ocrDraftNotice,
+                          _streamlined
+                              ? s.ocrQuickDraftNotice
+                              : s.ocrDraftNotice,
                           key: const Key('ocr-draft-blocked'),
                         ),
                         Text(
@@ -1089,13 +1192,14 @@ class _ReviewPageState extends State<ReviewPage> {
                             _findings.length - _resolvedFindings.length,
                           ),
                         ),
-                        Text(
-                          s.rowImageProgress(
-                            _rows.where((row) => row.imageCompared).length,
-                            _rows.length,
+                        if (!_streamlined)
+                          Text(
+                            s.rowImageProgress(
+                              _rows.where((row) => row.imageCompared).length,
+                              _rows.length,
+                            ),
+                            key: const Key('row-image-progress'),
                           ),
-                          key: const Key('row-image-progress'),
-                        ),
                         if (_hasLayoutContext)
                           OutlinedButton(
                             key: const Key('inspect-layout'),
@@ -1303,57 +1407,97 @@ class _ReviewPageState extends State<ReviewPage> {
                           ),
                         if (_branchChoice == 'new') Text(s.newBranchNotice),
                       ],
-                      TextField(
-                        enabled:
-                            !_recognizing &&
-                            (widget.store == null || _branchChoice == 'new'),
-                        key: const Key('branch'),
-                        controller: _branch,
-                        decoration: InputDecoration(
-                          labelText: s.branchLabel,
-                          hintText: s.ocrBranchNameHint,
+                      KeyedSubtree(
+                        key: _branchAnchor,
+                        child: TextField(
+                          enabled:
+                              !_recognizing &&
+                              (widget.store == null || _branchChoice == 'new'),
+                          key: const Key('branch'),
+                          controller: _branch,
+                          decoration: InputDecoration(
+                            labelText: s.branchLabel,
+                            hintText: s.ocrBranchNameHint,
+                            errorText:
+                                _streamlined &&
+                                    _draft != null &&
+                                    _selectedBranch == null
+                                ? s.ocrChooseBranch
+                                : null,
+                            errorMaxLines: 3,
+                          ),
+                          onChanged: (_) {
+                            _branchConfirmed = false;
+                            _edit();
+                          },
                         ),
-                        onChanged: (_) {
-                          _branchConfirmed = false;
-                          _edit();
-                        },
                       ),
-                      CheckboxListTile(
-                        key: const Key('ocr-branch-confirmation'),
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(s.branchConfirmation),
-                        value: _branchConfirmed,
-                        onChanged: (value) => setState(() {
-                          _branchConfirmed = value ?? false;
-                          _invalidatePageEvidence();
-                          _edited = true;
-                          _reviewed = false;
-                        }),
-                      ),
-                      TextField(
-                        enabled: !_recognizing,
-                        key: const Key('date'),
-                        controller: _date,
-                        decoration: InputDecoration(
-                          labelText: s.dateLabel,
-                          hintText: s.dateHint,
+                      if (!_streamlined)
+                        CheckboxListTile(
+                          key: const Key('ocr-branch-confirmation'),
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(s.branchConfirmation),
+                          value: _branchConfirmed,
+                          onChanged: (value) => setState(() {
+                            _branchConfirmed = value ?? false;
+                            _invalidatePageEvidence();
+                            _edited = true;
+                            _reviewed = false;
+                          }),
                         ),
-                        onChanged: _edit,
+                      KeyedSubtree(
+                        key: _dateAnchor,
+                        child: TextField(
+                          enabled: !_recognizing,
+                          key: const Key('date'),
+                          controller: _date,
+                          decoration: InputDecoration(
+                            labelText: s.dateLabel,
+                            hintText: s.dateHint,
+                            errorText:
+                                _streamlined &&
+                                    _draft != null &&
+                                    validation.date.state !=
+                                        ReceiptDateState.valid
+                                ? s.dateNeedsReview
+                                : null,
+                            errorMaxLines: 3,
+                          ),
+                          onChanged: _edit,
+                        ),
                       ),
                       const SizedBox(height: 12),
-                      TextField(
-                        enabled: !_recognizing,
-                        key: const Key('total'),
-                        controller: _total,
-                        decoration: InputDecoration(
-                          labelText: s.totalLabel,
-                          hintText: '0,00',
+                      KeyedSubtree(
+                        key: _totalAnchor,
+                        child: TextField(
+                          enabled: !_recognizing,
+                          key: const Key('total'),
+                          controller: _total,
+                          decoration: InputDecoration(
+                            labelText: s.totalLabel,
+                            hintText: '0,00',
+                            errorText:
+                                _streamlined &&
+                                    _draft != null &&
+                                    !validation.totalsValid
+                                ? (!validation.rowsValid
+                                      ? s.rowsIncomplete
+                                      : validation.total == null
+                                      ? s.totalMissing
+                                      : s.totalsDifference(
+                                          formatCents(
+                                            validation.totals.difference!,
+                                          ),
+                                        ))
+                                : null,
+                            errorMaxLines: 3,
+                          ),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                            signed: true,
+                          ),
+                          onChanged: _edit,
                         ),
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                          signed: true,
-                        ),
-                        onChanged: _edit,
                       ),
                       const SizedBox(height: 20),
                       if (widget._initial != null)
@@ -1367,7 +1511,7 @@ class _ReviewPageState extends State<ReviewPage> {
                       ),
                       for (var i = 0; i < _rows.length; i++)
                         Card(
-                          key: ObjectKey(_rows[i]),
+                          key: _rows[i].anchor,
                           child: Padding(
                             padding: const EdgeInsets.all(12),
                             child: Column(
@@ -1420,6 +1564,12 @@ class _ReviewPageState extends State<ReviewPage> {
                                   controller: _rows[i].name,
                                   decoration: InputDecoration(
                                     labelText: s.rowNameLabel,
+                                    errorText:
+                                        _streamlined &&
+                                            _rows[i].name.text.trim().isEmpty
+                                        ? s.rowsIncomplete
+                                        : null,
+                                    errorMaxLines: 3,
                                   ),
                                   onChanged: _edit,
                                 ),
@@ -1448,6 +1598,19 @@ class _ReviewPageState extends State<ReviewPage> {
                                   decoration: InputDecoration(
                                     labelText: s.rowAmountLabel,
                                     hintText: '0,00',
+                                    errorText:
+                                        _streamlined &&
+                                            (parseCents(_rows[i].amount.text) ==
+                                                    null ||
+                                                (_rows[i].kind ==
+                                                        LineKind.discount &&
+                                                    parseCents(
+                                                          _rows[i].amount.text,
+                                                        )! >=
+                                                        BigInt.zero))
+                                        ? s.ocrRowFieldsInvalid
+                                        : null,
+                                    errorMaxLines: 3,
                                   ),
                                   keyboardType:
                                       const TextInputType.numberWithOptions(
@@ -1468,6 +1631,16 @@ class _ReviewPageState extends State<ReviewPage> {
                                       controller: _rows[i].quantity,
                                       decoration: InputDecoration(
                                         labelText: s.quantityLabel,
+                                        errorText:
+                                            _streamlined &&
+                                                _rows[i].input.quantityState !=
+                                                    QuantityReviewState
+                                                        .absent &&
+                                                _rows[i].input.quantityState !=
+                                                    QuantityReviewState.matched
+                                            ? s.quantityInvalidSummary
+                                            : null,
+                                        errorMaxLines: 3,
                                       ),
                                       onChanged: _edit,
                                     ),
@@ -1523,7 +1696,9 @@ class _ReviewPageState extends State<ReviewPage> {
                                     onPressed: () => _showEvidence(_rows[i]),
                                     child: Text(s.rowEvidence),
                                   ),
-                                if (_draft != null && widget.evidence != null)
+                                if (!_streamlined &&
+                                    _draft != null &&
+                                    widget.evidence != null)
                                   CheckboxListTile(
                                     key: ValueKey('row-image-compared-$i'),
                                     title: Text(s.rowImageCompared),
@@ -1572,6 +1747,11 @@ class _ReviewPageState extends State<ReviewPage> {
                                     controller: _rows[i].reason,
                                     decoration: InputDecoration(
                                       labelText: s.adjustmentReason,
+                                      errorText:
+                                          _rows[i].reason.text.trim().isEmpty
+                                          ? s.adjustmentReasonRequired
+                                          : null,
+                                      errorMaxLines: 3,
                                     ),
                                     onChanged: _edit,
                                   ),
@@ -1596,6 +1776,12 @@ class _ReviewPageState extends State<ReviewPage> {
                                     itemHeight: null,
                                     decoration: InputDecoration(
                                       labelText: s.manualRelationship,
+                                      errorText:
+                                          !_rows[i].standaloneDeposit &&
+                                              _rows[i].depositParent == null
+                                          ? s.ocrChooseDeposit
+                                          : null,
+                                      errorMaxLines: 3,
                                     ),
                                     items: [
                                       DropdownMenuItem(
@@ -1695,54 +1881,133 @@ class _ReviewPageState extends State<ReviewPage> {
                         Text(s.quantityInvalidSummary),
                       if (validation.positiveDiscount)
                         Text(s.discountSignWarning),
-                      if (audit != null) ...[
-                        Text(s.evidenceAuditTitle),
-                        if (!audit.ready) ...[
-                          Text(
-                            s.ocrFinalReviewPending,
-                            key: const Key('ocr-final-review-pending'),
+                      if (_streamlined && audit != null) ...[
+                        Text(
+                          audit.automaticReady && _mappingReady && _detailsReady
+                              ? s.ocrAutomaticChecksPassed
+                              : s.ocrResolveBeforeSaving,
+                          key: const Key('ocr-automatic-status'),
+                          style: TextStyle(
+                            color:
+                                audit.automaticReady &&
+                                    _mappingReady &&
+                                    _detailsReady
+                                ? null
+                                : Theme.of(context).colorScheme.error,
                           ),
-                          if (_branch.text.trim().isEmpty ||
-                              !_branchConfirmed ||
-                              (widget.store != null && _selectedBranch == null))
-                            Text(
-                              s.ocrBranchReviewNeeded,
-                              key: const Key('ocr-branch-review-needed'),
+                        ),
+                        if (_selectedBranch == null)
+                          TextButton(
+                            key: const Key('ocr-branch-review-needed'),
+                            onPressed: () => _showField(_branchAnchor),
+                            child: Text(s.ocrChooseBranch),
+                          ),
+                        if (validation.date.state != ReceiptDateState.valid)
+                          TextButton(
+                            key: const Key('ocr-jump-date'),
+                            onPressed: () => _showField(_dateAnchor),
+                            child: Text(s.dateNeedsReview),
+                          ),
+                        if (!validation.totalsValid)
+                          TextButton(
+                            key: const Key('ocr-jump-total'),
+                            onPressed: () => _showField(_totalAnchor),
+                            child: Text(s.ocrCheckTotal),
+                          ),
+                        if (!_mappingReady)
+                          Text(s.ocrCorrectionMappingRequired),
+                        for (var i = 0; i < _rows.length; i++)
+                          if (_rows[i].name.text.trim().isEmpty ||
+                              parseCents(_rows[i].amount.text) == null ||
+                              (_rows[i].input.quantityState !=
+                                      QuantityReviewState.absent &&
+                                  _rows[i].input.quantityState !=
+                                      QuantityReviewState.matched) ||
+                              (_rows[i].kind == LineKind.adjustment &&
+                                  _rows[i].reason.text.trim().isEmpty) ||
+                              (_rows[i].kind == LineKind.deposit &&
+                                  !_rows[i].standaloneDeposit &&
+                                  _rows[i].depositParent == null))
+                            TextButton(
+                              key: ValueKey('ocr-jump-row-$i'),
+                              onPressed: () => _showField(_rows[i].anchor),
+                              child: Text(
+                                '${i + 1}. ${_rows[i].name.text}: ${s.ocrRowFieldsInvalid}',
+                              ),
                             ),
-                        ],
-                        for (final blocker in audit.blockers)
-                          Text(switch (blocker) {
-                            OcrEvidenceBlocker.rowReview =>
-                              s.ocrRowsReviewNeeded,
-                            OcrEvidenceBlocker.pageReview =>
-                              s.ocrPageReviewNeeded,
-                            _ => evidenceBlockerLabel(s, blocker),
-                          }, key: ValueKey('ocr-blocker-${blocker.name}')),
+                        for (final blocker in audit.blockers.where(
+                          (b) => b != OcrEvidenceBlocker.receiptApproval,
+                        ))
+                          Text(
+                            blocker == OcrEvidenceBlocker.rowReview
+                                ? s.ocrRowFieldsInvalid
+                                : evidenceBlockerLabel(s, blocker),
+                            key: ValueKey('ocr-blocker-${blocker.name}'),
+                          ),
                         if (_hasLayoutContext)
                           OutlinedButton(
                             key: const Key('review-page-evidence'),
-                            onPressed: _reviewPageEvidence,
-                            child: Text(s.pageEvidenceTitle),
+                            onPressed: _saving ? null : _reviewPageEvidence,
+                            child: Text(s.ocrGuidedReview),
                           ),
-                        if (_pageApproval?.validFor(_snapshot) ?? false)
-                          Text(s.pageEvidenceReady),
-                        if (audit.ready)
+                        if (_guidedReviewCompleted)
                           Text(
-                            s.evidenceAuditReady,
-                            key: const Key('evidence-audit-ready'),
+                            s.ocrGuidedCompleted,
+                            key: const Key('ocr-guided-completed'),
                           ),
+                        Text(s.ocrAcceptNotice),
                       ],
-                      CheckboxListTile(
-                        key: const Key('review-confirmation'),
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(s.reviewConfirmation),
-                        value: _reviewed,
-                        onChanged: audit != null && !audit.ready
-                            ? null
-                            : (value) => setState(() {
-                                _reviewed = value ?? false;
-                              }),
-                      ),
+                      if (!_streamlined) ...[
+                        if (audit != null) ...[
+                          Text(s.evidenceAuditTitle),
+                          if (!audit.ready) ...[
+                            Text(
+                              s.ocrFinalReviewPending,
+                              key: const Key('ocr-final-review-pending'),
+                            ),
+                            if (_branch.text.trim().isEmpty ||
+                                !_branchConfirmed ||
+                                (widget.store != null &&
+                                    _selectedBranch == null))
+                              Text(
+                                s.ocrBranchReviewNeeded,
+                                key: const Key('ocr-branch-review-needed'),
+                              ),
+                          ],
+                          for (final blocker in audit.blockers)
+                            Text(switch (blocker) {
+                              OcrEvidenceBlocker.rowReview =>
+                                s.ocrRowsReviewNeeded,
+                              OcrEvidenceBlocker.pageReview =>
+                                s.ocrPageReviewNeeded,
+                              _ => evidenceBlockerLabel(s, blocker),
+                            }, key: ValueKey('ocr-blocker-${blocker.name}')),
+                          if (_hasLayoutContext)
+                            OutlinedButton(
+                              key: const Key('review-page-evidence'),
+                              onPressed: _reviewPageEvidence,
+                              child: Text(s.pageEvidenceTitle),
+                            ),
+                          if (_pageApproval?.validFor(_snapshot) ?? false)
+                            Text(s.pageEvidenceReady),
+                          if (audit.ready)
+                            Text(
+                              s.evidenceAuditReady,
+                              key: const Key('evidence-audit-ready'),
+                            ),
+                        ],
+                        CheckboxListTile(
+                          key: const Key('review-confirmation'),
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(s.reviewConfirmation),
+                          value: _reviewed,
+                          onChanged: audit != null && !audit.ready
+                              ? null
+                              : (value) => setState(() {
+                                  _reviewed = value ?? false;
+                                }),
+                        ),
+                      ],
                       if (widget.store != null && _draft != null) ...[
                         if (_savePreparationFailed)
                           Text(
@@ -1752,14 +2017,16 @@ class _ReviewPageState extends State<ReviewPage> {
                         FilledButton(
                           key: const Key('ocr-save'),
                           onPressed:
-                              validation.complete &&
+                              !_saving &&
+                                  validation.complete &&
                                   _selectedBranch != null &&
-                                  _mappingReady
+                                  _mappingReady &&
+                                  _detailsReady
                               ? _saveOcr
                               : null,
                           child: Text(
                             widget._initial == null
-                                ? s.saveReceipt
+                                ? s.ocrAcceptAndSave
                                 : s.saveCorrection,
                           ),
                         ),

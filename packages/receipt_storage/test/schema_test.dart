@@ -38,13 +38,13 @@ void main() {
   );
 
   test(
-    'fresh schema matches the committed Drift version-five snapshot',
+    'fresh schema matches the committed Drift version-six snapshot',
     () async {
       final verifier = SchemaVerifier(
         GeneratedHelper(),
         setup: configureSqlite,
       );
-      await verifier.migrateAndValidate(h.database, 5);
+      await verifier.migrateAndValidate(h.database, 6);
       await h.database.validateDatabaseSchema();
       final tables = h.raw.select(
         "SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'",
@@ -56,7 +56,7 @@ void main() {
       for (final table in tables) {
         expect(modes[table['name']], 1, reason: table['name'] as String);
       }
-      expect(h.raw.select('PRAGMA user_version').single['user_version'], 5);
+      expect(h.raw.select('PRAGMA user_version').single['user_version'], 6);
     },
   );
 
@@ -141,7 +141,7 @@ void main() {
       await h.repository.saveManual(command(snapshot()));
       await h.closeConnection();
       final raw = sqlite.sqlite3.open(h.file.path);
-      raw.execute('PRAGMA user_version = 6');
+      raw.execute('PRAGMA user_version = 7');
       raw.close();
       await expectLater(
         ReceiptRepository.open(h.file),
@@ -154,7 +154,7 @@ void main() {
         ),
       );
       final original = sqlite.sqlite3.open(h.file.path);
-      expect(original.select('PRAGMA user_version').single['user_version'], 6);
+      expect(original.select('PRAGMA user_version').single['user_version'], 7);
       expect(
         original
             .select('SELECT COUNT(*) AS count FROM change_log')

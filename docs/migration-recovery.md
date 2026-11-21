@@ -1,10 +1,11 @@
 # Native migration and recovery integrity rehearsal
 
-This rehearsal checks populated receipt database schemas 1–4 upgrading to schema 5,
+This rehearsal checks populated receipt database schemas 1–5 upgrading to schema 6,
 then using the current catalog, spending and product-price APIs before and after
 encrypted recovery. The same assertions run in the pure Dart storage suite and
 native Flutter integration tests on Windows and Android. Application behavior and
-the database schema are unchanged by this milestone.
+the database schema were unchanged by the original rehearsal milestone. The
+November 21 extension covers schema 6 for receipt-level OCR approval.
 
 ## Historical fixture matrix
 
@@ -14,6 +15,7 @@ the database schema are unchanged by this milestone.
 | 2 | All schema-1 cases plus an OCR receipt and correction with retained provenance and row identity |
 | 3 | All schema-2 cases plus a reviewed deletion and retained tombstone history |
 | 4 | All schema-3 cases plus a product edit and alias creation/deactivation history |
+| 5 | The same history in the released product-link-capable schema, retaining policy-2 reviews |
 
 The fixture builder creates each historical database from its committed generated
 Drift schema. It copies compatible synthetic commands and projections from a
@@ -59,7 +61,7 @@ an inconsistent receipt total projection. Normal repository opening must refuse
 both without resetting their schema, values or identities.
 
 The baseline recovered spending totals are 4,75 € for schema 1 and 6,75 € for schemas
-2–4; the difference is the preserved OCR receipt. The two explicitly linked price
+2–5; the difference is the preserved OCR receipt. The two explicitly linked price
 rows total 6,00 € before item discounts and 5,00 € after them. Whole-receipt spending
 also includes deposits, receipt discounts, adjustments, unlinked rows and the
 negative receipt, so it deliberately differs from the product-price subtotal.
@@ -121,3 +123,10 @@ reliability or production Windows OCR availability. Keep independent encrypted
 backups and their passwords separate; the rehearsal does not make this app the
 only safe copy of financial history. Networking and unresolved sync conflicts
 remain future work.
+
+On November 21, the rehearsal was extended through source schema 5 and target
+schema 6. All six native cases pass on Windows and on Android in airplane mode;
+the storage suite now has 196 passing tests. The review-projection migration
+retains historical policy-2 canonical bytes. Separate policy-3 storage regressions
+exercise quick/guided save, reopen, identical retries and encrypted recovery; see
+[receipt review](receipt-review.md).

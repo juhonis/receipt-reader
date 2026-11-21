@@ -2,7 +2,7 @@
 
 Pure Dart storage-facing receipt values and source-specific review commands.
 The Flutter app uses them for manual and supported OCR saving through the local
-repository. See [reviewed OCR saving](../../docs/ocr-saving.md) for policy 2.
+repository. See [reviewed OCR saving](../../docs/ocr-saving.md) for historical policy 2 and current quick/guided policy 3.
 
 See [storage foundations](../../docs/storage-foundations.md) for the API boundary,
 canonical fixtures, checks performed, and remaining work. The

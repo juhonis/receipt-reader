@@ -5,6 +5,10 @@ recognition 16.0.1, now the approved Android MVP engine. The shared review also
 uses [app-bundled Tesseract on Windows](windows-ocr.md). Broader recognition quality,
 clean-machine verification and release licensing remain open.
 
+The normal app now uses [quick and optional guided review](receipt-review.md)
+and [policy-3 saving](ocr-saving.md). Detailed row/page approvals described in
+earlier milestone sections below remain only in the no-save diagnostic prototype.
+
 ## Workflow
 
 1. Import a local JPEG or PNG and check that the whole receipt is visible.

@@ -34,6 +34,7 @@ final class ReceiptDocumentCodec {
           ocr.originalRowIds,
           ocr.decisions,
           ocr.originalFindingCount,
+          receiptReviewMethod: ocr.receiptReviewMethod,
         ),
     },
   });
@@ -59,7 +60,7 @@ final class ReceiptDocumentCodec {
       if (isOcr) 'ocr_evidence',
     ]);
     _require(
-      ((isOcr && review['policy_version'] == '2') ||
+      ((isOcr && ['2', '3'].contains(review['policy_version'])) ||
               (!isOcr &&
                   review['source'] == 'manual' &&
                   review['policy_version'] == '1')) &&
@@ -95,6 +96,7 @@ final class ReceiptDocumentCodec {
       isOcr
           ? _readOcrReview(
               review['ocr_evidence'],
+              review['policy_version'] == '3',
               snapshot,
               at,
               app,
@@ -455,6 +457,7 @@ T _ocrEnum<T extends Enum>(Object? value, List<T> choices) {
 
 OcrReviewRecord _readOcrReview(
   Object? value,
+  bool receiptPolicy,
   ReceiptSnapshot snapshot,
   BigInt at,
   String app,
@@ -464,11 +467,16 @@ OcrReviewRecord _readOcrReview(
   final evidence = _object(value, [
     'parser_version',
     'image_matches_source',
-    'rows_compared',
-    'page_header_compared',
-    'page_footer_compared',
-    'page_layout_compared',
-    'image_complete',
+    if (receiptPolicy) ...[
+      'receipt_confirmed',
+      'review_method',
+    ] else ...[
+      'rows_compared',
+      'page_header_compared',
+      'page_footer_compared',
+      'page_layout_compared',
+      'image_complete',
+    ],
     'original_finding_count',
     'reviewed_finding_count',
     'source_disposition_count',
@@ -537,11 +545,15 @@ OcrReviewRecord _readOcrReview(
         evidence['unresolved_count'] == '0' &&
         [
           'image_matches_source',
-          'rows_compared',
-          'page_header_compared',
-          'page_footer_compared',
-          'page_layout_compared',
-          'image_complete',
+          if (receiptPolicy)
+            'receipt_confirmed'
+          else ...[
+            'rows_compared',
+            'page_header_compared',
+            'page_footer_compared',
+            'page_layout_compared',
+            'image_complete',
+          ],
         ].every((k) => evidence[k] == true),
     'review.evidence',
     'incompleteChecks',
@@ -555,6 +567,9 @@ OcrReviewRecord _readOcrReview(
     originals,
     decisions,
     originalCount,
+    receiptReviewMethod: receiptPolicy
+        ? _ocrEnum(evidence['review_method'], ReceiptReviewMethod.values)
+        : null,
   );
 }
 

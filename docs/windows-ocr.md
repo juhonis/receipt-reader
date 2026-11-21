@@ -189,3 +189,26 @@ Verification for this guidance update: all 145 app tests and analysis pass, the
 exact-shipped-image Windows recognition/review/save/reopen regression passes, and
 the Android real-engine save/reopen regression passes in airplane mode. The ZIP
 passes the existing dependency, checksum, malformed-input and relocation checks.
+
+## Quick and optional guided review (November 21, 2026)
+
+The laptop feedback led to the [simpler shared review workflow](receipt-review.md).
+A straightforward receipt now needs branch selection/naming and one final
+**Hyväksy ja tallenna** action. There are no mandatory row-comparison boxes,
+whole-page checklist or routine review note. The four-part **Tarkista vaiheittain**
+guide remains optional and completed checks survive edits. Highlighted invalid
+fields, mismatched totals, uncertain relationships and unresolved findings still
+block saving; the guide never overrides them. Correction identity matching and
+removal confirmation remain explicit.
+
+New receipts/corrections record policy-3 receipt-level quick/guided approval.
+Schema 6 migrates schemas 1–5 without changing historical review/event bytes.
+Earlier app builds cannot reopen the migrated database. The distribution checklist
+now describes the new flow; the earlier laptop report documents the prior build,
+not an external acceptance test of this revision. Licensing/signing and broader
+receipt accuracy remain open.
+
+Verification of this revision includes the exact-image Windows quick-save/reopen,
+Android real-engine guided-save/reopen in airplane mode, native correction/stale
+write checks on both platforms, and native schema-1–5 migration/recovery. Full
+suite counts and coverage are in [receipt review](receipt-review.md#verification-november-21-2026).

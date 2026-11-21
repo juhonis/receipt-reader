@@ -75,6 +75,20 @@ class OcrFixture {
     );
   }
 
+  OcrEvidenceAudit receiptAudit({
+    ReceiptReviewApproval? approval,
+    bool image = true,
+  }) => OcrEvidenceAudit(
+    snapshot: snapshot,
+    findings: findings ?? reviewFindingsForDraft(draft),
+    decisions: decisions,
+    originalRowIds: originals,
+    imageMatchesSource: image,
+    pageApproval: null,
+    policy: OcrReviewPolicy.receipt,
+    receiptApproval: approval,
+  );
+
   OcrReviewChecks checks({
     OcrEvidenceAudit? current,
     Map<Object, OcrRowDetails> details = const {},

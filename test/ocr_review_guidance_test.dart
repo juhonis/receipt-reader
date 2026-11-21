@@ -41,12 +41,6 @@ Future<void> tap(WidgetTester t, String key) async {
   await t.pumpAndSettle();
 }
 
-bool finalEnabled(WidgetTester t) =>
-    t
-        .widget<CheckboxListTile>(find.byKey(const Key('review-confirmation')))
-        .onChanged !=
-    null;
-
 Future<void> open(
   WidgetTester t,
   FakeStore store, {
@@ -96,13 +90,24 @@ Future<void> open(
   await t.pumpAndSettle();
 }
 
-Future<void> compareRows(WidgetTester t) async {
-  for (var i = 0; i < 2; i++) {
-    await tap(t, 'row-image-compared-$i');
-  }
+bool saveEnabled(WidgetTester t) =>
+    t.widget<FilledButton>(find.byKey(const Key('ocr-save'))).onPressed != null;
+
+Future<void> chooseBranch(WidgetTester t, FakeStore store) async {
+  await tap(t, 'ocr-branch');
+  await t.tap(find.text(store.branch.name).last);
+  await t.pumpAndSettle();
 }
 
-Future<void> pageChecks(WidgetTester t) async {
+Future<void> guidedReview(WidgetTester t) async {
+  await tap(t, 'review-page-evidence');
+  expect(find.byKey(const Key('page-evidence-note')), findsNothing);
+  expect(
+    t
+        .widget<FilledButton>(find.byKey(const Key('approve-page-evidence')))
+        .onPressed,
+    isNull,
+  );
   for (final key in [
     'page-header',
     'page-footer',
@@ -110,30 +115,29 @@ Future<void> pageChecks(WidgetTester t) async {
     'page-complete-image',
   ]) {
     await t.ensureVisible(find.byKey(ValueKey(key)));
+    await t.pumpAndSettle();
     await t.tap(find.byKey(ValueKey(key)));
     await t.pumpAndSettle();
   }
-}
-
-Future<void> approvePage(WidgetTester t) async {
-  await tap(t, 'review-page-evidence');
-  await pageChecks(t);
-  await t.ensureVisible(find.byKey(const Key('page-evidence-note')));
-  await t.enterText(
-    find.byKey(const Key('page-evidence-note')),
-    'Compared synthetic receipt',
+  expect(
+    t
+        .widget<FilledButton>(find.byKey(const Key('approve-page-evidence')))
+        .onPressed,
+    isNotNull,
   );
-  await t.pumpAndSettle();
+  await t.ensureVisible(find.byKey(const Key('approve-page-evidence')));
   await t.tap(find.byKey(const Key('approve-page-evidence')));
   await t.pumpAndSettle();
 }
 
 void main() {
   testWidgets(
-    'fresh installation names its first branch and completes all explicit checks before saving',
+    'fresh installation saves exact shipped sample with one final action',
     (t) async {
       final store = FreshStore();
       await open(t, store);
+      await reveal(t, 'ocr-save');
+      expect(saveEnabled(t), isFalse);
       await reveal(t, 'branch');
       expect(
         t.widget<TextField>(find.byKey(const Key('branch'))).enabled,
@@ -144,104 +148,140 @@ void main() {
         'SYNTHETIC TEST STORE',
       );
       await t.pumpAndSettle();
-      await tap(t, 'ocr-branch-confirmation');
-      await reveal(t, 'review-confirmation');
-      expect(finalEnabled(t), isFalse);
-      expect(find.byKey(const Key('ocr-blocker-rowReview')), findsOneWidget);
-      await compareRows(t);
-      await reveal(t, 'review-confirmation');
-      expect(finalEnabled(t), isFalse);
-      expect(find.byKey(const Key('ocr-blocker-rowReview')), findsNothing);
-      expect(find.byKey(const Key('ocr-blocker-pageReview')), findsOneWidget);
-      await tap(t, 'review-page-evidence');
-      await pageChecks(t);
-      expect(
-        t
-            .widget<FilledButton>(
-              find.byKey(const Key('approve-page-evidence')),
-            )
-            .onPressed,
-        isNull,
-      );
-      expect(find.byKey(const Key('page-note-required')), findsOneWidget);
-      expect(find.text('Tarkistusmuistiinpano (pakollinen)'), findsOneWidget);
-      await t.ensureVisible(find.byKey(const Key('page-evidence-note')));
-      await t.enterText(
-        find.byKey(const Key('page-evidence-note')),
-        'Compared source image',
-      );
-      await t.pumpAndSettle();
-      expect(
-        t
-            .widget<FilledButton>(
-              find.byKey(const Key('approve-page-evidence')),
-            )
-            .onPressed,
-        isNotNull,
-      );
-      await t.tap(find.byKey(const Key('approve-page-evidence')));
-      await t.pumpAndSettle();
-      await reveal(t, 'review-confirmation');
-      expect(finalEnabled(t), isTrue);
-      expect(find.byKey(const Key('ocr-final-review-pending')), findsNothing);
-      expect(store.saved, isEmpty);
-      await tap(t, 'review-confirmation');
+      await reveal(t, 'ocr-save');
+      expect(saveEnabled(t), isTrue);
+      expect(find.byKey(const Key('review-confirmation')), findsNothing);
+      expect(find.byKey(const Key('ocr-branch-confirmation')), findsNothing);
+      expect(find.text('Automaattiset tarkistukset läpäisty'), findsOneWidget);
       await tap(t, 'ocr-save');
-      for (final key in ['ocr-save-date', 'ocr-save-total']) {
-        await t.tap(find.byKey(ValueKey(key)));
-        await t.pumpAndSettle();
-      }
-      await t.tap(find.byKey(const Key('ocr-confirm-save')));
-      await t.pumpAndSettle();
-      expect(store.saved, hasLength(1));
-      final receipt = store.saved.single.document.snapshot;
-      expect(receipt.branch.name, 'SYNTHETIC TEST STORE');
-      expect(receipt.totalCents, BigInt.from(500));
-      expect(receipt.items.map((r) => r.name), ['MILK', 'BREAD']);
+      expect(find.byKey(const Key('ocr-confirm-save')), findsNothing);
+      final document = store.saved.single.document;
+      expect(document.snapshot.branch.name, 'SYNTHETIC TEST STORE');
+      expect(document.snapshot.totalCents, BigInt.from(500));
+      expect(document.snapshot.items.map((r) => r.name), ['MILK', 'BREAD']);
+      expect(document.review.policyVersion, 3);
+      expect(
+        (document.review as OcrReviewRecord).receiptReviewMethod,
+        ReceiptReviewMethod.quick,
+      );
     },
   );
+
+  testWidgets('existing branches require selection but no separate checkbox', (
+    t,
+  ) async {
+    final store = FakeStore();
+    await open(t, store);
+    await reveal(t, 'ocr-save');
+    expect(saveEnabled(t), isFalse);
+    await chooseBranch(t, store);
+    await reveal(t, 'ocr-save');
+    expect(saveEnabled(t), isTrue);
+    await tap(t, 'ocr-save');
+    expect(store.saved.single.document.snapshot.branch.id, store.branch.id);
+  });
+
   testWidgets(
-    'existing branches require an explicit choice and later edits reopen review with reasons',
+    'optional guided review needs four checks, no note, and survives subsequent edits',
     (t) async {
       final store = FakeStore();
       await open(t, store);
-      await reveal(t, 'branch');
-      expect(
-        t.widget<TextField>(find.byKey(const Key('branch'))).enabled,
-        isFalse,
-      );
-      await tap(t, 'ocr-branch');
-      await t.tap(find.text(store.branch.name).last);
+      await chooseBranch(t, store);
+      await guidedReview(t);
+      expect(store.saved, isEmpty);
+      await reveal(t, 'row-name-0');
+      await t.enterText(find.byKey(const Key('row-name-0')), 'Corrected milk');
       await t.pumpAndSettle();
-      await tap(t, 'ocr-branch-confirmation');
-      await compareRows(t);
-      await approvePage(t);
-      await reveal(t, 'review-confirmation');
-      expect(finalEnabled(t), isTrue);
       await reveal(t, 'date');
       await t.enterText(find.byKey(const Key('date')), '19.11.2026');
       await t.pumpAndSettle();
-      await reveal(t, 'review-confirmation');
-      expect(finalEnabled(t), isFalse);
-      expect(find.byKey(const Key('ocr-final-review-pending')), findsOneWidget);
-      expect(find.byKey(const Key('ocr-blocker-rowReview')), findsOneWidget);
-      expect(find.byKey(const Key('ocr-blocker-pageReview')), findsOneWidget);
-      expect(store.saved, isEmpty);
+      await reveal(t, 'ocr-save');
+      expect(find.byKey(const Key('ocr-guided-completed')), findsOneWidget);
+      expect(saveEnabled(t), isTrue);
+      await tap(t, 'ocr-save');
+      final document = store.saved.single.document;
+      expect(document.snapshot.items.first.name, 'Corrected milk');
+      expect(document.snapshot.date.day, 19);
+      expect(
+        (document.review as OcrReviewRecord).receiptReviewMethod,
+        ReceiptReviewMethod.guided,
+      );
     },
   );
+
   testWidgets(
-    'pending review instructions and required note fit narrow enlarged-text screens',
+    'closing optional checklist neither saves nor prevents quick save',
+    (t) async {
+      final store = FakeStore();
+      await open(t, store);
+      await chooseBranch(t, store);
+      await tap(t, 'review-page-evidence');
+      await t.tap(find.text('Sulje'));
+      await t.pumpAndSettle();
+      expect(store.saved, isEmpty);
+      await tap(t, 'ocr-save');
+      expect(
+        (store.saved.single.document.review as OcrReviewRecord)
+            .receiptReviewMethod,
+        ReceiptReviewMethod.quick,
+      );
+    },
+  );
+
+  testWidgets(
+    'guided checklist cannot bypass mismatched totals or invalid dates',
+    (t) async {
+      final store = FakeStore();
+      await open(t, store);
+      await chooseBranch(t, store);
+      await reveal(t, 'total');
+      await t.enterText(find.byKey(const Key('total')), '5,01');
+      await t.pumpAndSettle();
+      expect(
+        t
+            .widget<TextField>(find.byKey(const Key('total')))
+            .decoration!
+            .errorText,
+        isNotNull,
+      );
+      await guidedReview(t);
+      await reveal(t, 'ocr-save');
+      expect(saveEnabled(t), isFalse);
+      await tap(t, 'ocr-jump-total');
+      expect(find.byKey(const Key('total')).hitTestable(), findsOneWidget);
+      await t.enterText(find.byKey(const Key('total')), '5,00');
+      await reveal(t, 'date');
+      await t.enterText(find.byKey(const Key('date')), '31.02.2026');
+      await t.pumpAndSettle();
+      expect(
+        t
+            .widget<TextField>(find.byKey(const Key('date')))
+            .decoration!
+            .errorText,
+        isNotNull,
+      );
+      await reveal(t, 'ocr-save');
+      expect(saveEnabled(t), isFalse);
+      expect(store.saved, isEmpty);
+      await tap(t, 'ocr-jump-date');
+      expect(find.byKey(const Key('date')).hitTestable(), findsOneWidget);
+      await t.enterText(find.byKey(const Key('date')), '18.11.2026');
+      await tap(t, 'ocr-save');
+      expect(store.saved, hasLength(1));
+    },
+  );
+
+  testWidgets(
+    'quick review and optional checklist fit narrow enlarged-text screens',
     (t) async {
       await open(t, FreshStore(), compact: true);
-      await reveal(t, 'review-confirmation');
-      expect(finalEnabled(t), isFalse);
+      await reveal(t, 'ocr-save');
+      expect(saveEnabled(t), isFalse);
       expect(t.takeException(), isNull);
-      await tap(t, 'review-page-evidence');
-      await pageChecks(t);
-      await t.ensureVisible(find.byKey(const Key('page-evidence-note')));
-      await t.pumpAndSettle();
-      expect(find.byKey(const Key('page-note-required')), findsOneWidget);
+      await guidedReview(t);
       expect(t.takeException(), isNull);
+      await reveal(t, 'ocr-save');
+      expect(saveEnabled(t), isFalse);
     },
   );
 }

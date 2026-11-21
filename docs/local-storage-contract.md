@@ -36,8 +36,8 @@ is implemented; automatic matching and sync remain outside this increment.
   Transactions serialize repository mutations. No UI or plugin writes SQL.
 - SQLite schema version starts at 1. Event payload version, review-policy
   version, and future wire-protocol version are independent integers, initially
-  1. The current implementation uses schema 5 and OCR review policy 2 while
-  preserving manual policy 1 and receipt/event payload 1. A schema migration
+  1. The current implementation uses schema 6 and OCR review policy 3 while
+  preserving historical OCR policy 2, manual policy 1 and receipt/event payload 1. A schema migration
   must not rewrite historical event payloads or identities.
 - Opening a newer, unsupported schema is a visible error, never a reset. A
   failed migration rolls back; keep the original database recoverable and never
@@ -186,7 +186,9 @@ review results. A caller-supplied `reviewed = true` flag is insufficient.
    typed relationships, and exact total reconciliation with shared domain rules.
    Manual entry needs explicit field/row review; it must not claim OCR comparison.
    OCR requires the live, matching image/source context and the full evidence
-   audit, including omissions, removed rows, and fresh page/geometry approvals.
+   audit, including omissions, removed rows, explicit geometry decisions and
+   snapshot-bound receipt approval. Policy 3 permits quick or optional guided
+   review; historical policy 2 requires detailed row/page comparisons.
 4. Bind final confirmation to the exact immutable content, row IDs/order, store
    ID, expected base heads, and evidence decisions. Any relevant edit invalidates
    it. The builder must reject stale/missing evidence independently of UI flags.
@@ -200,9 +202,10 @@ review results. A caller-supplied `reviewed = true` flag is insufficient.
    references, and current revision heads. Reject changed bases with a visible
    stale-review result; never overwrite them or retry against a new base silently.
 
-Persist branch/date/row confirmation results, row comparisons, whole-page check
-results, finding occurrence codes and dispositions/targets, warning codes, and
-audit/policy versions. Store the number of original findings, reviewed findings,
+Persist branch/date/row confirmation results, policy-specific review assertions,
+finding occurrence codes and dispositions/targets, warning codes, and audit/policy
+versions. Policy 3 records receipt confirmation and quick/guided method; it must
+not fabricate policy-2 row comparisons or whole-page check results. Store the number of original findings, reviewed findings,
 omissions/dispositions, and unresolved blockers (zero at save). This is a record
 of a performed review, not evidence from which to rerun OCR or prove accuracy.
 The digest detects accidental inconsistency; it is not a signature or proof of
@@ -211,7 +214,8 @@ human review. Imported events must still pass payload/domain validation.
 Do not persist full OCR text, word IDs/geometry, images/thumbnails, file paths,
 source-image hashes, the original parser draft, or free-text evidence notes.
 Keep only necessary row names and structured results. Explain this retention in
-the save UI; the current required evidence explanations remain temporary.
+the save UI. Issue-specific evidence explanations remain temporary; routine
+guided review has no required note.
 Correction of a stored receipt uses a new reviewed structured snapshot, retains
 prior review history in immutable events, and explicitly records whether a new
 image was compared. Do not pretend the discarded image remains available.

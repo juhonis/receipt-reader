@@ -25,20 +25,20 @@ x64 is the current target. Do not install OCR tools to make a failing test pass.
 6. Set the store identity explicitly: OCR does not select a saved branch. On an
    empty installation the new-branch name field is editable immediately. Enter
    SYNTHETIC TEST STORE (test only). If branches already exist, select the correct
-   one or choose Luo uusi toimipiste and enter the name/location. Then mark
-   Olen tarkistanut myymälän toimipisteen.
-7. Compare BOTH product rows with the source image. Mark each row's
-   Vertasin tämän rivin… checkbox; checking only the store is insufficient.
-   Handle any remaining interpretation findings shown by the app.
-8. Open Tarkista koko kuitin aineisto. Complete its four checks, enter a short
-   required review note, then press Vahvista aineiston tarkistus. Merely ticking
-   the four boxes or closing the dialog does not record approval.
-9. The final Olen tarkistanut päivämäärän… checkbox should now be enabled. Select
-   it, choose Tallenna kuitti, complete the separate date/total confirmations and
-   save. Reopen History and check both rows and 5,00 € total. If the checkbox stays
-   disabled, report the outstanding check text displayed beside it. Editing receipt
-   data after approval intentionally reopens row/page checks. Never approve wrong
-   information merely to finish the test.
+   one or choose Luo uusi toimipiste and enter the name/location. No separate
+   branch-confirmation checkbox is required.
+7. Compare the displayed date, BOTH product rows and total with the source image.
+   Correct any errors and resolve remaining interpretation findings. There are
+   no per-row comparison checkboxes. Matching totals do not prove OCR correctness.
+8. Optionally open Tarkista vaiheittain, complete the four checks and choose
+   Tarkistus valmis. No note is required. The guide does not save or bypass
+   errors; editing afterwards does not force another pass through the guide.
+9. With no unresolved validation problems, Hyväksy ja tallenna should be enabled.
+   Use it to approve the displayed information and save directly. Reopen History
+   and check both rows and 5,00 € total. If saving is disabled, report the
+   highlighted problem text. Try an incorrect total first: saving must be disabled
+   until it is corrected, even after completing the optional guide. Never approve
+   wrong information merely to finish the test.
 10. Import the same image again and verify it still opens correctly. Close a review
    while recognition is running, then retry from a new import. The app should stay
    usable, without a console window or leftover OCR process.

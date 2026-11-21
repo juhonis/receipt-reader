@@ -83,12 +83,6 @@ Future<void> _open(
   await tap(tester, 'ocr-branch');
   await tester.tap(find.text('TEST BRANCH').last);
   await tester.pumpAndSettle();
-  await tester.ensureVisible(
-    find.text('Olen tarkistanut myymälän toimipisteen'),
-  );
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Olen tarkistanut myymälän toimipisteen'));
-  await tester.pumpAndSettle();
   await tap(tester, 'ocr-row-identity-0');
   await tester.tap(
     find
@@ -100,7 +94,6 @@ Future<void> _open(
   await tester.enterText(find.byKey(const Key('row-name-0')), 'Corrected milk');
   FocusManager.instance.primaryFocus?.unfocus();
   await tester.pumpAndSettle();
-  await tap(tester, 'row-image-compared-0');
   await tap(tester, 'review-page-evidence');
   for (final key in [
     'page-header',
@@ -112,21 +105,9 @@ Future<void> _open(
     await tester.pumpAndSettle();
     await tap(tester, key, scroll: false);
   }
-  await tester.ensureVisible(find.byKey(const Key('page-evidence-note')));
-  await tester.pumpAndSettle();
-  await tester.enterText(
-    find.byKey(const Key('page-evidence-note')),
-    'Compared synthetic original',
-  );
-  await tester.pumpAndSettle();
   await tap(tester, 'approve-page-evidence', scroll: false);
-  await tap(tester, 'review-confirmation');
   await tap(tester, 'ocr-save');
-  for (final key in [
-    'ocr-save-identities',
-    'ocr-save-date',
-    'ocr-save-total',
-  ]) {
+  for (final key in ['ocr-save-identities']) {
     await tester.ensureVisible(find.byKey(Key(key)));
     await tester.pumpAndSettle();
     await tap(tester, key, scroll: false);

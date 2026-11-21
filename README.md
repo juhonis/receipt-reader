@@ -13,8 +13,8 @@ SQLite. [Manual saving](docs/manual-saving.md),
 [reviewed manual corrections](docs/manual-corrections.md),
 [fresh-image OCR corrections](docs/ocr-corrections.md) and
 [reviewed receipt deletion](docs/receipt-deletion.md) have synthetic native
-integration checks on both platforms. SQLite schema 5 migrates existing data
-from schemas 1–4 without changing prior event bytes. The
+integration checks on both platforms. SQLite schema 6 migrates existing data
+from schemas 1–5 without changing prior event bytes. The
 [structured backup/recovery core](docs/backup-recovery.md) and
 [password-protected backup UI](docs/password-backups.md) include reviewed recovery
 and retained previous datasets, with native checks on both platforms.
@@ -30,8 +30,10 @@ upgrades, retained history and analytics through encrypted restore and reopen.
 A Windows development ZIP includes OCR assets and a synthetic clean-machine test.
 The user reports successful laptop recognition, review/save and reopening saved
 history after moving the program folder, following the earlier offline test.
-Simpler receipt review is the proposed next milestone; broader OCR evaluation,
-final redistribution/signing and sync remain open.
+[Quick or optional guided review](docs/receipt-review.md) now uses one final
+approval for ordinary receipts, with highlighted validation problems and no
+mandatory checklist note. Broader OCR evaluation, final redistribution/signing
+and sync remain open.
 
 See [the project plan](docs/plan.md) for the next milestone and
 [OCR spike findings](docs/ocr-spike.md) and [approved OCR direction](docs/windows-ocr.md)

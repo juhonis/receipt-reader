@@ -9,6 +9,7 @@ import '../generated/schema_v1.dart' as v1;
 import '../generated/schema_v2.dart' as v2;
 import '../generated/schema_v3.dart' as v3;
 import '../generated/schema_v4.dart' as v4;
+import '../generated/schema_v5.dart' as v5;
 
 /// Only synthetic fixture databases may be passed to these test helpers.
 Map<String, List<Map<String, Object?>>> captureReleasedTables(
@@ -51,7 +52,7 @@ Map<String, List<Map<String, Object?>>> captureReleasedTables(
 /// Source must contain only features representable by the requested version.
 Future<void> copyToReleasedSchema(File source, File target, int version) async {
   if (version < 1 ||
-      version > 4 ||
+      version > 5 ||
       await target.exists() ||
       source.parent.absolute.path != target.parent.absolute.path) {
     throw StateError('unsafe_released_fixture_target');
@@ -67,7 +68,8 @@ Future<void> copyToReleasedSchema(File source, File target, int version) async {
     1 => v1.DatabaseAtV1(NativeDatabase(target, setup: configureSqlite)),
     2 => v2.DatabaseAtV2(NativeDatabase(target, setup: configureSqlite)),
     3 => v3.DatabaseAtV3(NativeDatabase(target, setup: configureSqlite)),
-    _ => v4.DatabaseAtV4(NativeDatabase(target, setup: configureSqlite)),
+    4 => v4.DatabaseAtV4(NativeDatabase(target, setup: configureSqlite)),
+    _ => v5.DatabaseAtV5(NativeDatabase(target, setup: configureSqlite)),
   };
   try {
     await old.customSelect('SELECT 1').get();
@@ -116,17 +118,17 @@ Future<void> copyToReleasedSchema(File source, File target, int version) async {
 }
 
 /// Failure after the last DDL step exercises the enclosing migration transaction.
-class FailingLinksUpgrade extends ReceiptDatabase {
-  FailingLinksUpgrade(super.executor);
+class FailingReviewUpgrade extends ReceiptDatabase {
+  FailingReviewUpgrade(super.executor);
   @override
-  Future<void> upgradeProductLinks(Migrator m) async {
-    await super.upgradeProductLinks(m);
+  Future<void> upgradeReviewPolicy(Migrator m) async {
+    await super.upgradeReviewPolicy(m);
     throw StateError('synthetic migration failure');
   }
 }
 
 Future<void> failReleasedUpgrade(File file) async {
-  final broken = FailingLinksUpgrade(
+  final broken = FailingReviewUpgrade(
     NativeDatabase(file, setup: configureSqlite),
   );
   try {

@@ -11,9 +11,12 @@ class PageEvidenceDialog extends StatefulWidget {
     super.key,
     required this.image,
     required this.snapshot,
+    this.guided = false,
+    this.initiallyCompleted = false,
   });
   final ui.Image image;
   final OcrReviewSnapshot snapshot;
+  final bool guided, initiallyCompleted;
   @override
   State<PageEvidenceDialog> createState() => _PageEvidenceDialogState();
 }
@@ -21,6 +24,14 @@ class PageEvidenceDialog extends StatefulWidget {
 class _PageEvidenceDialogState extends State<PageEvidenceDialog> {
   final _note = TextEditingController();
   bool _header = false, _footer = false, _layout = false, _complete = false;
+  @override
+  void initState() {
+    super.initState();
+    if (widget.guided && widget.initiallyCompleted) {
+      _header = _footer = _layout = _complete = true;
+    }
+  }
+
   @override
   void dispose() {
     _note.dispose();
@@ -34,7 +45,7 @@ class _PageEvidenceDialogState extends State<PageEvidenceDialog> {
     return AlertDialog(
       scrollable: true,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      title: Text(s.pageEvidenceTitle),
+      title: Text(widget.guided ? s.ocrGuidedReview : s.pageEvidenceTitle),
       content: SizedBox(
         width: 760,
         child: Column(
@@ -65,8 +76,8 @@ class _PageEvidenceDialogState extends State<PageEvidenceDialog> {
             Text(widget.snapshot.total),
             for (final row in widget.snapshot.rows)
               Text('${row.input.name}: ${row.input.amount}'),
-            Text(s.pageEvidenceHint),
-            if (!canApprovePageEvidence(widget.snapshot))
+            Text(widget.guided ? s.ocrGuidedHint : s.pageEvidenceHint),
+            if (!widget.guided && !canApprovePageEvidence(widget.snapshot))
               Text(s.pageEvidenceNeedsRows),
             CheckboxListTile(
               key: const Key('page-header'),
@@ -100,18 +111,20 @@ class _PageEvidenceDialogState extends State<PageEvidenceDialog> {
                 _complete = v ?? false;
               }),
             ),
-            TextField(
-              key: const Key('page-evidence-note'),
-              controller: _note,
-              maxLines: 3,
-              decoration: InputDecoration(
-                labelText: s.pageEvidenceNoteRequired,
-                helperText: s.pageEvidenceNoteHelp,
-                helperMaxLines: 3,
+            if (!widget.guided)
+              TextField(
+                key: const Key('page-evidence-note'),
+                controller: _note,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  labelText: s.pageEvidenceNoteRequired,
+                  helperText: s.pageEvidenceNoteHelp,
+                  helperMaxLines: 3,
+                ),
+                onChanged: (_) => setState(() {}),
               ),
-              onChanged: (_) => setState(() {}),
-            ),
-            if (_header &&
+            if (!widget.guided &&
+                _header &&
                 _footer &&
                 _layout &&
                 _complete &&
@@ -131,25 +144,27 @@ class _PageEvidenceDialogState extends State<PageEvidenceDialog> {
         FilledButton(
           key: const Key('approve-page-evidence'),
           onPressed:
-              canApprovePageEvidence(widget.snapshot) &&
+              (widget.guided || canApprovePageEvidence(widget.snapshot)) &&
                   _header &&
                   _footer &&
                   _layout &&
                   _complete &&
-                  _note.text.trim().isNotEmpty
+                  (widget.guided || _note.text.trim().isNotEmpty)
               ? () => Navigator.pop(
                   context,
-                  PageEvidenceApproval(
-                    widget.snapshot,
-                    _note.text.trim(),
-                    headerCompared: _header,
-                    footerCompared: _footer,
-                    layoutCompared: _layout,
-                    imageComplete: _complete,
-                  ),
+                  widget.guided
+                      ? true
+                      : PageEvidenceApproval(
+                          widget.snapshot,
+                          _note.text.trim(),
+                          headerCompared: _header,
+                          footerCompared: _footer,
+                          layoutCompared: _layout,
+                          imageComplete: _complete,
+                        ),
                 )
               : null,
-          child: Text(s.pageEvidenceConfirm),
+          child: Text(widget.guided ? s.ocrGuidedDone : s.pageEvidenceConfirm),
         ),
       ],
     );
@@ -222,7 +237,8 @@ class _GeometryEvidenceDialogState extends State<GeometryEvidenceDialog> {
             Text(s.geometryEvidenceHint),
             if (!widget.allowed) Text(s.geometryNeedsEvidence),
             for (final blocker in widget.blockers)
-              if (blocker != OcrEvidenceBlocker.openFindings)
+              if (blocker != OcrEvidenceBlocker.openFindings &&
+                  blocker != OcrEvidenceBlocker.receiptApproval)
                 Text(evidenceBlockerLabel(s, blocker)),
             TextField(
               key: const Key('geometry-evidence-note'),
@@ -264,6 +280,7 @@ String evidenceBlockerLabel(AppLocalizations s, OcrEvidenceBlocker blocker) =>
       OcrEvidenceBlocker.sourceContext => s.auditSourceContext,
       OcrEvidenceBlocker.rowReview => s.pageEvidenceNeedsRows,
       OcrEvidenceBlocker.pageReview => s.auditPageReview,
+      OcrEvidenceBlocker.receiptApproval => s.ocrAcceptNotice,
       OcrEvidenceBlocker.originalRows => s.auditOriginalRows,
       OcrEvidenceBlocker.originalQuantities => s.auditOriginalQuantities,
       OcrEvidenceBlocker.openFindings => s.auditOpenFindings,

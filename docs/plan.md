@@ -242,6 +242,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Add bounded, temporary JPEG/PNG import and zoomable receipt evidence on Android/Windows; originals remain read-only. See [image import](image-import.md). Android OCR and reviewed saving now use the separate workflows below; Windows OCR is now available through the [app-owned bundle](windows-ocr.md).
 - [x] Connect the experimental bundled Android OCR candidate to temporary image review with explicit layout confirmation and manual boundary fallback. See [Android OCR review](android-ocr-review.md); Windows OCR is now available through the [app-owned bundle](windows-ocr.md); supported issue review and saving are documented below.
 - [ ] Build editable store/date/total/row review with independent validation states.
+- [x] Simplify normal OCR review with highlighted validation problems, one snapshot-bound save approval and an optional four-part guide without routine notes or per-row checkboxes. Preserve historical reviews with policy 3 and schema-6 migration; see [quick/guided review](receipt-review.md).
 - [x] Add a temporary manual review prototype with independent checks, editable signed rows, and explicit no-save messaging. Evaluate the parser against private OCR outputs; [real-layout failures remain open](review-prototype.md).
 - [ ] Support adding, removing, and correcting rows and their relationships.
 - [x] Add immutable row-level OCR evidence with image crops and editable quantities/unit prices with exact independent validation. Individual issue resolution and row relationships remain open.
@@ -302,8 +303,8 @@ Restore must assign a fresh local device identity and preserve imported event id
 [reviewed receipt deletion](receipt-deletion.md) share reviewed persistence on
 Android and Windows. App-bundled recognition now runs on both platforms; broader
 quality and clean-machine release verification remain open. The normal
-app owns one application-support database with schema-5 migration from released
-schemas 1, 2, 3 and 4. Native synthetic save/reopen, filtered-history,
+app owns one application-support database with schema-6 migration from released
+schemas 1, 2, 3, 4 and 5. Native synthetic save/reopen, filtered-history,
 correction/stale-write and deletion/tombstone checks pass on both platforms,
 including Android airplane mode. Deletion retains prior structured snapshots;
 it is not secure erasure and receipt undo is not implemented.
@@ -349,7 +350,7 @@ These totals are separate from comparable product prices and update after encryp
 recovery without changing stored financial data.
 
 [Migration/recovery integrity](migration-recovery.md) now has a shared synthetic
-rehearsal for source schemas 1–4 on native Windows and Android. It checks migration
+rehearsal for source schemas 1–5 on native Windows and Android. It checks migration
 rollback/retry, unchanged existing values/event bytes, corrections and tombstones,
 retired row identities, catalog revisions/aliases and exact spending/price summaries.
 Repeated encrypted recovery, fresh-origin writes, reopen and retained previous
@@ -371,19 +372,16 @@ characters in the destination path and repeated recognition after relocation wer
 not separately reported; this confirms the reported workflow, not every release
 check in the [clean-machine checklist](windows-ocr-clean-machine.md).
 
-The user wants fewer individual confirmations in the final product. The proposed
-next milestone is a simpler review flow: show the original receipt alongside
-editable extracted data, focus attention on unresolved issues, and require one
-explicit final confirmation for straightforward receipts. Keep independent
-validation and explicit resolution of ambiguous dates, unconfirmed branches,
-missing/unclassified rows and mismatched totals. Matching arithmetic alone must
-not establish OCR correctness. Replace repetitive row/page checkboxes and routine
-mandatory notes with a deliberate, snapshot-bound review approval; this requires
-coordinated review-policy, persistence and regression work, not just hiding UI
-controls or automatically setting existing evidence approvals. No review policy
-has changed yet.
+The [simpler receipt review](receipt-review.md) now provides one explicit
+**Hyväksy ja tallenna** action and an optional four-part guide without a note.
+Field errors and summary links direct attention to unresolved problems; editing
+remains available when checks pass. Branch selection/naming needs no extra
+checkbox. The completed guide survives edits, while final approval binds current
+values. Review policy 3 records receipt-level quick/guided approval without
+inventing policy-2 row/page comparisons. Schema 6 preserves earlier records and
+migrates schemas 1–5. Correction identity/removal confirmation remains explicit.
 
-Then finish redistribution-license review and broaden OCR fixtures before release
+Next, finish redistribution-license review and broaden OCR fixtures before release
 or networking work. Keep representative S-kaupat images and OCR exports in ignored
 `localreceipts/`; committed fixtures remain synthetic or explicitly anonymized.
 Complete standalone workflows and tested recovery before bidirectional sync.

@@ -48,17 +48,19 @@ final class OcrReviewRecord extends ReceiptReviewRecord {
     super.rows,
     Iterable<DurableId> originalRows,
     Iterable<OcrDecisionRecord> decisions,
-    this.originalFindingCount,
-  ) : originalRowIds = List.unmodifiable(originalRows),
-      decisions = List.unmodifiable(decisions),
-      super._();
+    this.originalFindingCount, {
+    this.receiptReviewMethod,
+  }) : originalRowIds = List.unmodifiable(originalRows),
+       decisions = List.unmodifiable(decisions),
+       super._();
   final List<DurableId> originalRowIds;
   final List<OcrDecisionRecord> decisions;
   final int originalFindingCount;
+  final ReceiptReviewMethod? receiptReviewMethod;
   @override
   String get source => 'ocr';
   @override
-  int get policyVersion => 2;
+  int get policyVersion => receiptReviewMethod == null ? 2 : 3;
 }
 
 /// Captures a ready live audit plus the exact durable mapping before final review.
@@ -85,6 +87,7 @@ final class OcrReviewChecks {
         adapted.$2,
         adapted.$3,
         audit.snapshot.draft.findings.length,
+        receiptReviewMethod: audit.receiptApproval?.method,
       ),
     );
   }
@@ -146,6 +149,7 @@ ReceiptDocument _buildOcr(
                 adapted.$2,
                 adapted.$3,
                 audit.snapshot.draft.findings.length,
+                receiptReviewMethod: audit.receiptApproval?.method,
               ),
             ) ==
             checks._evidenceJson,
@@ -171,6 +175,7 @@ ReceiptDocument _buildOcr(
       adapted.$2,
       adapted.$3,
       audit.snapshot.draft.findings.length,
+      receiptReviewMethod: audit.receiptApproval?.method,
     ),
   );
 }
@@ -184,7 +189,9 @@ ReceiptDocument _buildOcr(
 ) {
   final current = audit.snapshot;
   _require(
-    audit.ready && current.rows.every((r) => r.compared),
+    audit.ready &&
+        (audit.policy == OcrReviewPolicy.receipt ||
+            current.rows.every((r) => r.compared)),
     'review',
     'evidenceNotReady',
   );
@@ -337,15 +344,21 @@ ReceiptDocument _buildOcr(
 Map<String, Object?> _ocrEvidenceObject(
   List<DurableId> originals,
   List<OcrDecisionRecord> decisions,
-  int originalFindingCount,
-) => {
+  int originalFindingCount, {
+  ReceiptReviewMethod? receiptReviewMethod,
+}) => {
   'parser_version': receiptOcrParserVersion,
   'image_matches_source': true,
-  'rows_compared': true,
-  'page_header_compared': true,
-  'page_footer_compared': true,
-  'page_layout_compared': true,
-  'image_complete': true,
+  if (receiptReviewMethod == null) ...{
+    'rows_compared': true,
+    'page_header_compared': true,
+    'page_footer_compared': true,
+    'page_layout_compared': true,
+    'image_complete': true,
+  } else ...{
+    'receipt_confirmed': true,
+    'review_method': receiptReviewMethod.name,
+  },
   'original_finding_count': originalFindingCount.toString(),
   'reviewed_finding_count': decisions.length.toString(),
   'source_disposition_count': decisions

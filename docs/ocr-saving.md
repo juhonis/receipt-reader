@@ -1,107 +1,85 @@
 # Reviewed OCR saving
 
-Implemented on 2026-11-16. A supported OCR review can now save structured data
-through a separate live-evidence command and the transactional local repository.
-The normal Android image-import/OCR route uses this path. Manual entry keeps its
-own review policy and save API. Windows uses the same review/storage code, but a
-production Windows OCR adapter is still pending; the native Windows smoke uses
-synthetic pixels and seeded OCR geometry.
+Android bundled ML Kit and [Windows bundled Tesseract](windows-ocr.md) share the
+same review and transactional save workflow. The [quick and guided review guide](receipt-review.md)
+describes the current UI and approval policy. Manual entry keeps its own policy.
 
 ## Review and save
 
-1. Choose an existing stored branch or explicitly create a new branch, and
-   confirm it against the receipt. Similar names never merge branch identities.
-2. Compare every current row against the image. Resolve all supported findings,
-   missing/removed source words, quantity links, discount scopes and geometry
-   decisions. Review the complete page, including header, footer and layout.
-3. Choose a product parent or explicitly standalone status for every deposit.
-   Supply an explicit reason for an adjustment. Neither totals nor proximity
-   infer these choices. Unsupported conversions and newly added discounts
-   without a supported posted-discount finding remain blocked.
-4. Confirm the review, then check date and total again in the final save dialog.
-   Current values, evidence/row identities, typed decisions, branch and deposit/
-   adjustment details must still match the approved content. Range, date,
-   relationship, quantity and reconciliation rules are checked independently.
-5. Commit one immutable command. Only a committed save returns to history. An
-   uncertain failure holds the same command for retry; leaving that dialog exits
-   to history so the user can check whether the receipt was committed.
+Choose/name a branch, compare the editable extracted data to the original image,
+and resolve highlighted problems. A straightforward receipt saves with one
+**Hyväksy ja tallenna** action. The optional four-part **Tarkista vaiheittain**
+guide has no required note. Completing the guide does not save or override errors.
+Edits rerun validation without forcing the guide to be repeated.
 
-Changing content or unchecking comparison invalidates approval. Reading a saved
-review document never creates permission to perform another local save. The
-repository rejects using the wrong source API or changing an existing receipt's
-manual/OCR provenance. Saved receipts have separate
-[manual](manual-corrections.md) and [fresh-image OCR](ocr-corrections.md) correction
-paths; stored assertions never authorize a new correction.
+Supported findings, omitted/removed source words, quantity links, discount scopes
+and geometry decisions remain explicit. Deposits require a product parent or
+standalone status; adjustments require a reason. Matching totals alone never
+prove OCR correctness. Unsupported conversions and unsupported new discount rows
+remain blocked. Corrections additionally review saved row matching/removals.
+
+The immutable command binds current values, evidence/row identities, typed
+decisions, branch, expected heads and deposit/adjustment details. Domain rules
+independently validate ranges, dates, quantities, relationships and reconciliation.
+The repository validates again and commits projection and change log atomically.
+An uncertain failure holds the identical command for retry or explicit exit to
+history. Only a committed save is success; history can be reopened to inspect it.
 
 ## Retained metadata and privacy
 
-OCR review policy 2 records source `ocr`, application/parser/timezone-rule
-versions, audit time, expected heads, checked row IDs, original row identities,
-explicit image/row/page checks, finding counts, zero unresolved findings, and
-ordered typed finding decisions with durable row targets. Quantities, posted
-amounts, discount/deposit parents and adjustment reasons belong to the receipt
-snapshot. Corrected retained original rows keep their necessary original names
-in `raw_name`; added rows have no original name. Removed source identities stay
-reserved and cannot be used by another receipt.
+OCR policy 3 records source `ocr`, app/parser/timezone-rule versions, review time,
+expected heads, reviewed row IDs, original row identities, receipt confirmation,
+quick/guided method, finding counts, zero unresolved findings and typed decisions.
+It does not assert individual row comparisons or four separate section checks.
+Policy-2 historical documents retain those original assertions unchanged.
 
-The record retains no image, thumbnail, OCR text dump, word geometry, path,
-source-image digest or free-text evidence explanation. Typed decisions and
-counts cannot reconstruct the original receipt or prove recognition accuracy.
-Their truth is the assertion of the completed live review. Application-owned
-pixels are released on successful save, explicit exit after failure, cancellation
-and route disposal. Imported originals are never modified or deleted. Persistent
-capture caches and crash cleanup still need their own implementation/tests.
+Quantities, posted amounts, discount/deposit parents, product links and adjustment
+reasons belong to the receipt snapshot. Corrected retained source rows keep their
+necessary original name in `raw_name`; added rows have no original name. Removed
+source identities remain reserved to the receipt.
+
+No image, thumbnail, OCR dump, geometry, file path, source-image digest or free-text
+evidence explanation enters the saved document. Structured assertions cannot
+reconstruct the source or prove recognition accuracy. Temporary pixels are released
+when the review closes; imported originals are never modified or deleted.
 
 ## Versions and migration
 
 | Layer | Current support |
 | --- | --- |
-| SQLite schema | 2; transactional migration from released schema 1 |
-| Receipt/event payload | 1; existing manual canonical bytes remain unchanged |
+| SQLite schema | 6; transactional migration from schemas 1–5 |
+| Receipt/event payload | 1; prior canonical bytes unchanged |
 | Manual review policy | 1, source `manual` |
-| OCR review policy | 2, source `ocr`, parser `receipt_parser/0.1.0` |
+| OCR review policies | 2 detailed historical; 3 receipt-level quick/guided |
+| Parser | `receipt_parser/0.1.0` |
 
-Schema 2 rebuilds only the review projection to permit the two source/policy
-pairs. It copies existing projection values and leaves all events, hashes,
-identities and retry records intact. The schema/version update is atomic;
-failed upgrades roll back and can be retried. Unsupported schemas, policies,
-parser versions or malformed metadata fail without resetting data. Future
-parser/policy changes must explicitly support their historical records.
+The review-projection rebuild preserves events, hashes, identities and retries.
+Failed upgrades roll back. Unsupported schemas/policies/parser versions fail
+without resetting data. A policy-2 record does not authorize a new correction;
+new corrections approve fresh live evidence under policy 3.
 
 ## Verification
 
-Domain tests cover canonical bytes, stale/missing reviews, final field checks,
-corrected raw names, explicit deposit/adjustment metadata, typed quantity and
-discount links, removed-row dispositions and invalid serialized metadata.
-Storage tests cover save/reopen/retry, wrong-source rejection, provenance
-changes, removed-source ownership and write rollback. Populated released-schema
-migration tests compare every stored row value before/after and inject a failure
-after DDL to verify rollback of data, schema and version.
+Domain regressions cover both approval methods, absent/stale approval, invalid
+source/date/quantity/totals, mixed policies, canonical roundtrips, malformed
+metadata and unchanged legacy golden bytes. Storage regressions exercise both
+methods through save/reopen/retry and password-protected recovery. Populated
+schema-1–5 migrations compare persisted values and exercise DDL rollback/retry.
+Widget checks cover the exact shipped synthetic receipt, optional guidance,
+editing after guidance, field-error navigation, narrow enlarged text, explicit
+correction identities and immutable uncertain retries.
 
-The current suites contain 26 domain, 68 parser, 50 storage and 87 app tests.
-Widget tests cover review gates, final checks, uncertain retries of the identical
-command, explicit exit and evidence disposal. Native Android (airplane mode) and
-Windows synthetic UI smoke tests save, close/reopen, verify exact structured
-content and inspect history. They do not evaluate new recognition accuracy or
-release packaging. Private receipt files are unused.
+Native recognition/review/save/reopen and migration/recovery tests use guarded
+synthetic storage on Android/Windows. They do not establish broader OCR accuracy.
+Private receipt files are not used. Reproduction commands:
 
 ```powershell
-flutter test integration_test/ocr_save_test.dart -d emulator-5554
-flutter test integration_test/ocr_save_test.dart -d windows
+$ocrFixture = (Resolve-Path test/fixtures/synthetic_receipt.png).Path
+flutter test integration_test/ocr_first_install_test.dart -d windows --dart-define="OCR_SMOKE_FIXTURE=$ocrFixture"
+flutter test integration_test/receipt_ocr_engine_test.dart -d emulator-5554
+flutter test integration_test/migration_recovery_test.dart -d windows
+flutter test integration_test/migration_recovery_test.dart -d emulator-5554
 ```
 
-Restore the normal app entry point after native tests: rebuild Android/Windows,
-reinstall the normal debug APK, and restore the emulator's prior airplane setting.
-See [Windows environment setup](windows-development.md), [local storage](local-storage.md)
-and [manual saving](manual-saving.md) for paths and commands.
-[History filters](history-filters.md), [manual corrections](manual-corrections.md)
-[fresh-image OCR corrections](ocr-corrections.md) and
-[reviewed deletion](receipt-deletion.md), [catalog management and reviewed product
-links](product-catalog.md), and [encrypted recovery](password-backups.md) are
-available separately. Analytics and synchronization remain open.
-
-[The bundled OCR adapters](windows-ocr.md) now have a separate real-engine synthetic
-recognition/review/save/reopen check on Windows and offline Android:
-
-    flutter test integration_test/receipt_ocr_engine_test.dart -d windows
-    flutter test integration_test/receipt_ocr_engine_test.dart -d emulator-5554
+Keep Android native OCR tests offline, restore the previous airplane setting, and
+rebuild/install the normal app entry points after integration testing.

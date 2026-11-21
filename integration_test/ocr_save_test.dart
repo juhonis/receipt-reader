@@ -195,80 +195,40 @@ void runOcrSaveSmoke({
           'SYNTHETIC OCR BRANCH',
         );
         await tester.pumpAndSettle();
-        await tester.ensureVisible(
-          find.text('Olen tarkistanut myymälän toimipisteen'),
+        await visible(tester, 'ocr-save');
+        expect(
+          tester
+              .widget<FilledButton>(find.byKey(const Key('ocr-save')))
+              .onPressed,
+          isNotNull,
         );
-        await tester.tap(find.text('Olen tarkistanut myymälän toimipisteen'));
-        await tester.pumpAndSettle();
-        if (shippedReceipt) {
-          await visible(tester, 'review-confirmation');
-          expect(
-            tester
-                .widget<CheckboxListTile>(
-                  find.byKey(const Key('review-confirmation')),
-                )
-                .onChanged,
-            isNull,
-          );
-          expect(
-            find.byKey(const Key('ocr-blocker-rowReview')),
-            findsOneWidget,
-          );
+        if (!shippedReceipt) {
+          // Exercise optional guided review on the normal native fixture.
+          await tap(tester, 'review-page-evidence');
+          expect(find.byKey(const Key('page-evidence-note')), findsNothing);
+          for (final key in [
+            'page-header',
+            'page-footer',
+            'page-layout',
+            'page-complete-image',
+          ]) {
+            await tester.ensureVisible(find.byKey(Key(key)));
+            await tap(tester, key, scroll: false);
+          }
+          await tap(tester, 'approve-page-evidence', scroll: false);
         }
-        for (var i = 0; i < (shippedReceipt ? 2 : 1); i++) {
-          await tap(tester, 'row-image-compared-$i');
-        }
-        if (shippedReceipt) {
-          await visible(tester, 'review-confirmation');
-          expect(
-            tester
-                .widget<CheckboxListTile>(
-                  find.byKey(const Key('review-confirmation')),
-                )
-                .onChanged,
-            isNull,
-          );
-          expect(
-            find.byKey(const Key('ocr-blocker-pageReview')),
-            findsOneWidget,
-          );
-        }
-        await tap(tester, 'review-page-evidence');
-        for (final key in [
-          'page-header',
-          'page-footer',
-          'page-layout',
-          'page-complete-image',
-        ]) {
-          await tester.ensureVisible(find.byKey(Key(key)));
-          await tap(tester, key, scroll: false);
-        }
-        if (shippedReceipt) {
-          expect(
-            tester
-                .widget<FilledButton>(
-                  find.byKey(const Key('approve-page-evidence')),
-                )
-                .onPressed,
-            isNull,
-          );
-          expect(find.byKey(const Key('page-note-required')), findsOneWidget);
-        }
-        await tester.ensureVisible(find.byKey(const Key('page-evidence-note')));
-        await tester.enterText(
-          find.byKey(const Key('page-evidence-note')),
-          'Compared synthetic source',
-        );
-        await tester.pumpAndSettle();
-        await tap(tester, 'approve-page-evidence', scroll: false);
-        await tap(tester, 'review-confirmation');
         await tap(tester, 'ocr-save');
-        await tap(tester, 'ocr-save-date', scroll: false);
-        await tap(tester, 'ocr-save-total', scroll: false);
-        await tap(tester, 'ocr-confirm-save', scroll: false);
+        expect(find.byKey(const Key('ocr-confirm-save')), findsNothing);
         expect(evidence.isDisposed, isTrue);
         final saved = (await store.repository.history()).single;
         expect(saved.document.review, isA<OcrReviewRecord>());
+        expect(saved.document.review.policyVersion, 3);
+        expect(
+          (saved.document.review as OcrReviewRecord).receiptReviewMethod,
+          shippedReceipt
+              ? ReceiptReviewMethod.quick
+              : ReceiptReviewMethod.guided,
+        );
         expect(saved.document.snapshot.items.first.rawName, 'MILK');
         expect(saved.document.snapshot.items.length, shippedReceipt ? 2 : 1);
         expect(
