@@ -427,5 +427,15 @@
   "spendingEmpty": "Rajauksella ei löytynyt tallennettuja kuitteja.",
   "spendingFailed": "Kulutuksen lataaminen epäonnistui. Yhteenvetoa ei näytetä osittaisena.",
   "spendingLimit": "Rajauksessa on yli 128 toimipistettä. Rajaa toimipiste tai lyhyempi aikaväli. Osittaista yhteenvetoa ei näytetä.",
-  "spendingAll": "Kaikki toimipisteet ja päivät"
+  "spendingAll": "Kaikki toimipisteet ja päivät",
+  "ocrBranchSelectionLabel": "Toimipisteen valinta",
+  "ocrBranchChoiceHelp": "Tekstintunnistus ei valitse myymälän toimipistettä automaattisesti. Valitse aiemmin tallennettu toimipiste tai luo uusi ja kirjoita sen nimi ja sijainti.",
+  "ocrBranchNameHint": "Myymälän nimi ja sijainti",
+  "ocrFinalReviewPending": "Viimeinen vahvistus on vielä lukittu. Tee alla olevat puuttuvat tarkistukset ensin.",
+  "ocrBranchReviewNeeded": "Valitse tai nimeä toimipiste ja merkitse ”Olen tarkistanut myymälän toimipisteen”.",
+  "ocrRowsReviewNeeded": "Vertaa jokainen rivi kuittikuvaan ja merkitse rivin ”Vertasin tämän rivin…” -valinta. Korjaa myös puutteelliset rivitiedot.",
+  "ocrPageReviewNeeded": "Avaa ”Tarkista koko kuitin aineisto”. Tee dialogin neljä tarkistusta, kirjoita pakollinen tarkistusmuistiinpano ja paina ”Vahvista aineiston tarkistus”. Tietojen muuttaminen avaa tämän tarkistuksen uudelleen.",
+  "pageEvidenceNoteRequired": "Tarkistusmuistiinpano (pakollinen)",
+  "pageEvidenceNoteHelp": "Kirjoita lyhyesti, mitä vertasit alkuperäisestä kuittikuvasta.",
+  "pageEvidenceNoteMissing": "Kirjoita vielä tarkistusmuistiinpano ja paina sitten ”Vahvista aineiston tarkistus”."
 }

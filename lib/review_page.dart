@@ -151,7 +151,12 @@ class _ReviewPageState extends State<ReviewPage> {
     setState(() => _branchLoadFailed = false);
     try {
       final branches = await widget.store!.branches();
-      if (mounted) setState(() => _branches = branches);
+      if (mounted) {
+        setState(() {
+          _branches = branches;
+          if (branches.isEmpty && _branchChoice == null) _branchChoice = 'new';
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _branchLoadFailed = true);
     }
@@ -1252,6 +1257,7 @@ class _ReviewPageState extends State<ReviewPage> {
                       ],
                       const SizedBox(height: 16),
                       if (widget.store != null) ...[
+                        Text(s.ocrBranchChoiceHelp),
                         if (_branches == null && !_branchLoadFailed)
                           const LinearProgressIndicator(),
                         if (_branchLoadFailed) ...[
@@ -1268,7 +1274,7 @@ class _ReviewPageState extends State<ReviewPage> {
                             isExpanded: true,
                             itemHeight: null,
                             decoration: InputDecoration(
-                              labelText: s.branchLabel,
+                              labelText: s.ocrBranchSelectionLabel,
                             ),
                             items: [
                               for (final branch in _branches!)
@@ -1303,13 +1309,17 @@ class _ReviewPageState extends State<ReviewPage> {
                             (widget.store == null || _branchChoice == 'new'),
                         key: const Key('branch'),
                         controller: _branch,
-                        decoration: InputDecoration(labelText: s.branchLabel),
+                        decoration: InputDecoration(
+                          labelText: s.branchLabel,
+                          hintText: s.ocrBranchNameHint,
+                        ),
                         onChanged: (_) {
                           _branchConfirmed = false;
                           _edit();
                         },
                       ),
                       CheckboxListTile(
+                        key: const Key('ocr-branch-confirmation'),
                         contentPadding: EdgeInsets.zero,
                         title: Text(s.branchConfirmation),
                         value: _branchConfirmed,
@@ -1687,8 +1697,27 @@ class _ReviewPageState extends State<ReviewPage> {
                         Text(s.discountSignWarning),
                       if (audit != null) ...[
                         Text(s.evidenceAuditTitle),
+                        if (!audit.ready) ...[
+                          Text(
+                            s.ocrFinalReviewPending,
+                            key: const Key('ocr-final-review-pending'),
+                          ),
+                          if (_branch.text.trim().isEmpty ||
+                              !_branchConfirmed ||
+                              (widget.store != null && _selectedBranch == null))
+                            Text(
+                              s.ocrBranchReviewNeeded,
+                              key: const Key('ocr-branch-review-needed'),
+                            ),
+                        ],
                         for (final blocker in audit.blockers)
-                          Text(evidenceBlockerLabel(s, blocker)),
+                          Text(switch (blocker) {
+                            OcrEvidenceBlocker.rowReview =>
+                              s.ocrRowsReviewNeeded,
+                            OcrEvidenceBlocker.pageReview =>
+                              s.ocrPageReviewNeeded,
+                            _ => evidenceBlockerLabel(s, blocker),
+                          }, key: ValueKey('ocr-blocker-${blocker.name}')),
                         if (_hasLayoutContext)
                           OutlinedButton(
                             key: const Key('review-page-evidence'),

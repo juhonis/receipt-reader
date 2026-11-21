@@ -141,3 +141,41 @@ review, signing and clean-machine first launch remain release gates. Local
 relocation does not establish clean-install success. The user has a second Windows
 PC available; use the [clean-machine instructions](windows-ocr-clean-machine.md)
 to obtain that evidence.
+
+## Laptop feedback and review guidance (November 21, 2026)
+
+The user reported successful offline startup on the second Windows laptop and
+correct recognition of the included sample's date, items and total. Saving was
+blocked at the disabled final review checkbox, even after manually naming a new
+branch. The exact transferred ZIP hash, remaining audit state and complete dialog
+interaction were not reported, so this is partial user evidence rather than proof
+of a completed save workflow or a diagnosed parser failure.
+
+The exact shipped PNG now has a dedicated native Windows regression. Its pinned
+source hash is checked, the real worker recognizes it, the proposed boundaries are
+used, a first branch is named, both rows are compared and the whole-receipt dialog
+is explicitly approved with a note. The receipt saves as 5,00 € with two rows and
+survives reopen. No parser findings remain on the reproduced input.
+
+The UI now opens first-branch naming on an empty installation, explains explicit
+branch selection, lists outstanding row/page checks beside the disabled final
+confirmation, and labels the whole-receipt note as required. Checking the four
+dialog boxes without a note or without pressing its confirmation button does not
+record approval. Later edits still invalidate prior checks. No review requirement
+or persistence policy was weakened.
+
+Run the exact-fixture Windows regression from the repository root:
+
+    $ocrFixture = (Resolve-Path test/fixtures/synthetic_receipt.png).Path
+    flutter test integration_test/ocr_first_install_test.dart -d windows --dart-define="OCR_SMOKE_FIXTURE=$ocrFixture"
+
+A committed geometry fixture from this synthetic PNG supports deterministic widget
+checks for first-branch entry, successful saving, required notes, reopened checks
+after editing, and narrow enlarged-text layouts. Private receipts are not used.
+The updated ZIP still needs a laptop save/reopen retest; relocation/cancellation
+and complete clean-machine release acceptance remain unconfirmed by that report.
+
+Verification for this guidance update: all 145 app tests and analysis pass, the
+exact-shipped-image Windows recognition/review/save/reopen regression passes, and
+the Android real-engine save/reopen regression passes in airplane mode. The ZIP
+passes the existing dependency, checksum, malformed-input and relocation checks.

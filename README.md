@@ -28,7 +28,8 @@ calendar month with inclusive branch/date filters and explicit coverage notices.
 [Migration/recovery rehearsals](docs/migration-recovery.md) verify supported-schema
 upgrades, retained history and analytics through encrypted restore and reopen.
 A Windows development ZIP includes OCR assets and a synthetic clean-machine test.
-Fresh-PC verification, final redistribution/signing and sync remain open.
+Offline laptop startup/recognition is user-reported; the clarified review/save flow
+still needs its laptop retest. Final redistribution/signing and sync remain open.
 
 See [the project plan](docs/plan.md) for the next milestone and
 [OCR spike findings](docs/ocr-spike.md) and [approved OCR direction](docs/windows-ocr.md)

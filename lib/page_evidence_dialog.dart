@@ -104,9 +104,22 @@ class _PageEvidenceDialogState extends State<PageEvidenceDialog> {
               key: const Key('page-evidence-note'),
               controller: _note,
               maxLines: 3,
-              decoration: InputDecoration(labelText: s.findingNote),
+              decoration: InputDecoration(
+                labelText: s.pageEvidenceNoteRequired,
+                helperText: s.pageEvidenceNoteHelp,
+                helperMaxLines: 3,
+              ),
               onChanged: (_) => setState(() {}),
             ),
+            if (_header &&
+                _footer &&
+                _layout &&
+                _complete &&
+                _note.text.trim().isEmpty)
+              Text(
+                s.pageEvidenceNoteMissing,
+                key: const Key('page-note-required'),
+              ),
           ],
         ),
       ),

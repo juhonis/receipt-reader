@@ -362,10 +362,16 @@ on Windows and offline Android. The development ZIP includes notices, a syntheti
 receipt and a relocation/dependency rehearsal. It is not a signed or clean-machine-
 certified release.
 
-Next, run the [clean-machine checklist](windows-ocr-clean-machine.md) on the user's
-second Windows PC before marking first-install standalone Windows OCR complete.
-Resolve any dependency/startup failures, then finish redistribution-license review
-and broaden OCR fixtures before release or networking work. Keep representative
+The November 21 laptop report confirms offline startup and recognition of the
+synthetic sample's date, items and total, but final review/saving was blocked.
+The updated UI explains outstanding checks and required whole-receipt approval;
+a native exact-sample regression now saves and reopens both rows successfully.
+
+Next, retest the updated [clean-machine checklist](windows-ocr-clean-machine.md)
+on the laptop, especially manual branch selection, row comparisons and explicit
+whole-receipt approval followed by save/reopen. Keep first-install acceptance open
+until that succeeds. Then finish redistribution-license review and broaden OCR
+fixtures before release or networking work. Keep representative
 S-kaupat images and OCR exports in ignored `localreceipts/`; committed fixtures
 remain synthetic or explicitly anonymized. Complete standalone workflows and
 tested recovery before bidirectional sync. Broader parser fixtures, clean-install

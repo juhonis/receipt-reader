@@ -1,0 +1,80 @@
+{
+  "fixture": "synthetic_receipt.png",
+  "engine": "tesseract 5.5.1, fin+eng fast, PSM 6",
+  "width": 1000,
+  "height": 1000,
+  "baselineSlope": 0,
+  "words": [
+    {
+      "text": "SYNTHETIC",
+      "left": 47,
+      "top": 46,
+      "right": 213,
+      "bottom": 68
+    },
+    {
+      "text": "TEST",
+      "left": 224,
+      "top": 46,
+      "right": 299,
+      "bottom": 68
+    },
+    {
+      "text": "STORE",
+      "left": 311,
+      "top": 46,
+      "right": 411,
+      "bottom": 68
+    },
+    {
+      "text": "18.11.2026",
+      "left": 48,
+      "top": 106,
+      "right": 195,
+      "bottom": 128
+    },
+    {
+      "text": "MILK",
+      "left": 47,
+      "top": 246,
+      "right": 114,
+      "bottom": 268
+    },
+    {
+      "text": "2,00",
+      "left": 806,
+      "top": 246,
+      "right": 862,
+      "bottom": 272
+    },
+    {
+      "text": "BREAD",
+      "left": 48,
+      "top": 326,
+      "right": 146,
+      "bottom": 348
+    },
+    {
+      "text": "3,00",
+      "left": 807,
+      "top": 326,
+      "right": 862,
+      "bottom": 352
+    },
+    {
+      "text": "YHTEENSÄ",
+      "left": 46,
+      "top": 601,
+      "right": 207,
+      "bottom": 628
+    },
+    {
+      "text": "5,00",
+      "left": 807,
+      "top": 606,
+      "right": 862,
+      "bottom": 632
+    }
+  ],
+  "sourceSha256": "0ee07e31e070106269e1f27439a8a2a90c7417491bbd21f9797436460e7194e3"
+}

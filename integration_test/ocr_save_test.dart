@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:crypto/crypto.dart';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -69,10 +71,15 @@ Future<void> tap(WidgetTester tester, String key, {bool scroll = true}) async {
 
 void main() => runOcrSaveSmoke();
 
-void runOcrSaveSmoke({bool recognizeWithEngine = false}) {
+void runOcrSaveSmoke({
+  bool recognizeWithEngine = false,
+  bool shippedReceipt = false,
+}) {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   testWidgets(
-    recognizeWithEngine
+    shippedReceipt
+        ? 'shipped receipt on an empty installation reaches reviewed saving'
+        : recognizeWithEngine
         ? 'native recognition, reviewed save and reopen'
         : 'reviewed synthetic OCR saves offline and survives native reopen',
     (tester) async {
@@ -122,7 +129,17 @@ void runOcrSaveSmoke({bool recognizeWithEngine = false}) {
         picture.dispose();
         final data = await image.toByteData(format: ui.ImageByteFormat.png);
         image.dispose();
-        evidence = await ReceiptEvidence.decode(data!.buffer.asUint8List());
+        const fixturePath = String.fromEnvironment('OCR_SMOKE_FIXTURE');
+        final bytes = shippedReceipt
+            ? await File(fixturePath).readAsBytes()
+            : data!.buffer.asUint8List();
+        if (shippedReceipt) {
+          expect(
+            sha256.convert(bytes).toString(),
+            '0ee07e31e070106269e1f27439a8a2a90c7417491bbd21f9797436460e7194e3',
+          );
+        }
+        evidence = await ReceiptEvidence.decode(bytes);
         final draft = recognizeWithEngine
             ? null
             : parseReceipt(
@@ -150,24 +167,28 @@ void runOcrSaveSmoke({bool recognizeWithEngine = false}) {
           ) {
             await tester.pump(const Duration(milliseconds: 50));
           }
-          await visible(tester, 'ocr-layout-item-top');
-          tester
-              .widget<Slider>(find.byKey(const Key('ocr-layout-item-top')))
-              .onChanged!(.08);
-          await tester.pumpAndSettle();
-          await visible(tester, 'ocr-layout-price-left');
-          tester
-              .widget<Slider>(find.byKey(const Key('ocr-layout-price-left')))
-              .onChanged!(.7);
-          await tester.pumpAndSettle();
+          if (!shippedReceipt) {
+            await visible(tester, 'ocr-layout-item-top');
+            tester
+                .widget<Slider>(find.byKey(const Key('ocr-layout-item-top')))
+                .onChanged!(.08);
+            await tester.pumpAndSettle();
+            await visible(tester, 'ocr-layout-price-left');
+            tester
+                .widget<Slider>(find.byKey(const Key('ocr-layout-price-left')))
+                .onChanged!(.7);
+            await tester.pumpAndSettle();
+          }
           await tap(tester, 'ocr-use-layout');
           await visible(tester, 'ocr-draft-blocked');
           expect(find.byKey(const Key('ocr-draft-blocked')), findsOneWidget);
           expect(await initial.repository.history(), isEmpty);
         }
-        await tap(tester, 'ocr-branch');
-        await tester.tap(find.text('Luo uusi toimipiste').last);
-        await tester.pumpAndSettle();
+        if (!shippedReceipt) {
+          await tap(tester, 'ocr-branch');
+          await tester.tap(find.text('Luo uusi toimipiste').last);
+          await tester.pumpAndSettle();
+        }
         await visible(tester, 'branch');
         await tester.enterText(
           find.byKey(const Key('branch')),
@@ -179,7 +200,39 @@ void runOcrSaveSmoke({bool recognizeWithEngine = false}) {
         );
         await tester.tap(find.text('Olen tarkistanut myymälän toimipisteen'));
         await tester.pumpAndSettle();
-        await tap(tester, 'row-image-compared-0');
+        if (shippedReceipt) {
+          await visible(tester, 'review-confirmation');
+          expect(
+            tester
+                .widget<CheckboxListTile>(
+                  find.byKey(const Key('review-confirmation')),
+                )
+                .onChanged,
+            isNull,
+          );
+          expect(
+            find.byKey(const Key('ocr-blocker-rowReview')),
+            findsOneWidget,
+          );
+        }
+        for (var i = 0; i < (shippedReceipt ? 2 : 1); i++) {
+          await tap(tester, 'row-image-compared-$i');
+        }
+        if (shippedReceipt) {
+          await visible(tester, 'review-confirmation');
+          expect(
+            tester
+                .widget<CheckboxListTile>(
+                  find.byKey(const Key('review-confirmation')),
+                )
+                .onChanged,
+            isNull,
+          );
+          expect(
+            find.byKey(const Key('ocr-blocker-pageReview')),
+            findsOneWidget,
+          );
+        }
         await tap(tester, 'review-page-evidence');
         for (final key in [
           'page-header',
@@ -189,6 +242,17 @@ void runOcrSaveSmoke({bool recognizeWithEngine = false}) {
         ]) {
           await tester.ensureVisible(find.byKey(Key(key)));
           await tap(tester, key, scroll: false);
+        }
+        if (shippedReceipt) {
+          expect(
+            tester
+                .widget<FilledButton>(
+                  find.byKey(const Key('approve-page-evidence')),
+                )
+                .onPressed,
+            isNull,
+          );
+          expect(find.byKey(const Key('page-note-required')), findsOneWidget);
         }
         await tester.ensureVisible(find.byKey(const Key('page-evidence-note')));
         await tester.enterText(
@@ -205,7 +269,18 @@ void runOcrSaveSmoke({bool recognizeWithEngine = false}) {
         expect(evidence.isDisposed, isTrue);
         final saved = (await store.repository.history()).single;
         expect(saved.document.review, isA<OcrReviewRecord>());
-        expect(saved.document.snapshot.items.single.rawName, 'MILK');
+        expect(saved.document.snapshot.items.first.rawName, 'MILK');
+        expect(saved.document.snapshot.items.length, shippedReceipt ? 2 : 1);
+        expect(
+          saved.document.snapshot.totalCents,
+          BigInt.from(shippedReceipt ? 500 : 200),
+        );
+        if (shippedReceipt) {
+          expect(
+            sha256.convert(await File(fixturePath).readAsBytes()).toString(),
+            sha256.convert(bytes).toString(),
+          );
+        }
         await tester.pumpWidget(const SizedBox());
         await store.close();
         store = null;
@@ -225,7 +300,10 @@ void runOcrSaveSmoke({bool recognizeWithEngine = false}) {
         await tester.tap(find.text('SYNTHETIC OCR BRANCH'));
         await tester.pumpAndSettle();
         expect(find.text('MILK'), findsOneWidget);
-        expect(find.text('16.11.2026'), findsOneWidget);
+        expect(
+          find.text(shippedReceipt ? '18.11.2026' : '16.11.2026'),
+          findsOneWidget,
+        );
         expect(tester.takeException(), isNull);
       } finally {
         await tester.pumpWidget(const SizedBox());
@@ -238,5 +316,6 @@ void runOcrSaveSmoke({bool recognizeWithEngine = false}) {
         await directory.delete(recursive: true);
       }
     },
+    skip: shippedReceipt && !Platform.isWindows,
   );
 }
