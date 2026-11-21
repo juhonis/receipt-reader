@@ -451,5 +451,11 @@
   "ocrRowFieldsInvalid": "Tarkista rivin nimi, summa, määrä ja yksikköhinta.",
   "ocrQuickDraftNotice": "Tekstintunnistuksen ehdotus. Korjaa kuvan perusteella havaitsemasi virheet ja sovelluksen merkitsemät puutteet ennen hyväksymistä.",
   "ocrCheckTotal": "Tarkista loppusumma ja tuoterivien summat",
-  "ocrChooseDeposit": "Valitse pantin tuote tai merkitse pantti erilliseksi."
+  "ocrChooseDeposit": "Valitse pantin tuote tai merkitse pantti erilliseksi.",
+  "softwareInfoTitle": "Tietoja ja lisenssit",
+  "softwareInfoEngines": "Kuitin teksti tunnistetaan tällä laitteella. Android käyttää Google ML Kit -tekstintunnistusta. Windows käyttää Tesseractia sekä suomen ja englannin kielimalleja.",
+  "softwareInfoPrivacy": "Kuittikuvaa tai tunnistettua tekstimassaa ei lähetetä pilveen. Googlen ML Kit sisältää diagnostiikka- ja käyttömittausosia. Nykyinen Android-julkaisuversio ei pyydä verkkolupaa.",
+  "softwareInfoTerms": "Google SDK:n ehdot ja tietojen käsittelyn kuvaus (osoitteet voi kopioida):",
+  "softwareInfoLicenses": "Näytä ohjelmistolisenssit",
+  "softwareInfoLicenseScope": "Lisenssitekstit ovat luettavissa ilman verkkoyhteyttä. Luettelo sisältää molempien alustojen sekä toimittajien laajempien komponenttikokoelmien ilmoituksia. Kaikki luettelon osat eivät ole käytössä tässä versiossa."
 }

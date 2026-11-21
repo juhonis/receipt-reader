@@ -47,6 +47,10 @@ x64 is the current target. Do not install OCR tools to make a failing test pass.
    Receipt databases live in Windows application-support storage and therefore do
    not move with this ZIP. Moving/deleting the extracted program is not a backup or
    deletion of saved receipt history.
+12. While still offline, open the home-screen information action, Tietoja ja
+   lisenssit, then Näytä ohjelmistolisenssit. The list and a selected license
+   should open without downloading anything. The ZIP also includes readable
+   THIRD-PARTY-NOTICES.txt and the exact THIRD-PARTY-COMPONENTS.json inventory.
 
 Please report:
 

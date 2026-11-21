@@ -225,6 +225,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Evaluate manually guided Windows preprocessing and a relocatable Tesseract prototype against the private baseline. See [findings and limitations](ocr-spike.md); clean Windows installation and distribution licensing remain open.
 - [x] Record the approved MVP engines (bundled Android ML Kit and app-owned Windows Tesseract), normalized geometry, pinned sources/models and Windows development ZIP. See [Windows OCR](windows-ocr.md).
 - [ ] Complete broader representative OCR evaluation, final redistribution-license review and release acceptance.
+- [x] Audit the pinned dependency closure, retain complete native/SDK license notices, expose an offline information/license screen and validate the built notice assets. See [dependency audit](dependency-licenses.md); application licensing, builder entitlement and public distribution acceptance remain owner decisions.
 - [ ] Verify first-run offline OCR on fresh Android and Windows installs, including Finnish characters and bounding boxes.
 - [ ] Spike pinned HTTPS and secure credential storage on Android and Windows.
 - [x] Define fixed-point arithmetic, financial row semantics, and printed date/time representation with explicit Helsinki DST ambiguity. See [parser conventions](parser-foundations.md); persistence range checks and review resolution remain open.
@@ -381,8 +382,13 @@ values. Review policy 3 records receipt-level quick/guided approval without
 inventing policy-2 row/page comparisons. Schema 6 preserves earlier records and
 migrates schemas 1–5. Correction identity/removal confirmation remains explicit.
 
-Next, finish redistribution-license review and broaden OCR fixtures before release
-or networking work. Keep representative S-kaupat images and OCR exports in ignored
+The [dependency audit](dependency-licenses.md) now records exact pins and notice
+hashes, preserves full native/SDK texts, provides an offline license screen and
+checks actual built notice assets. App licensing/end-user terms, builder licensing
+entitlement, signing and public distribution acceptance remain separate decisions.
+
+Next, broaden OCR fixtures and resolve representative parsing failures before
+release or networking work. Keep representative S-kaupat images and OCR exports in ignored
 `localreceipts/`; committed fixtures remain synthetic or explicitly anonymized.
 Complete standalone workflows and tested recovery before bidirectional sync.
 Broader parser fixtures, remaining clean-machine checks, privacy/permission audits,

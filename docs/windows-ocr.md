@@ -6,6 +6,10 @@ distribute the Windows MVP as a complete ZIP. Recognition adapters differ, while
 geometry parsing, financial validation, review, catalog links and saving stay shared.
 
 This is the implementation direction for the MVP, not an accuracy certification.
+The November 21 [dependency audit](dependency-licenses.md) adds complete readable
+notices and artifact checks. Owner licensing/distribution decisions and signing
+remain open; the following older verification sections retain their original dates.
+
 The [initial spike](ocr-spike.md) used three private photos from one branch and
 found missed/corrupted Windows amounts. The Android shared-engine experiment did
 not demonstrate a reason to replace ML Kit. A broader representative corpus is

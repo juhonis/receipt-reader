@@ -348,3 +348,24 @@ synthetic_receipt.png and [clean-machine checklist](windows-ocr-clean-machine.md
 are for the second Windows PC. Keep it offline from before first launch; do not
 install development dependencies to mask a missing runtime. Restore normal app
 entry points and the prior emulator airplane setting after native tests.
+
+## Dependency notice verification
+
+The committed supplemental notices are included automatically by Flutter builds.
+The ZIP packager checks the reviewed input hashes, the full generated notice
+asset and Windows SQLite provenance, then includes readable notices and the
+component inventory. No Android dependency resolution is needed for an unchanged
+Windows-only checkout. After changing dependencies, SDK or Android build inputs,
+follow the [audit/update procedure](dependency-licenses.md#reproduce-and-update)
+before packaging. Keep upstream notice text formatting; do not hand-edit generated
+notice files to make a verification failure disappear.
+
+The native license-page check is independent of receipt storage:
+
+    flutter test integration_test/software_licenses_test.dart -d windows
+    flutter test integration_test/software_licenses_test.dart -d emulator-5554
+
+Run Android offline, restore its previous airplane setting, and rebuild/install
+normal app entry points afterward. The test binding disables automatic license
+registration, so this test registers the real packaged asset explicitly; ordinary
+app startup uses Flutter's standard ServicesBinding registry.

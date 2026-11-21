@@ -32,7 +32,9 @@ The user reports successful laptop recognition, review/save and reopening saved
 history after moving the program folder, following the earlier offline test.
 [Quick or optional guided review](docs/receipt-review.md) now uses one final
 approval for ordinary receipts, with highlighted validation problems and no
-mandatory checklist note. Broader OCR evaluation, final redistribution/signing
+mandatory checklist note. The [dependency notice audit](docs/dependency-licenses.md)
+adds an offline license screen, full SDK/native notices and artifact validation.
+Broader OCR evaluation, application licensing/distribution decisions, signing
 and sync remain open.
 
 See [the project plan](docs/plan.md) for the next milestone and

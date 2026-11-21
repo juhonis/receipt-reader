@@ -4,3 +4,6 @@
 # Windows command scripts require native line endings.
 *.bat text eol=crlf
 *.cmd text eol=crlf
+
+# Retain upstream notice formatting, including source license trailing spaces.
+third_party/NOTICES.txt text eol=lf -whitespace

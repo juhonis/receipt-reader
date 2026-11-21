@@ -19,6 +19,7 @@ import 'backup_page.dart';
 import 'backup_service.dart';
 import 'spending_service.dart';
 import 'spending_page.dart';
+import 'software_info_page.dart';
 
 class ReceiptReaderApp extends StatelessWidget {
   const ReceiptReaderApp({
@@ -163,7 +164,19 @@ class _HomePageState extends State<_HomePage> {
         widget.store is BackupService &&
         !(widget.store! as BackupService).datasetAvailable;
     return Scaffold(
-      appBar: AppBar(title: Text(strings.appTitle)),
+      appBar: AppBar(
+        title: Text(strings.appTitle),
+        actions: [
+          IconButton(
+            key: const Key('open-software-info'),
+            tooltip: strings.softwareInfoTitle,
+            icon: const Icon(Icons.info_outline),
+            onPressed: () => Navigator.of(context).push<void>(
+              MaterialPageRoute(builder: (_) => const SoftwareInfoPage()),
+            ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(

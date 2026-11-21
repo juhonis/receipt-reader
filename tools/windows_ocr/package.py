@@ -6,9 +6,13 @@ import re
 import shutil
 import struct
 import subprocess
+import sys
 import tempfile
 import zipfile
 from setup import ROOT, LOCK, digest
+
+sys.path.insert(0, str(ROOT / 'tools/licenses'))
+import audit as license_audit
 
 SYSTEM_DLLS = set('kernel32.dll ntdll.dll user32.dll gdi32.dll advapi32.dll shell32.dll ole32.dll oleaut32.dll ws2_32.dll combase.dll shlwapi.dll version.dll winmm.dll bcrypt.dll crypt32.dll imm32.dll msimg32.dll dwmapi.dll uxtheme.dll propsys.dll rpcrt4.dll setupapi.dll dxgi.dll d3d11.dll d3d9.dll dcomp.dll dwrite.dll d2d1.dll usp10.dll opengl32.dll winhttp.dll iphlpapi.dll secur32.dll netapi32.dll userenv.dll dbghelp.dll wintrust.dll psapi.dll oleacc.dll uiautomationcore.dll'.split())
 
@@ -106,13 +110,19 @@ def main():
         if not (stage / 'vcruntime140.dll').is_file():
             raise RuntimeError('Visual C++ redistributable runtime missing')
         imports = audit_imports(stage, install)
+        license_text = license_audit.verify_windows(stage)
+        (stage / 'THIRD-PARTY-NOTICES.txt').write_text(license_text, encoding='utf-8')
+        shutil.copy2(ROOT / 'third_party/dependencies.json', stage / 'THIRD-PARTY-COMPONENTS.json')
         shutil.copy2(ROOT / 'test/fixtures/synthetic_receipt.png', stage / 'synthetic_receipt.png')
         shutil.copy2(ROOT / 'docs/windows-ocr-clean-machine.md', stage / 'CLEAN-MACHINE-TEST.txt')
-        (stage / 'READ-ME.txt').write_text('Development test build, not a public release.\nExtract the entire folder, then run receipt_reader.exe.\nOCR works locally; no Tesseract/Python installation is required.\nReceipt data is stored in Windows application-support storage, not in this folder.\nKeep independent encrypted backups before replacing or deleting application data.\nOCR component notices: ocr/notices. Flutter dependencies: data/flutter_assets/NOTICES.Z.\nClean-machine and final redistribution/license review remain release gates.\n', encoding='utf-8')
+        (stage / 'READ-ME.txt').write_text('Development test build, not a public release.\nExtract the entire folder, then run receipt_reader.exe.\nOCR works locally; no Tesseract/Python installation is required.\nReceipt data is stored in Windows application-support storage, not in this folder.\nKeep independent encrypted backups before replacing or deleting application data.\nSoftware notices: THIRD-PARTY-NOTICES.txt and the app information/license screen.\nExact component inventory: THIRD-PARTY-COMPONENTS.json. Original OCR notices: ocr/notices.\nSigning and public distribution acceptance remain release gates.\n', encoding='utf-8')
         info = {'developmentBuild': True,
             'commit': subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
             'workingTreeDirty': bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True).strip()),
-            'ocr': verify_bundle(stage / 'ocr'), 'visualCppRuntime': redist.name, 'nativeImports': imports}
+            'ocr': verify_bundle(stage / 'ocr'), 'visualCppRuntime': redist.name,
+            'visualCppRuntimeFiles': {p.name: digest(p) for p in sorted(crt.glob('*.dll'))},
+            'nativeImports': imports, 'nativeNoticesVerified': True,
+            'thirdPartyInventorySha256': digest(stage / 'THIRD-PARTY-COMPONENTS.json')}
         (stage / 'BUILD-INFO.json').write_text(json.dumps(info,indent=2)+'\n',encoding='utf-8')
         artifact = distribution / 'receipt-reader-windows-x64-dev.zip'
         with zipfile.ZipFile(artifact,'w',compression=zipfile.ZIP_DEFLATED) as archive:
@@ -125,6 +135,7 @@ def main():
         verify_bundle(shipped / 'ocr')
         evidence = relocation(shipped / 'ocr')
         evidence.update({'zipSha256': digest(artifact), 'zipBytes': artifact.stat().st_size,
+            'nativeNoticesVerified': True, 'thirdPartyInventorySha256': info['thirdPartyInventorySha256'],
             'uncompressedBytes': sum(p.stat().st_size for p in stage.rglob('*') if p.is_file()),
             'nativeImportAudit': True, 'commit': info['commit'], 'workingTreeDirty': info['workingTreeDirty']})
         (distribution / 'windows-ocr-evidence.json').write_text(json.dumps(evidence,indent=2)+'\n',encoding='utf-8')
