@@ -362,18 +362,30 @@ on Windows and offline Android. The development ZIP includes notices, a syntheti
 receipt and a relocation/dependency rehearsal. It is not a signed or clean-machine-
 certified release.
 
-The November 21 laptop report confirms offline startup and recognition of the
-synthetic sample's date, items and total, but final review/saving was blocked.
-The updated UI explains outstanding checks and required whole-receipt approval;
-a native exact-sample regression now saves and reopens both rows successfully.
+The initial November 21 laptop test confirmed offline startup and recognition
+of the synthetic sample but hit a blocked final review checkbox. After the review
+guidance update, the user reports correct information, successful saving, and
+preserved receipt history after closing the app, moving the program folder and
+opening it again. The exact retested build ID/hash, cancellation/retry, special
+characters in the destination path and repeated recognition after relocation were
+not separately reported; this confirms the reported workflow, not every release
+check in the [clean-machine checklist](windows-ocr-clean-machine.md).
 
-Next, retest the updated [clean-machine checklist](windows-ocr-clean-machine.md)
-on the laptop, especially manual branch selection, row comparisons and explicit
-whole-receipt approval followed by save/reopen. Keep first-install acceptance open
-until that succeeds. Then finish redistribution-license review and broaden OCR
-fixtures before release or networking work. Keep representative
-S-kaupat images and OCR exports in ignored `localreceipts/`; committed fixtures
-remain synthetic or explicitly anonymized. Complete standalone workflows and
-tested recovery before bidirectional sync. Broader parser fixtures, clean-install
-OCR checks, privacy/permission audits, manufacturer transfer tests and native
-Windows picker verification remain required.
+The user wants fewer individual confirmations in the final product. The proposed
+next milestone is a simpler review flow: show the original receipt alongside
+editable extracted data, focus attention on unresolved issues, and require one
+explicit final confirmation for straightforward receipts. Keep independent
+validation and explicit resolution of ambiguous dates, unconfirmed branches,
+missing/unclassified rows and mismatched totals. Matching arithmetic alone must
+not establish OCR correctness. Replace repetitive row/page checkboxes and routine
+mandatory notes with a deliberate, snapshot-bound review approval; this requires
+coordinated review-policy, persistence and regression work, not just hiding UI
+controls or automatically setting existing evidence approvals. No review policy
+has changed yet.
+
+Then finish redistribution-license review and broaden OCR fixtures before release
+or networking work. Keep representative S-kaupat images and OCR exports in ignored
+`localreceipts/`; committed fixtures remain synthetic or explicitly anonymized.
+Complete standalone workflows and tested recovery before bidirectional sync.
+Broader parser fixtures, remaining clean-machine checks, privacy/permission audits,
+manufacturer transfer tests and native Windows picker verification remain required.

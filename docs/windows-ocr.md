@@ -172,8 +172,18 @@ Run the exact-fixture Windows regression from the repository root:
 A committed geometry fixture from this synthetic PNG supports deterministic widget
 checks for first-branch entry, successful saving, required notes, reopened checks
 after editing, and narrow enlarged-text layouts. Private receipts are not used.
-The updated ZIP still needs a laptop save/reopen retest; relocation/cancellation
-and complete clean-machine release acceptance remain unconfirmed by that report.
+In the subsequent November 21 retest, the user reported correct information,
+successful saving, and preserved receipt history after closing the app, moving
+the program folder and reopening it. This follows the earlier offline laptop
+test. The exact retested build ID/hash, cancellation/retry, destination path
+characters and recognition after relocation were not separately reported. The
+reported save/reopen and folder-move persistence checks succeeded; complete
+clean-machine release acceptance remains open.
+
+The user also found the individual review confirmations too cumbersome for the
+final product. A simpler review flow is the proposed next milestone in the
+[project plan](plan.md#8-immediate-next-step). Existing review and persistence
+requirements remain in force until that change is implemented and tested.
 
 Verification for this guidance update: all 145 app tests and analysis pass, the
 exact-shipped-image Windows recognition/review/save/reopen regression passes, and
