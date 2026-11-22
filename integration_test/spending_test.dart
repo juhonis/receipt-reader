@@ -10,6 +10,7 @@ import 'package:receipt_reader/local_store.dart';
 
 import '../test/manual_save_test.dart' show tapKey, enter;
 import 'purchase_history_test.dart' show approve;
+import '../test/support/navigation.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -105,6 +106,7 @@ void main() {
         final before = await workspace.repository.exportBackup();
         await t.pumpWidget(ReceiptReaderApp(storageOpener: () async => active));
         await t.pumpAndSettle();
+        await openReceiptManagement(t);
         Future<void> waitFor(Finder finder) async {
           for (var i = 0; i < 300 && finder.evaluate().isEmpty; i++) {
             await t.pump(const Duration(milliseconds: 50));

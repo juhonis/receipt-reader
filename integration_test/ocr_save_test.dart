@@ -16,6 +16,8 @@ import 'package:receipt_reader/receipt_import.dart';
 import 'package:receipt_reader/review_page.dart';
 import 'package:receipt_reader/receipt_ocr.dart';
 
+import '../test/support/navigation.dart';
+
 class ObservedStore implements LocalStore {
   ObservedStore(this.repository);
   final ReceiptRepository repository;
@@ -98,6 +100,7 @@ void runOcrSaveSmoke({
           ReceiptReaderApp(storageOpener: () async => initial),
         );
         await tester.pumpAndSettle();
+        await openReceiptManagement(tester);
         final words = [
           OcrWord('16.11.2026', PixelBox(10, 10, 150, 26)),
           OcrWord('MILK', PixelBox(10, 70, 150, 86)),
@@ -255,6 +258,7 @@ void runOcrSaveSmoke({
           ReceiptReaderApp(storageOpener: () async => reopened),
         );
         await tester.pumpAndSettle();
+        await openReceiptManagement(tester);
         await tester.tap(find.byKey(const Key('open-history')));
         await tester.pumpAndSettle();
         await tester.tap(find.text('SYNTHETIC OCR BRANCH'));

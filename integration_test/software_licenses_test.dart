@@ -8,6 +8,8 @@ import 'package:integration_test/integration_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:receipt_reader/app.dart';
 
+import '../test/support/navigation.dart';
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   testWidgets('native license page exposes retained Google SDK terms offline', (
@@ -33,6 +35,7 @@ void main() {
     await t.pumpWidget(const ReceiptReaderApp());
     await t.tap(find.byKey(const Key('open-software-info')));
     await t.pumpAndSettle();
+    await openReceiptManagement(t);
     await t.scrollUntilVisible(
       find.byKey(const Key('open-license-page')),
       300,

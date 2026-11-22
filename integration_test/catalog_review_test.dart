@@ -10,6 +10,7 @@ import 'package:receipt_reader/local_store.dart';
 import 'package:receipt_reader/manual_receipt_page.dart';
 
 import '../test/manual_save_test.dart' show tapKey, enter, review;
+import '../test/support/navigation.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -63,6 +64,7 @@ void main() {
           ReceiptReaderApp(storageOpener: () async => store!),
         );
         await tester.pumpAndSettle();
+        await openReceiptManagement(tester);
         await tapKey(tester, 'open-catalog');
         await tapKey(tester, 'catalog-branch');
         await tester.tap(find.text(seed.branch.name).last);

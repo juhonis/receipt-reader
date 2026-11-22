@@ -11,6 +11,8 @@ import 'package:receipt_reader/app.dart';
 import 'package:receipt_reader/history_page.dart';
 import 'package:receipt_reader/local_store.dart';
 
+import '../test/support/navigation.dart';
+
 class _ObservedStore implements LocalStore {
   _ObservedStore(this.repository);
   final ReceiptRepository repository;
@@ -86,6 +88,7 @@ Future<void> _review(WidgetTester tester) async {
 Future<void> _openHistory(WidgetTester tester, _ObservedStore store) async {
   await tester.pumpWidget(ReceiptReaderApp(storageOpener: () async => store));
   await tester.pumpAndSettle();
+  await openReceiptManagement(tester);
   await _tap(tester, 'open-history');
   await tester.tap(find.text('SYNTHETIC CORRECTION BRANCH'));
   await tester.pumpAndSettle();

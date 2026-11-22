@@ -8,9 +8,11 @@ import 'package:receipt_parser/receipt_parser.dart';
 import 'package:receipt_domain/receipt_domain.dart';
 
 import 'support/fake_store.dart';
+import 'support/navigation.dart';
 
 Future<void> tapKey(WidgetTester tester, String key) async {
   final finder = find.byKey(ValueKey(key));
+  if (finder.evaluate().isEmpty) await openReceiptManagement(tester);
   await tester.ensureVisible(finder);
   await tester.tap(finder);
   await tester.pumpAndSettle();

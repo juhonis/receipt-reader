@@ -11,6 +11,7 @@ import 'l10n/generated/app_localizations.dart';
 import 'local_store.dart';
 import 'receipt_format.dart';
 import 'spending_service.dart';
+import 'dashboard_range_dialog.dart';
 
 class SpendingDashboardPage extends StatefulWidget {
   const SpendingDashboardPage({
@@ -18,10 +19,13 @@ class SpendingDashboardPage extends StatefulWidget {
     required this.store,
     required this.service,
     this.clock = DateTime.now,
+    this.embedded = false,
+    this.active = true,
   });
   final LocalStore store;
   final SpendingDashboardService service;
   final DateTime Function() clock;
+  final bool embedded, active;
   @override
   State<SpendingDashboardPage> createState() => _SpendingDashboardPageState();
 }
@@ -32,6 +36,7 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
   late StoredReceiptDate _anchor;
   bool _followToday = true;
   ReceiptBranch? _branch;
+  StoredReceiptDate? _customFrom, _customThrough;
   late Future<SpendingDashboard> _result;
 
   StoredReceiptDate _today() {
@@ -54,8 +59,14 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
   }
 
   @override
+  void didUpdateWidget(covariant SpendingDashboardPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.active && !oldWidget.active) _reload();
+  }
+
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _reload();
+    if (state == AppLifecycleState.resumed && widget.active) _reload();
   }
 
   Future<SpendingDashboard> _load() async {
@@ -70,6 +81,8 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
         anchor: _anchor,
         today: today,
         branchId: _branch?.id,
+        customFrom: _customFrom,
+        customThrough: _customThrough,
       ),
     );
   }
@@ -82,17 +95,45 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
   });
 
   Future<void> _pickDate() async {
+    if (_unit == SpendingPeriodUnit.custom) {
+      await _pickRange();
+      return;
+    }
     final today = _today();
     final value = await showDatePicker(
       context: context,
       initialDate: DateTime(_anchor.year, _anchor.month, _anchor.day),
       firstDate: DateTime(1970),
       lastDate: DateTime(today.year, today.month, today.day),
+      initialDatePickerMode: _unit == SpendingPeriodUnit.year
+          ? DatePickerMode.year
+          : DatePickerMode.day,
     );
     if (value == null || !mounted) return;
     _anchor = StoredReceiptDate.parse(
       '${value.day}.${value.month}.${value.year}',
     );
+    _followToday = false;
+    _reload();
+  }
+
+  Future<void> _pickRange() async {
+    final today = _today();
+    final range = await showDialog<PurchaseDateRange>(
+      context: context,
+      builder: (_) => DashboardRangeDialog(
+        first:
+            _customFrom ??
+            StoredReceiptDate.parse('1.${today.month}.${today.year}'),
+        last: _customThrough ?? today,
+        today: today,
+      ),
+    );
+    if (!mounted || range == null) return;
+    _customFrom = range.fromDate;
+    _customThrough = range.throughDate;
+    _anchor = range.fromDate!;
+    _unit = SpendingPeriodUnit.custom;
     _followToday = false;
     _reload();
   }
@@ -112,6 +153,8 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
     final start = purchaseCalendarDate(dashboard.query.selected.firstDay);
     var date = _unit == SpendingPeriodUnit.week
         ? DateTime.utc(start.year, start.month, start.day + direction * 7)
+        : _unit == SpendingPeriodUnit.year
+        ? DateTime.utc(start.year + direction)
         : DateTime.utc(start.year, start.month + direction);
     if (date.isBefore(DateTime.utc(1970))) date = DateTime.utc(1970);
     _anchor = StoredReceiptDate.parse('${date.day}.${date.month}.${date.year}');
@@ -142,17 +185,19 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(s.dashboardTitle),
-        actions: [
-          IconButton(
-            key: const Key('dashboard-refresh'),
-            tooltip: s.refreshHistory,
-            onPressed: _reload,
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
+      appBar: widget.embedded
+          ? null
+          : AppBar(
+              title: Text(s.dashboardTitle),
+              actions: [
+                IconButton(
+                  key: const Key('dashboard-refresh'),
+                  tooltip: s.refreshHistory,
+                  onPressed: _reload,
+                  icon: const Icon(Icons.refresh),
+                ),
+              ],
+            ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -164,24 +209,38 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    ChoiceChip(
-                      key: const Key('dashboard-week'),
-                      label: Text(s.dashboardWeekly),
-                      selected: _unit == SpendingPeriodUnit.week,
-                      onSelected: (_) {
-                        _unit = SpendingPeriodUnit.week;
-                        _reload();
-                      },
-                    ),
-                    ChoiceChip(
-                      key: const Key('dashboard-month'),
-                      label: Text(s.dashboardMonthly),
-                      selected: _unit == SpendingPeriodUnit.month,
-                      onSelected: (_) {
-                        _unit = SpendingPeriodUnit.month;
-                        _reload();
-                      },
-                    ),
+                    for (final unit in SpendingPeriodUnit.values)
+                      ChoiceChip(
+                        key: Key('dashboard-${unit.name}'),
+                        label: Text(switch (unit) {
+                          SpendingPeriodUnit.week => s.dashboardWeekly,
+                          SpendingPeriodUnit.month => s.dashboardMonthly,
+                          SpendingPeriodUnit.year => s.dashboardYearly,
+                          SpendingPeriodUnit.custom => s.dashboardCustom,
+                        }),
+                        selected: _unit == unit,
+                        onSelected: (_) {
+                          if (unit == SpendingPeriodUnit.custom) {
+                            _pickRange();
+                          } else {
+                            _unit = unit;
+                            _reload();
+                          }
+                        },
+                      ),
+                    if (widget.embedded)
+                      IconButton(
+                        key: const Key('dashboard-refresh'),
+                        onPressed: _reload,
+                        tooltip: s.refreshHistory,
+                        icon: const Icon(Icons.refresh),
+                      ),
+                  ],
+                ),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
                     TextButton.icon(
                       key: const Key('dashboard-branch'),
                       onPressed: _pickBranch,
@@ -197,6 +256,9 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
                     TextButton(
                       key: const Key('dashboard-today'),
                       onPressed: () {
+                        if (_unit == SpendingPeriodUnit.custom) {
+                          _unit = SpendingPeriodUnit.month;
+                        }
                         _followToday = true;
                         _reload();
                       },
@@ -236,6 +298,8 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
                     final first = purchaseCalendarDate(period.firstDay);
                     final earliest = _unit == SpendingPeriodUnit.week
                         ? period.firstDay == 0
+                        : _unit == SpendingPeriodUnit.year
+                        ? first.year == 1970
                         : first.year == 1970 && first.month == 1;
                     final canNext =
                         period.lastDay < purchaseCalendarDay(data.query.today);
@@ -249,25 +313,29 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
                           crossAxisAlignment: WrapCrossAlignment.center,
                           spacing: 8,
                           children: [
-                            IconButton(
-                              key: const Key('dashboard-previous'),
-                              tooltip: s.dashboardPrevious,
-                              onPressed: earliest
-                                  ? null
-                                  : () => _move(data, -1),
-                              icon: const Icon(Icons.chevron_left),
-                            ),
+                            if (_unit != SpendingPeriodUnit.custom)
+                              IconButton(
+                                key: const Key('dashboard-previous'),
+                                tooltip: s.dashboardPrevious,
+                                onPressed: earliest
+                                    ? null
+                                    : () => _move(data, -1),
+                                icon: const Icon(Icons.chevron_left),
+                              ),
                             Text(
                               _range(period),
                               key: const Key('dashboard-range'),
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
-                            IconButton(
-                              key: const Key('dashboard-next'),
-                              tooltip: s.dashboardNext,
-                              onPressed: canNext ? () => _move(data, 1) : null,
-                              icon: const Icon(Icons.chevron_right),
-                            ),
+                            if (_unit != SpendingPeriodUnit.custom)
+                              IconButton(
+                                key: const Key('dashboard-next'),
+                                tooltip: s.dashboardNext,
+                                onPressed: canNext
+                                    ? () => _move(data, 1)
+                                    : null,
+                                icon: const Icon(Icons.chevron_right),
+                              ),
                             if (period.inProgress)
                               Chip(label: Text(s.dashboardInProgress)),
                           ],
@@ -276,8 +344,8 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
                         const SizedBox(height: 12),
                         LayoutBuilder(
                           builder: (context, constraints) {
-                            final width = constraints.maxWidth >= 800
-                                ? (constraints.maxWidth - 24) / 3
+                            final width = constraints.maxWidth >= 500
+                                ? (constraints.maxWidth - 12) / 2
                                 : constraints.maxWidth;
                             return Wrap(
                               spacing: 12,
@@ -287,7 +355,7 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
                                   s.dashboardNet,
                                   '${formatCents(totals.totalCents)} €',
                                   'dashboard-total',
-                                  width,
+                                  constraints.maxWidth,
                                 ),
                                 _metric(
                                   s.spendingCount,
@@ -340,7 +408,9 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
                             ),
                           ),
                           Text(
-                            period.inProgress
+                            _unit == SpendingPeriodUnit.custom
+                                ? s.dashboardCustomComparison
+                                : period.inProgress
                                 ? s.dashboardMatchedDays
                                 : s.dashboardFullPeriods,
                           ),
@@ -488,7 +558,7 @@ class _SpendingChart extends StatelessWidget {
       builder: (context, constraints) => SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: SizedBox(
-          width: math.max(720, constraints.maxWidth),
+          width: math.max(data.periods.length * 72.0, constraints.maxWidth),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -544,8 +614,12 @@ class _SpendingChart extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    data.query.unit == SpendingPeriodUnit.month
+                                    data.query.chartScale ==
+                                            SpendingChartScale.month
                                         ? '${day.month}.${day.year}'
+                                        : data.query.chartScale ==
+                                              SpendingChartScale.interval
+                                        ? _range(bucket.period)
                                         : '${day.day}.${day.month}.',
                                   ),
                                   Text(

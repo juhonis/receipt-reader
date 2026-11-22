@@ -10,8 +10,8 @@ import 'package:receipt_domain/receipt_domain.dart';
 import 'package:receipt_parser/receipt_parser.dart';
 import 'package:receipt_reader/app.dart';
 import 'package:receipt_reader/local_store.dart';
-import 'package:receipt_reader/history_page.dart';
 import 'package:receipt_reader/spending_dashboard_page.dart';
+import 'package:receipt_reader/history_page.dart';
 import 'package:receipt_storage/receipt_storage.dart';
 
 import 'purchase_history_test.dart' show approve;
@@ -79,7 +79,10 @@ void main() {
         await t.pumpWidget(
           RepaintBoundary(
             key: captureKey,
-            child: ReceiptReaderApp(storageOpener: () async => active),
+            child: ReceiptReaderApp(
+              storageOpener: () async => active,
+              dashboardClock: () => DateTime.utc(2026, 11, 18, 12),
+            ),
           ),
         );
         Future<void> waitFor(Finder finder) async {
@@ -99,6 +102,19 @@ void main() {
 
         Future<void> tap(String key) async {
           final finder = find.byKey(ValueKey(key));
+          if (finder.evaluate().isEmpty) {
+            final scroll = find
+                .descendant(
+                  of: find.byType(SpendingDashboardPage),
+                  matching: find.byWidgetPredicate(
+                    (w) =>
+                        w is Scrollable &&
+                        w.axisDirection == AxisDirection.down,
+                  ),
+                )
+                .first;
+            await t.scrollUntilVisible(finder, -400, scrollable: scroll);
+          }
           await t.ensureVisible(finder);
           await t.pumpAndSettle();
           await t.tap(finder);
@@ -126,22 +142,12 @@ void main() {
           }
         }
 
-        await waitFor(find.byKey(const Key('open-dashboard')));
-        await tap(
-          'open-dashboard',
-        ); // Actual home navigation, with the real clock.
         await waitFor(find.byKey(const Key('dashboard-total')));
-        Navigator.of(t.element(find.byKey(const Key('dashboard-total')))).pop();
-        await t.pumpAndSettle();
-        Navigator.of(t.element(find.byKey(const Key('open-dashboard')))).push(
-          MaterialPageRoute<void>(
-            builder: (_) => SpendingDashboardPage(
-              store: active,
-              service: active,
-              clock: () => DateTime.utc(2026, 11, 18, 12),
-            ),
-          ),
-        );
+        expect(find.byType(NavigationDestination), findsNWidgets(2));
+        expect(find.byKey(const Key('open-history')), findsNothing);
+        await tap('home-tab-receipts');
+        expect(find.byKey(const Key('open-history')), findsOneWidget);
+        await tap('home-tab-dashboard');
         await waitFor(find.byKey(const Key('dashboard-total')));
         expect(total('104,00 €'), findsOneWidget);
         expect(find.text('2,89 €'), findsOneWidget);
@@ -156,11 +162,11 @@ void main() {
           today: StoredReceiptDate.parse('18.11.2026'),
         );
         await t.ensureVisible(
-          find.byKey(ValueKey('dashboard-bar-${q.selected.firstDay}')),
+          find.byKey(ValueKey('dashboard-bar-${q.periods.last.firstDay}')),
         );
         await t.pumpAndSettle();
         await shot('trend');
-        await tap('dashboard-bar-${q.selected.firstDay}');
+        await tap('dashboard-bar-${q.periods.last.firstDay}');
         await waitFor(find.byKey(const Key('history-filter-summary')));
         final historyScroll = find
             .descendant(
@@ -190,6 +196,27 @@ void main() {
         expect(last, findsOneWidget);
         Navigator.of(t.element(find.byType(HistoryPage))).pop();
         await t.pumpAndSettle();
+        await tap('dashboard-year');
+        await waitFor(total('119,00 €'));
+        await t.ensureVisible(find.byKey(const Key('dashboard-total')));
+        await t.pumpAndSettle();
+        await shot('year');
+        await tap('dashboard-custom');
+        await t.enterText(
+          find.byKey(const Key('dashboard-custom-from')),
+          '19.10.2026',
+        );
+        await t.enterText(
+          find.byKey(const Key('dashboard-custom-through')),
+          '18.11.2026',
+        );
+        await tap('dashboard-custom-apply');
+        await waitFor(total('114,00 €'));
+        await t.ensureVisible(find.byKey(const Key('dashboard-total')));
+        await t.pumpAndSettle();
+        await shot('custom');
+        await tap('dashboard-today');
+        await waitFor(total('105,00 €'));
         final backup = await active.exportProtected(
           'synthetic-dashboard-test-password',
         );

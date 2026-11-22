@@ -12,6 +12,7 @@ import 'package:receipt_reader/history_page.dart';
 import 'package:receipt_reader/local_store.dart';
 
 import '../packages/receipt_domain/test/ocr_support.dart';
+import '../test/support/navigation.dart';
 
 class _ObservedStore implements LocalStore {
   _ObservedStore(this.repository);
@@ -157,6 +158,7 @@ void main() {
           ReceiptReaderApp(storageOpener: () async => currentStore),
         );
         await tester.pumpAndSettle();
+        await openReceiptManagement(tester);
         await _tap(tester, 'open-history');
         await _openDetail(tester, 'MANUAL DELETE TEST');
         await _tap(tester, 'delete-receipt-cancel');
@@ -209,6 +211,7 @@ void main() {
           ReceiptReaderApp(storageOpener: () async => currentStore),
         );
         await tester.pumpAndSettle();
+        await openReceiptManagement(tester);
         await _tap(tester, 'open-history');
         await _openDetail(tester, 'TEST BRANCH');
         final prior = (await store.repository.history()).single;

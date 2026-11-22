@@ -60,14 +60,38 @@ void main() {
       expect(result.comparisonPrevious.totalCents, BigInt.from(1000));
       expect(result.changeTenthsPercent, BigInt.from(5950));
       expect(
-        result.periods[result.periods.length - 2].totals.totalCents,
-        BigInt.from(1999),
+        result.periods.fold(BigInt.zero, (sum, p) => sum + p.totals.totalCents),
+        BigInt.from(6950),
       );
       final selected = await h.repository.spendingDashboard(
         query(branch: branch.id),
       );
       expect(selected.selected.receiptCount, 35);
       expect(selected.selected.totalCents, BigInt.from(7000));
+      final year = await h.repository.spendingDashboard(
+        SpendingDashboardQuery(
+          unit: SpendingPeriodUnit.year,
+          anchor: StoredReceiptDate.parse('18.11.2026'),
+          today: StoredReceiptDate.parse('18.11.2026'),
+        ),
+      );
+      expect(year.selected.totalCents, BigInt.from(8949));
+      expect(
+        year.periods.fold(BigInt.zero, (sum, p) => sum + p.totals.totalCents),
+        year.selected.totalCents,
+      );
+      final custom = await h.repository.spendingDashboard(
+        SpendingDashboardQuery(
+          unit: SpendingPeriodUnit.custom,
+          anchor: StoredReceiptDate.parse('19.10.2026'),
+          today: StoredReceiptDate.parse('18.11.2026'),
+          customFrom: StoredReceiptDate.parse('19.10.2026'),
+          customThrough: StoredReceiptDate.parse('17.11.2026'),
+        ),
+      );
+      expect(custom.selected.totalCents, BigInt.from(949));
+      expect(custom.selected.receiptCount, 2);
+      expect(custom.comparisonPrevious.totalCents, BigInt.from(1000));
       expect(await h.repository.exportBackup(), before);
     },
   );

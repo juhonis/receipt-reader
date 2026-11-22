@@ -1,6 +1,8 @@
 part of '../receipt_domain.dart';
 
-enum SpendingPeriodUnit { week, month }
+enum SpendingPeriodUnit { week, month, year, custom }
+
+enum SpendingChartScale { day, month, interval }
 
 /// Inclusive civil-day interval, not a duration measured in a device timezone.
 final class SpendingPeriod {
@@ -11,14 +13,16 @@ final class SpendingPeriod {
   bool contains(int day) => day >= firstDay && day <= lastDay;
 }
 
-/// Twelve calendar periods ending at the selected week/month. Future days are
-/// excluded. The first supported week can be clipped to January 1, 1970.
+/// Chart buckets partition the selected range, never the comparison range.
+/// Future days are excluded. Comparisons use verified receipts in the same read.
 final class SpendingDashboardQuery {
   SpendingDashboardQuery({
     required this.unit,
     required this.anchor,
     required this.today,
     this.branchId,
+    this.customFrom,
+    this.customThrough,
   }) {
     _require(
       anchor.hour == null && today.hour == null,
@@ -28,49 +32,110 @@ final class SpendingDashboardQuery {
     final day = purchaseCalendarDay(anchor), now = purchaseCalendarDay(today);
     _require(day <= now, 'dashboard', 'futurePeriod');
     final date = DateTime.utc(anchor.year, anchor.month, anchor.day);
-    DateTime start(int offset) => unit == SpendingPeriodUnit.week
-        ? date.subtract(Duration(days: date.weekday - 1 + offset * 7))
-        : DateTime.utc(date.year, date.month - offset);
     int ordinal(DateTime value) => value.difference(DateTime.utc(1970)).inDays;
-    SpendingPeriod period(int offset) {
-      final first = start(offset);
-      final end = unit == SpendingPeriodUnit.week
-          ? first.add(const Duration(days: 6))
-          : DateTime.utc(first.year, first.month + 1, 0);
-      return SpendingPeriod(
-        max(0, ordinal(first)),
-        min(now, ordinal(end)),
-        inProgress: ordinal(first) <= now && now <= ordinal(end),
+    if (unit == SpendingPeriodUnit.custom) {
+      _require(
+        customFrom != null &&
+            customThrough != null &&
+            customFrom!.hour == null &&
+            customThrough!.hour == null,
+        'dashboard',
+        'customDaysRequired',
       );
-    }
-
-    periods = List.unmodifiable([
-      for (var i = 11; i >= 0; i--)
-        if (period(i).lastDay >= 0) period(i),
-    ]);
-    selected = periods.last;
-    final previous = period(1);
-    if (previous.lastDay >= 0) {
-      // Partial periods compare equally many calendar days. If last month was
-      // shorter, both comparison windows are shortened and explicitly labelled.
-      final days = min(selected.dayCount, previous.dayCount);
-      comparisonCurrent = selected.inProgress
-          ? SpendingPeriod(selected.firstDay, selected.firstDay + days - 1)
-          : selected;
-      comparisonPrevious = selected.inProgress
-          ? SpendingPeriod(previous.firstDay, previous.firstDay + days - 1)
-          : previous;
+      final first = purchaseCalendarDay(customFrom!),
+          last = purchaseCalendarDay(customThrough!);
+      _require(first <= last && last <= now, 'dashboard', 'customRange');
+      selected = SpendingPeriod(first, last);
+      final preceding = first - selected.dayCount;
+      // Never compare a complete range with a silently clipped predecessor.
+      comparisonCurrent = preceding < 0 ? null : selected;
+      comparisonPrevious = preceding < 0
+          ? null
+          : SpendingPeriod(preceding, first - 1);
     } else {
-      comparisonCurrent = null;
-      comparisonPrevious = null;
+      DateTime start(int offset) => unit == SpendingPeriodUnit.week
+          ? date.subtract(Duration(days: date.weekday - 1 + offset * 7))
+          : unit == SpendingPeriodUnit.year
+          ? DateTime.utc(date.year - offset)
+          : DateTime.utc(date.year, date.month - offset);
+      SpendingPeriod period(int offset) {
+        final first = start(offset);
+        final end = unit == SpendingPeriodUnit.week
+            ? first.add(const Duration(days: 6))
+            : unit == SpendingPeriodUnit.year
+            ? DateTime.utc(first.year + 1, 1, 0)
+            : DateTime.utc(first.year, first.month + 1, 0);
+        return SpendingPeriod(
+          max(0, ordinal(first)),
+          min(now, ordinal(end)),
+          inProgress: ordinal(first) <= now && now <= ordinal(end),
+        );
+      }
+
+      selected = period(0);
+      final previous = period(1);
+      if (previous.lastDay >= 0) {
+        // Partial periods compare equally many calendar days. If last month was
+        // shorter, both comparison windows are shortened and explicitly labelled.
+        final days = min(selected.dayCount, previous.dayCount);
+        comparisonCurrent = selected.inProgress
+            ? SpendingPeriod(selected.firstDay, selected.firstDay + days - 1)
+            : selected;
+        comparisonPrevious = selected.inProgress
+            ? SpendingPeriod(previous.firstDay, previous.firstDay + days - 1)
+            : previous;
+      } else {
+        comparisonCurrent = null;
+        comparisonPrevious = null;
+      }
     }
+    final buckets = <SpendingPeriod>[];
+    if (unit == SpendingPeriodUnit.year) {
+      chartScale = SpendingChartScale.month;
+      for (var month = 1; month <= 12; month++) {
+        final first = ordinal(DateTime.utc(anchor.year, month));
+        if (first > selected.lastDay) break;
+        final last = min(
+          selected.lastDay,
+          ordinal(DateTime.utc(anchor.year, month + 1, 0)),
+        );
+        buckets.add(
+          SpendingPeriod(
+            first,
+            last,
+            inProgress: selected.inProgress && last == selected.lastDay,
+          ),
+        );
+      }
+    } else {
+      final count = min(
+        selected.dayCount,
+        unit == SpendingPeriodUnit.custom ? 24 : 31,
+      );
+      chartScale = count == selected.dayCount
+          ? SpendingChartScale.day
+          : SpendingChartScale.interval;
+      for (var i = 0; i < count; i++) {
+        buckets.add(
+          SpendingPeriod(
+            selected.firstDay + selected.dayCount * i ~/ count,
+            selected.firstDay + selected.dayCount * (i + 1) ~/ count - 1,
+            inProgress: selected.inProgress && i == count - 1,
+          ),
+        );
+      }
+    }
+    periods = List.unmodifiable(buckets);
   }
   final SpendingPeriodUnit unit;
   final StoredReceiptDate anchor, today;
   final DurableId? branchId;
+  final StoredReceiptDate? customFrom, customThrough;
+  late final SpendingChartScale chartScale;
   late final List<SpendingPeriod> periods;
   late final SpendingPeriod selected;
   late final SpendingPeriod? comparisonCurrent, comparisonPrevious;
+  int get scanFirstDay => comparisonPrevious?.firstDay ?? selected.firstDay;
 }
 
 final class PeriodSpending {
@@ -85,11 +150,12 @@ final class SpendingDashboard {
     Iterable<PeriodSpending> periods,
     this.comparisonCurrent,
     this.comparisonPrevious,
+    this.selected,
   ) : periods = List.unmodifiable(periods);
   final SpendingDashboardQuery query;
   final List<PeriodSpending> periods;
   final SpendingTotals comparisonCurrent, comparisonPrevious;
-  SpendingTotals get selected => periods.last.totals;
+  final SpendingTotals selected;
   BigInt get changeCents =>
       comparisonCurrent.totalCents - comparisonPrevious.totalCents;
 
@@ -127,10 +193,13 @@ final class SpendingDashboardBuilder {
     : _folds = [for (final _ in query.periods) _SpendingFold()];
   final SpendingDashboardQuery query;
   final List<_SpendingFold> _folds;
-  final _current = _SpendingFold(), _previous = _SpendingFold();
+  final _current = _SpendingFold(),
+      _previous = _SpendingFold(),
+      _selected = _SpendingFold();
   void add(ReceiptSnapshot receipt) {
     if (query.branchId != null && query.branchId != receipt.branch.id) return;
     final day = purchaseCalendarDay(receipt.date);
+    if (query.selected.contains(day)) _selected.add(receipt);
     for (var i = 0; i < query.periods.length; i++) {
       if (query.periods[i].contains(day)) {
         _folds[i].add(receipt);
@@ -150,5 +219,6 @@ final class SpendingDashboardBuilder {
     ],
     _current.build(),
     _previous.build(),
+    _selected.build(),
   );
 }

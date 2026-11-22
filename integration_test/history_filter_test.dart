@@ -11,6 +11,8 @@ import 'package:receipt_reader/app.dart';
 import 'package:receipt_reader/history_page.dart';
 import 'package:receipt_reader/local_store.dart';
 
+import '../test/support/navigation.dart';
+
 class _ObservedStore implements LocalStore {
   _ObservedStore(this.repository);
   final ReceiptRepository repository;
@@ -157,6 +159,7 @@ void main() {
           ReceiptReaderApp(storageOpener: () async => opened),
         );
         await tester.pumpAndSettle();
+        await openReceiptManagement(tester);
         await _tap(tester, 'open-history');
         expect(store.pages.last, hasLength(30));
         await _tap(tester, 'history-filters');

@@ -12,6 +12,7 @@ import 'package:receipt_reader/app.dart';
 import 'package:receipt_reader/local_store.dart';
 
 import '../packages/receipt_domain/test/ocr_support.dart';
+import '../test/support/navigation.dart';
 
 class _ObservedStore implements LocalStore {
   _ObservedStore(this.repository);
@@ -131,6 +132,7 @@ void main() {
           ReceiptReaderApp(storageOpener: () async => current),
         );
         await tester.pumpAndSettle();
+        await openReceiptManagement(tester);
         await tap(tester, 'open-history');
         expect(find.text('MANUAL BACKUP TEST'), findsNothing);
         final target = find.text('TEST BRANCH');

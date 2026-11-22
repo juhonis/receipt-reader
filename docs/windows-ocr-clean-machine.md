@@ -11,7 +11,8 @@ x64 is the current target. Do not install OCR tools to make a failing test pass.
    Record any missing-DLL, model-download or startup message. The ZIP includes the
    Visual C++ runtime; a separate runtime installation should not be necessary.
    An unsigned-build Windows warning may appear; this build is not signed.
-3. From the home screen choose the image-import action and select the included
+3. The home screen opens Seuranta. Choose the Kuitit tab, then the image-import
+   action and select the included
    synthetic_receipt.png. This image is entirely synthetic and contains no personal
    purchase information. Keep it unchanged for the second attempt.
 4. Choose Tunnista kuitin teksti. Recognition should finish without a download or

@@ -15,6 +15,7 @@ import 'package:receipt_reader/backup_service.dart';
 import 'package:receipt_reader/local_store.dart';
 
 import '../packages/receipt_domain/test/ocr_support.dart';
+import '../test/support/navigation.dart';
 
 const password = 'synthetic password 2026';
 
@@ -225,6 +226,7 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
+        await openReceiptManagement(tester);
         await tap(tester, 'open-backups');
         await enterPassword(tester, confirm: true);
         await tap(tester, 'backup-export', settle: false);
@@ -322,6 +324,7 @@ void main() {
         );
         await expectLater(normalOpen, throwsA(isA<StorageFailure>()));
         await tester.pumpAndSettle();
+        await openReceiptManagement(tester);
         await tap(tester, 'open-backup-recovery');
         // The asynchronous opener is awaited by the gate; wait for its home state.
         for (var i = 0; i < 100 && store == null; i++) {

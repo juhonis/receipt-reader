@@ -9,6 +9,8 @@ import 'package:receipt_storage/receipt_storage.dart';
 import 'package:receipt_reader/app.dart';
 import 'package:receipt_reader/local_store.dart';
 
+import '../test/support/navigation.dart';
+
 class _ObservedStore implements LocalStore {
   _ObservedStore(this.repository);
   final ReceiptRepository repository;
@@ -68,6 +70,7 @@ void main() {
         ReceiptReaderApp(storageOpener: () async => initial),
       );
       await tester.pumpAndSettle();
+      await openReceiptManagement(tester);
       await tester.tap(find.text('Lisää kuitti käsin'));
       await tester.pumpAndSettle();
       await _tap(tester, 'manual-branch');
@@ -107,6 +110,7 @@ void main() {
         ReceiptReaderApp(storageOpener: () async => reopened),
       );
       await tester.pumpAndSettle();
+      await openReceiptManagement(tester);
       await _tap(tester, 'open-history');
       await tester.tap(find.text('SYNTHETIC UI BRANCH'));
       await tester.pumpAndSettle();

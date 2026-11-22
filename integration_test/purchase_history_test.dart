@@ -9,6 +9,7 @@ import 'package:receipt_reader/app.dart';
 import 'package:receipt_reader/local_store.dart';
 
 import '../test/manual_save_test.dart' show tapKey, enter;
+import '../test/support/navigation.dart';
 
 ReviewedReceipt approve(
   ReceiptSnapshot snapshot, {
@@ -138,6 +139,7 @@ void main() {
         expect((await store.purchases(branch.id, productId)), hasLength(2));
         await t.pumpWidget(ReceiptReaderApp(storageOpener: () async => store!));
         await t.pumpAndSettle();
+        await openReceiptManagement(t);
         await tapKey(t, 'open-catalog');
         await tapKey(t, 'catalog-branch');
         await t.tap(find.text(branch.name).last);

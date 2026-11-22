@@ -1,19 +1,38 @@
-# Weekly and monthly spending dashboard
+# Spending dashboard and home tabs
 
-Open **Viikko- ja kuukausiseuranta** on the home screen. The dashboard works
-offline on Android and Windows using current reviewed receipt totals. The
-existing **Kulutus** screen remains available for all-history branch/month totals.
+The home screen has two destinations. **Seuranta** opens the
+**Viikko- ja kuukausiseuranta** dashboard by default. **Kuitit** contains image
+import, manual entry, receipt history/corrections/deletion, product/alias management
+and backups. The existing **Kulutus** full-history summary remains in that
+management area. Software information remains available from the app bar.
+
+Both tabs work offline on Android and Windows. Switching tabs preserves the
+dashboard's period/branch selection and scroll position; returning to Seuranta
+reloads current totals. An unavailable dataset opens receipt recovery instead
+and disables analytics until recovery is complete. The no-storage development
+harness retains receipt review, with analytics disabled.
 
 ## Navigation and charts
 
-- Switch between Monday–Sunday weeks and calendar months. The default is the
-  current month in Helsinki, independently of the computer's timezone.
+- Select **Viikko**, **Kuukausi**, **Vuosi** or **Oma aikaväli**. Weeks run
+  Monday–Sunday; months and years follow the Helsinki calendar. The default is
+  the current month, independently of the computer's timezone.
 - Use the arrows or calendar picker to visit earlier periods. **Nykyinen jakso**
-  returns to the current week/month. Future periods cannot be selected.
+  returns to the current calendar period (or the current month from a custom
+  range). Future periods cannot be selected.
+- Custom ranges require two valid, inclusive dates in `p.k.vvvv` format. Blank,
+  timestamp, reversed and future bounds are rejected. Cancel preserves the
+  current selection. The date button reopens the custom-range editor.
 - Filter by one branch or all branches. Branches retain their durable identities;
   equally named branches do not merge.
-- See net spending, receipt count and average receipt value for the selected
-  period, plus up to 12 consecutive calendar periods in the chart.
+- The selected range and branch come first, followed by a full-width net total,
+  receipt count, average receipt value, charts and comparisons.
+- Charts cover exactly the selected timeframe: one bar per day for weeks/months,
+  one per elapsed month for years, and up to 24 consecutive groups of calendar
+  days for custom ranges. Group lengths differ by at most one day. No days outside
+  the selection enter the chart.
+  All buckets together reconcile exactly to the selected total. The last bucket
+  is never mistaken for the entire selected range.
 - Positive and negative net totals appear above/below the zero line. Amounts,
   dates and counts are available in tooltips, accessibility labels and the
   expandable exact-period list. The chart scrolls horizontally on narrow screens.
@@ -27,7 +46,7 @@ complete coverage of actual spending. Missing periods are not interpolated.
 
 ## Fair comparisons
 
-The current week/month is marked **Keskeneräinen jakso**, including its last day.
+The current week/month/year is marked **Keskeneräinen jakso**, including its last day.
 Only receipts through today's printed Helsinki calendar day are included; there
 is no extrapolation. The comparison uses equally many days from the beginnings
 of the selected and previous periods. Both exact comparison ranges and totals
@@ -39,6 +58,13 @@ March total still includes March 29–31. This distinction is explained on scree
 Completed historical periods compare their full calendar intervals, whose month
 lengths can differ. At the supported January 1970 boundary, weeks are clipped
 to supported days and unavailable predecessors are omitted.
+
+Year-to-date comparisons also use equal numbers of calendar days, so leap years
+can give different month/day endpoints. For example, January 1–March 1, 2024
+compares with January 1–March 2, 2023. The ranges remain explicit. Custom ranges
+compare with the immediately preceding interval of equal length. If that entire
+interval would precede January 1, 1970, comparison is unavailable instead of
+silently comparing a clipped predecessor.
 
 Euro change is selected comparison net minus previous comparison net. Percentage
 change uses the positive previous net as denominator, rounded to one decimal
@@ -62,8 +88,11 @@ bounded relative chart coordinates use floating point after exact scaling.
 selects matching current receipts in keyset batches of 16, verifies their canonical
 documents/projections and folds all chart/comparison results inside one read
 transaction. There is no history-page limit, SQLite integer `SUM`, persisted
-aggregate or full-history receipt list. At most 12 period folds and two comparison
-folds are retained, regardless of branch count. Runtime grows with matching data.
+aggregate or full-history receipt list. Memory is independent of branch count:
+there are at most 31 chart buckets,
+one selected-total fold and two comparison folds. The read covers the selection
+and its comparison, rather than an unrelated rolling history. Runtime grows with
+matching data; a long custom range can take longer.
 
 Workspace reads use the same queue as saves and backup activation, resolving the
 active repository when the queued call executes. Refresh, period/branch changes,
@@ -78,10 +107,12 @@ are used by tests.
 
 ## Verification
 
-Verified on November 22, 2026: all 123 parser, 76 domain, 199 storage and 165
-app tests passed, with clean analysis. Both native dashboard rehearsals passed,
-including Android airplane mode. The four license-audit tests and dependency
-notice audit also passed.
+Verified on November 22, 2026: all 123 parser, 82 domain, 199 storage and 167 app
+tests passed, with clean analysis. Native Windows and offline Android rehearsals
+passed, including year/custom ranges and tab switching. Checks include yearly
+aggregation, leap-year comparisons, bounded full-span custom charts, strict range
+validation and tab preservation/refresh. The dependency-notice audit and its four
+Python tests also passed.
 
 From Windows PowerShell:
 
@@ -102,7 +133,7 @@ rejection, failure/retry, Helsinki rollover and a 320px screen at doubled text s
 
 The native rehearsal creates only a guarded `dashboard-smoke-*` support directory
 with invented receipts. It exercises actual home navigation, both period modes,
-branch selection, chart-to-history pagination, corrections, encrypted recovery
+branch selection, year/custom ranges, chart-to-history pagination, corrections, encrypted recovery
 with a queued read, deletion, reopen and retained previous-dataset recovery.
 Windows screenshots use only those synthetic values. Normal build entry points
 and the prior Android airplane setting are restored after native verification;

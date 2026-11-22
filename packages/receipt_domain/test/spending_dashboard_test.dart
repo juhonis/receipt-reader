@@ -43,7 +43,7 @@ void main() {
   test('Monday weeks cross year and DST boundaries without UTC shifts', () {
     final year = query('1.1.2026', unit: SpendingPeriodUnit.week);
     expect(range(year.selected), ('29.12.2025', '4.1.2026'));
-    expect(year.periods, hasLength(12));
+    expect(year.periods, hasLength(7));
     final dst = query('25.10.2026', unit: SpendingPeriodUnit.week);
     expect(range(dst.selected), ('19.10.2026', '25.10.2026'));
     expect(dst.selected.dayCount, 7);
@@ -64,8 +64,8 @@ void main() {
     final result = b.build();
     expect(result.selected.totalCents, BigInt.from(300));
     expect(
-      result.periods[result.periods.length - 2].totals.totalCents,
-      BigInt.from(900),
+      result.periods.fold(BigInt.zero, (sum, p) => sum + p.totals.totalCents),
+      BigInt.from(300),
     );
     expect(result.changeCents, BigInt.from(100));
     expect(result.changeTenthsPercent, BigInt.from(500));
@@ -97,12 +97,12 @@ void main() {
     '1970 lower boundary clips weeks and omits unsupported predecessors',
     () {
       final q = query('1.1.1970', unit: SpendingPeriodUnit.week);
-      expect(q.periods, hasLength(1));
+      expect(q.periods, hasLength(4));
       expect(range(q.selected), ('1.1.1970', '4.1.1970'));
       expect(q.comparisonPrevious, isNull);
       expect(
         query('5.1.1970', unit: SpendingPeriodUnit.week).periods,
-        hasLength(2),
+        hasLength(7),
       );
       expect(query('1.1.1970').comparisonPrevious, isNull);
     },
@@ -160,6 +160,120 @@ void main() {
     expect(() => query('23.11.2026'), throwsA(isA<ReceiptDataException>()));
     expect(
       () => query('1.11.2026 12:00'),
+      throwsA(isA<ReceiptDataException>()),
+    );
+  });
+  test(
+    'whole year totals span all monthly buckets including leap February',
+    () {
+      final q = query('1.7.2024', unit: SpendingPeriodUnit.year);
+      expect(range(q.selected), ('1.1.2024', '31.12.2024'));
+      expect(range(q.comparisonPrevious!), ('1.1.2023', '31.12.2023'));
+      expect(q.periods, hasLength(12));
+      expect(range(q.periods[1]), ('1.2.2024', '29.2.2024'));
+      final result =
+          (SpendingDashboardBuilder(q)
+                ..add(receipt('1.1.2024', 100))
+                ..add(receipt('31.12.2024 23:59:59', 200))
+                ..add(receipt('1.1.2023', 500)))
+              .build();
+      expect(result.selected.totalCents, BigInt.from(300));
+      expect(result.periods.last.totals.totalCents, BigInt.from(200));
+      expect(result.comparisonPrevious.totalCents, BigInt.from(500));
+    },
+  );
+  test(
+    'unfinished leap year compares equal day counts, not different dates',
+    () {
+      final q = query(
+        '1.3.2024',
+        today: '1.3.2024',
+        unit: SpendingPeriodUnit.year,
+      );
+      expect(range(q.selected), ('1.1.2024', '1.3.2024'));
+      expect(range(q.comparisonPrevious!), ('1.1.2023', '2.3.2023'));
+      expect(q.periods, hasLength(3));
+      expect(q.periods.last.inProgress, isTrue);
+      expect(q.periods.last.dayCount, 1);
+    },
+  );
+  SpendingDashboardQuery custom(
+    String from,
+    String through, {
+    String today = '22.11.2026',
+  }) => SpendingDashboardQuery(
+    unit: SpendingPeriodUnit.custom,
+    anchor: day(from),
+    today: day(today),
+    customFrom: day(from),
+    customThrough: day(through),
+  );
+  test(
+    'custom range and previous equal-length range use inclusive civil days',
+    () {
+      final q = custom('28.2.2024', '1.3.2024');
+      expect(range(q.selected), ('28.2.2024', '1.3.2024'));
+      expect(range(q.comparisonPrevious!), ('25.2.2024', '27.2.2024'));
+      final result =
+          (SpendingDashboardBuilder(q)
+                ..add(receipt('28.2.2024', 200))
+                ..add(receipt('29.2.2024', 100))
+                ..add(receipt('1.3.2024 23:59:59', -50))
+                ..add(receipt('2.3.2024', 999))
+                ..add(receipt('27.2.2024', 100)))
+              .build();
+      expect(result.selected.totalCents, BigInt.from(250));
+      expect(result.comparisonPrevious.totalCents, BigInt.from(100));
+      expect(result.periods, hasLength(3));
+      expect(
+        result.periods.fold(BigInt.zero, (sum, p) => sum + p.totals.totalCents),
+        BigInt.from(250),
+      );
+    },
+  );
+  test(
+    'long custom range partitions all supported days into bounded intervals',
+    () {
+      final q = custom('1.1.1970', '31.12.2099', today: '31.12.2099');
+      expect(q.periods, hasLength(24));
+      expect(q.comparisonPrevious, isNull);
+      expect(q.periods.first.firstDay, q.selected.firstDay);
+      expect(q.periods.last.lastDay, q.selected.lastDay);
+      expect(
+        q.periods.fold(0, (sum, p) => sum + p.dayCount),
+        q.selected.dayCount,
+      );
+      for (var i = 1; i < q.periods.length; i++) {
+        expect(q.periods[i].firstDay, q.periods[i - 1].lastDay + 1);
+      }
+    },
+  );
+  test('one-day custom selection has no invented quantity or average', () {
+    final q = custom('18.11.2026', '18.11.2026');
+    expect(q.periods, hasLength(1));
+    expect(range(q.comparisonPrevious!), ('17.11.2026', '17.11.2026'));
+    expect(
+      averageReceiptCents(SpendingDashboardBuilder(q).build().selected),
+      isNull,
+    );
+  });
+  test('custom bounds must both be day-precision, ordered and nonfuture', () {
+    for (final dates in [
+      ('19.11.2026', '18.11.2026'),
+      ('18.11.2026', '23.11.2026'),
+      ('18.11.2026 12:00', '19.11.2026'),
+    ]) {
+      expect(
+        () => custom(dates.$1, dates.$2),
+        throwsA(isA<ReceiptDataException>()),
+      );
+    }
+    expect(
+      () => SpendingDashboardQuery(
+        unit: SpendingPeriodUnit.custom,
+        anchor: day('18.11.2026'),
+        today: day('18.11.2026'),
+      ),
       throwsA(isA<ReceiptDataException>()),
     );
   });

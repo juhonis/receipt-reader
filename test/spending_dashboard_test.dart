@@ -5,7 +5,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:receipt_domain/receipt_domain.dart';
 import 'package:receipt_parser/receipt_parser.dart';
 import 'package:receipt_reader/app.dart';
-import 'package:receipt_reader/spending_dashboard_page.dart';
 import 'package:receipt_reader/spending_service.dart';
 import 'package:receipt_storage/receipt_storage.dart';
 
@@ -66,17 +65,10 @@ Future<void> openDashboard(
   DashboardStore store, {
   DateTime Function()? clock,
 }) async {
-  await t.pumpWidget(ReceiptReaderApp(storageOpener: () async => store));
-  await t.pumpAndSettle();
-  final home = find.byKey(const Key('open-dashboard'));
-  expect(home, findsOneWidget);
-  Navigator.of(t.element(home)).push(
-    MaterialPageRoute<void>(
-      builder: (_) => SpendingDashboardPage(
-        store: store,
-        service: store,
-        clock: clock ?? () => DateTime.utc(2026, 11, 18, 12),
-      ),
+  await t.pumpWidget(
+    ReceiptReaderApp(
+      storageOpener: () async => store,
+      dashboardClock: clock ?? () => DateTime.utc(2026, 11, 18, 12),
     ),
   );
   await t.pumpAndSettle();
@@ -143,11 +135,11 @@ void main() {
       await tapKey(t, 'dashboard-branch');
       await tapKey(t, 'dashboard-branch-${store.branch.id.value}');
       expect(store.queries.last.branchId, store.branch.id);
-      final previous = store.queries.last.periods[10];
-      await tapKey(t, 'dashboard-bar-${previous.firstDay}');
+      final day = store.queries.last.periods[1];
+      await tapKey(t, 'dashboard-bar-${day.firstDay}');
       expect(store.historyFilters.last!.branchId, store.branch.id);
-      expect(store.historyFilters.last!.fromDate!.day, 9);
-      expect(store.historyFilters.last!.throughDate!.day, 15);
+      expect(store.historyFilters.last!.fromDate!.day, 17);
+      expect(store.historyFilters.last!.throughDate!.day, 17);
       expect(t.takeException(), isNull);
     },
   );
@@ -226,4 +218,79 @@ void main() {
     await tapKey(t, 'dashboard-receipts');
     expect(t.takeException(), isNull);
   });
+  testWidgets(
+    'two home tabs separate analytics and receipts and refresh on return',
+    (t) async {
+      final store = DashboardStore();
+      await store.seed('18.11.2026', 100);
+      await openDashboard(t, store);
+      expect(find.byType(NavigationDestination), findsNWidgets(2));
+      expect(
+        t.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+        0,
+      );
+      expect(find.text('Lisää kuitti käsin'), findsNothing);
+      await tapKey(t, 'dashboard-year');
+      await tapKey(t, 'home-tab-receipts');
+      expect(find.text('Lisää kuitti käsin'), findsOneWidget);
+      expect(find.byKey(const Key('open-history')), findsOneWidget);
+      expect(find.byKey(const Key('dashboard-total')), findsNothing);
+      await store.seed('1.1.2026', 200);
+      await tapKey(t, 'home-tab-dashboard');
+      expect(store.queries.last.unit, SpendingPeriodUnit.year);
+      expect(
+        t.widget<Text>(find.byKey(const Key('dashboard-total'))).data,
+        '3,00 €',
+      );
+      expect(t.takeException(), isNull);
+    },
+  );
+  testWidgets(
+    'year navigation and custom range validation, cancel and inclusive drill-down',
+    (t) async {
+      final store = DashboardStore();
+      await store.seed('16.11.2026', 300);
+      await store.seed('17.11.2026', 500);
+      await store.seed('18.11.2026', 100);
+      await store.seed('1.1.2025', 200);
+      await openDashboard(t, store);
+      await tapKey(t, 'dashboard-year');
+      expect(find.text('1.1.2026–18.11.2026'), findsOneWidget);
+      await tapKey(t, 'dashboard-previous');
+      expect(find.text('1.1.2025–31.12.2025'), findsOneWidget);
+      expect(
+        t.widget<Text>(find.byKey(const Key('dashboard-total'))).data,
+        '2,00 €',
+      );
+      await tapKey(t, 'dashboard-custom');
+      await tapKey(t, 'dashboard-custom-cancel');
+      expect(store.queries.last.unit, SpendingPeriodUnit.year);
+      await tapKey(t, 'dashboard-custom');
+      Future<void> enter(String key, String text) async {
+        await t.enterText(find.byKey(ValueKey(key)), text);
+        await t.pumpAndSettle();
+      }
+
+      await enter('dashboard-custom-from', '18.11.2026');
+      await enter('dashboard-custom-through', '19.11.2026');
+      await tapKey(t, 'dashboard-custom-apply');
+      expect(find.textContaining('joka ei ole tulevaisuudessa'), findsWidgets);
+      await enter('dashboard-custom-through', '17.11.2026');
+      await tapKey(t, 'dashboard-custom-apply');
+      expect(find.byKey(const Key('dashboard-custom-error')), findsOneWidget);
+      await enter('dashboard-custom-from', '17.11.2026');
+      await enter('dashboard-custom-through', '18.11.2026');
+      await tapKey(t, 'dashboard-custom-apply');
+      expect(store.queries.last.unit, SpendingPeriodUnit.custom);
+      expect(
+        t.widget<Text>(find.byKey(const Key('dashboard-total'))).data,
+        '6,00 €',
+      );
+      expect(find.byKey(const Key('dashboard-previous')), findsNothing);
+      await tapKey(t, 'dashboard-receipts');
+      expect(store.historyFilters.last!.fromDate!.day, 17);
+      expect(store.historyFilters.last!.throughDate!.day, 18);
+      expect(t.takeException(), isNull);
+    },
+  );
 }

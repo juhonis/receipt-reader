@@ -15,6 +15,7 @@ import 'package:receipt_reader/review_page.dart';
 
 import '../packages/receipt_domain/test/ocr_support.dart';
 import 'ocr_save_test.dart' show visible, tap;
+import '../test/support/navigation.dart';
 
 class _ObservedStore implements LocalStore {
   _ObservedStore(this.repository);
@@ -162,6 +163,7 @@ void main() {
           ReceiptReaderApp(storageOpener: () async => initial),
         );
         await tester.pumpAndSettle();
+        await openReceiptManagement(tester);
         evidence = await _pixels(OcrFixture().draft.parseContext!.page);
         await _open(tester, initial, prior, evidence);
         await tap(tester, 'ocr-confirm-save', scroll: false);
@@ -192,6 +194,7 @@ void main() {
           ReceiptReaderApp(storageOpener: () async => reopened),
         );
         await tester.pumpAndSettle();
+        await openReceiptManagement(tester);
         evidence = await _pixels(OcrFixture().draft.parseContext!.page);
         await _open(tester, reopened, corrected, evidence);
         final concurrent = _concurrent(

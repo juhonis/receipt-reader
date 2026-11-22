@@ -29,10 +29,12 @@ class ReceiptReaderApp extends StatelessWidget {
     this.storageOpener,
     this.recoveryOpener,
     this.backupFiles = const NativeBackupFiles(),
+    this.dashboardClock = DateTime.now,
   });
   final Future<LocalStore> Function()? storageOpener, recoveryOpener;
   final BackupFiles backupFiles;
   final Future<ReceiptEvidence?> Function() imagePicker;
+  final DateTime Function() dashboardClock;
 
   @override
   Widget build(BuildContext context) {
@@ -52,12 +54,17 @@ class ReceiptReaderApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
       ),
       home: storageOpener == null
-          ? _HomePage(imagePicker: imagePicker, backupFiles: backupFiles)
+          ? _HomePage(
+              imagePicker: imagePicker,
+              backupFiles: backupFiles,
+              dashboardClock: dashboardClock,
+            )
           : _StorageGate(
               opener: storageOpener!,
               recoveryOpener: recoveryOpener,
               imagePicker: imagePicker,
               backupFiles: backupFiles,
+              dashboardClock: dashboardClock,
             ),
     );
   }
@@ -67,10 +74,12 @@ class _HomePage extends StatefulWidget {
   const _HomePage({
     required this.imagePicker,
     required this.backupFiles,
+    required this.dashboardClock,
     this.store,
   });
   final BackupFiles backupFiles;
   final LocalStore? store;
+  final DateTime Function() dashboardClock;
   final Future<ReceiptEvidence?> Function() imagePicker;
   @override
   State<_HomePage> createState() => _HomePageState();
@@ -78,6 +87,16 @@ class _HomePage extends StatefulWidget {
 
 class _HomePageState extends State<_HomePage> {
   bool _importing = false;
+  late int _tab;
+  @override
+  void initState() {
+    super.initState();
+    final recovery =
+        widget.store is BackupService &&
+        !(widget.store! as BackupService).datasetAvailable;
+    _tab = widget.store is SpendingDashboardService && !recovery ? 0 : 1;
+  }
+
   ImportFailure? _failure;
 
   Future<void> _manual() async {
@@ -164,9 +183,18 @@ class _HomePageState extends State<_HomePage> {
     final recovery =
         widget.store is BackupService &&
         !(widget.store! as BackupService).datasetAvailable;
+    final selected = recovery ? 1 : _tab;
+    final dashboardAvailable =
+        widget.store is SpendingDashboardService && !recovery;
     return Scaffold(
       appBar: AppBar(
-        title: Text(strings.appTitle),
+        title: Text(
+          widget.store == null
+              ? strings.appTitle
+              : selected == 0
+              ? strings.dashboardTitle
+              : strings.receiptsTab,
+        ),
         actions: [
           IconButton(
             key: const Key('open-software-info'),
@@ -178,118 +206,147 @@ class _HomePageState extends State<_HomePage> {
           ),
         ],
       ),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.receipt_long_outlined, size: 64),
-                  const SizedBox(height: 24),
-                  Text(
-                    strings.welcomeTitle,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    widget.store == null
-                        ? strings.developmentNotice
-                        : strings.localStorageNotice,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  if (!recovery)
-                    FilledButton.icon(
-                      onPressed: _importing ? null : _import,
-                      icon: const Icon(Icons.image_outlined),
-                      label: Text(
-                        _importing
-                            ? strings.importLoading
-                            : strings.importImage,
+      body: IndexedStack(
+        index: selected,
+        children: [
+          if (dashboardAvailable)
+            SpendingDashboardPage(
+              store: widget.store!,
+              service: widget.store! as SpendingDashboardService,
+              clock: widget.dashboardClock,
+              embedded: true,
+              active: selected == 0,
+            )
+          else
+            Center(
+              child: Text(
+                recovery
+                    ? strings.backupRecoveryMode
+                    : strings.dashboardUnavailable,
+              ),
+            ),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.receipt_long_outlined, size: 64),
+                      const SizedBox(height: 24),
+                      Text(
+                        strings.welcomeTitle,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.headlineSmall,
                       ),
-                    ),
-                  if (_failure != null)
-                    Text(switch (_failure!) {
-                      ImportFailure.tooLarge => strings.importTooLarge,
-                      ImportFailure.unsupported => strings.importUnsupported,
-                      ImportFailure.unreadable => strings.importUnreadable,
-                    }),
-                  const SizedBox(height: 12),
-                  if (!recovery)
-                    FilledButton(
-                      onPressed: _manual,
-                      child: Text(
+                      const SizedBox(height: 12),
+                      Text(
                         widget.store == null
-                            ? strings.startReview
-                            : strings.manualEntryTitle,
+                            ? strings.developmentNotice
+                            : strings.localStorageNotice,
+                        textAlign: TextAlign.center,
                       ),
-                    ),
-                  if (widget.store != null && !recovery)
-                    TextButton.icon(
-                      key: const Key('open-history'),
-                      onPressed: _history,
-                      icon: const Icon(Icons.history),
-                      label: Text(strings.historyTitle),
-                    ),
-                  if (widget.store is SpendingDashboardService && !recovery)
-                    TextButton.icon(
-                      key: const Key('open-dashboard'),
-                      onPressed: () => Navigator.of(context).push<void>(
-                        MaterialPageRoute(
-                          builder: (_) => SpendingDashboardPage(
-                            store: widget.store!,
-                            service: widget.store! as SpendingDashboardService,
+                      const SizedBox(height: 20),
+                      if (!recovery)
+                        FilledButton.icon(
+                          onPressed: _importing ? null : _import,
+                          icon: const Icon(Icons.image_outlined),
+                          label: Text(
+                            _importing
+                                ? strings.importLoading
+                                : strings.importImage,
                           ),
                         ),
-                      ),
-                      icon: const Icon(Icons.bar_chart),
-                      label: Text(strings.dashboardTitle),
-                    ),
-                  if (widget.store is SpendingService && !recovery)
-                    TextButton.icon(
-                      key: const Key('open-spending'),
-                      onPressed: () => Navigator.of(context).push<void>(
-                        MaterialPageRoute(
-                          builder: (_) => SpendingPage(
-                            store: widget.store!,
-                            service: widget.store! as SpendingService,
+                      if (_failure != null)
+                        Text(switch (_failure!) {
+                          ImportFailure.tooLarge => strings.importTooLarge,
+                          ImportFailure.unsupported =>
+                            strings.importUnsupported,
+                          ImportFailure.unreadable => strings.importUnreadable,
+                        }),
+                      const SizedBox(height: 12),
+                      if (!recovery)
+                        FilledButton(
+                          onPressed: _manual,
+                          child: Text(
+                            widget.store == null
+                                ? strings.startReview
+                                : strings.manualEntryTitle,
                           ),
                         ),
-                      ),
-                      icon: const Icon(Icons.account_balance_wallet_outlined),
-                      label: Text(strings.spendingTitle),
-                    ),
-                  if (widget.store is CatalogService && !recovery)
-                    TextButton.icon(
-                      key: const Key('open-catalog'),
-                      onPressed: () => Navigator.of(context).push<void>(
-                        MaterialPageRoute(
-                          builder: (_) => CatalogPage(
-                            store: widget.store!,
-                            catalog: widget.store! as CatalogService,
-                          ),
+                      if (widget.store != null && !recovery)
+                        TextButton.icon(
+                          key: const Key('open-history'),
+                          onPressed: _history,
+                          icon: const Icon(Icons.history),
+                          label: Text(strings.historyTitle),
                         ),
-                      ),
-                      icon: const Icon(Icons.inventory_2_outlined),
-                      label: Text(strings.catalogTitle),
-                    ),
-                  if (recovery) Text(strings.backupRecoveryMode),
-                  if (widget.store is BackupService)
-                    TextButton.icon(
-                      key: const Key("open-backups"),
-                      onPressed: _backup,
-                      icon: const Icon(Icons.backup_outlined),
-                      label: Text(strings.backupTitle),
-                    ),
-                ],
+                      if (widget.store is SpendingService && !recovery)
+                        TextButton.icon(
+                          key: const Key('open-spending'),
+                          onPressed: () => Navigator.of(context).push<void>(
+                            MaterialPageRoute(
+                              builder: (_) => SpendingPage(
+                                store: widget.store!,
+                                service: widget.store! as SpendingService,
+                              ),
+                            ),
+                          ),
+                          icon: const Icon(
+                            Icons.account_balance_wallet_outlined,
+                          ),
+                          label: Text(strings.spendingTitle),
+                        ),
+                      if (widget.store is CatalogService && !recovery)
+                        TextButton.icon(
+                          key: const Key('open-catalog'),
+                          onPressed: () => Navigator.of(context).push<void>(
+                            MaterialPageRoute(
+                              builder: (_) => CatalogPage(
+                                store: widget.store!,
+                                catalog: widget.store! as CatalogService,
+                              ),
+                            ),
+                          ),
+                          icon: const Icon(Icons.inventory_2_outlined),
+                          label: Text(strings.catalogTitle),
+                        ),
+                      if (recovery) Text(strings.backupRecoveryMode),
+                      if (widget.store is BackupService)
+                        TextButton.icon(
+                          key: const Key("open-backups"),
+                          onPressed: _backup,
+                          icon: const Icon(Icons.backup_outlined),
+                          label: Text(strings.backupTitle),
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-        ),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: selected,
+        onDestinationSelected: (index) {
+          if (index == 1 || dashboardAvailable) setState(() => _tab = index);
+        },
+        destinations: [
+          NavigationDestination(
+            key: const Key('home-tab-dashboard'),
+            icon: const Icon(Icons.bar_chart),
+            label: strings.dashboardTab,
+            enabled: dashboardAvailable,
+          ),
+          NavigationDestination(
+            key: const Key('home-tab-receipts'),
+            icon: const Icon(Icons.receipt_long_outlined),
+            label: strings.receiptsTab,
+          ),
+        ],
       ),
     );
   }
@@ -303,11 +360,13 @@ class _StorageGate extends StatefulWidget {
     required this.recoveryOpener,
     required this.imagePicker,
     required this.backupFiles,
+    required this.dashboardClock,
   });
   final Future<LocalStore> Function()? recoveryOpener;
   final BackupFiles backupFiles;
   final Future<LocalStore> Function() opener;
   final Future<ReceiptEvidence?> Function() imagePicker;
+  final DateTime Function() dashboardClock;
   @override
   State<_StorageGate> createState() => _StorageGateState();
 }
@@ -352,6 +411,7 @@ class _StorageGateState extends State<_StorageGate> {
         imagePicker: widget.imagePicker,
         store: store,
         backupFiles: widget.backupFiles,
+        dashboardClock: widget.dashboardClock,
       );
     }
     final s = AppLocalizations.of(context)!;

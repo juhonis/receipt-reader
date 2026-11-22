@@ -8,7 +8,7 @@ extension ReceiptSpending on ReceiptRepository {
     () => _db.transaction(() async {
       final builder = SpendingDashboardBuilder(query);
       var cursor = '';
-      final first = purchaseCalendarDate(query.periods.first.firstDay);
+      final first = purchaseCalendarDate(query.scanFirstDay);
       final last = purchaseCalendarDate(query.selected.lastDay);
       while (true) {
         final batch = await _rows(
