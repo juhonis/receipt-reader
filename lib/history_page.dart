@@ -19,9 +19,11 @@ class HistoryPage extends StatefulWidget {
     super.key,
     required this.store,
     this.imagePicker = pickReceiptImage,
+    this.initialSelection,
   });
   final LocalStore store;
   final Future<ReceiptEvidence?> Function() imagePicker;
+  final HistoryFilterSelection? initialSelection;
   @override
   State<HistoryPage> createState() => _HistoryPageState();
 }
@@ -35,6 +37,7 @@ class _HistoryPageState extends State<HistoryPage> {
   @override
   void initState() {
     super.initState();
+    _selection = widget.initialSelection;
     _load();
   }
 

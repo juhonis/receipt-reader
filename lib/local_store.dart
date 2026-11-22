@@ -28,9 +28,13 @@ final class RepositoryStore
         LocalStore,
         CatalogService,
         PurchaseHistoryService,
-        SpendingService {
+        SpendingService,
+        SpendingDashboardService {
   RepositoryStore(this.repository);
   final ReceiptRepository repository;
+  @override
+  Future<SpendingDashboard> spendingDashboard(SpendingDashboardQuery query) =>
+      repository.spendingDashboard(query);
   @override
   Future<SpendingSummary> spendingSummary({HistoryFilter? filter}) =>
       repository.spendingSummary(filter: filter);
@@ -128,9 +132,13 @@ final class WorkspaceStore
         BackupService,
         CatalogService,
         PurchaseHistoryService,
-        SpendingService {
+        SpendingService,
+        SpendingDashboardService {
   WorkspaceStore(this.workspace);
   final ReceiptWorkspace workspace;
+  @override
+  Future<SpendingDashboard> spendingDashboard(SpendingDashboardQuery query) =>
+      _run(() => workspace.repository.spendingDashboard(query));
   @override
   Future<SpendingSummary> spendingSummary({HistoryFilter? filter}) =>
       _run(() => workspace.repository.spendingSummary(filter: filter));

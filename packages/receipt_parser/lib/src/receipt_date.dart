@@ -49,6 +49,24 @@ class ReceiptDateResult {
 
 bool _initialized = false;
 
+/// Civil day at an actual instant in Helsinki, independent of the host timezone.
+PrintedDate helsinkiCalendarDate(DateTime instant) {
+  if (!_initialized) {
+    database.initializeTimeZones();
+    _initialized = true;
+  }
+  final local = tz.TZDateTime.from(instant, tz.getLocation('Europe/Helsinki'));
+  return PrintedDate(
+    local.year,
+    local.month,
+    local.day,
+    null,
+    null,
+    null,
+    DatePrecision.day,
+  );
+}
+
 /// Strict Finnish date syntax. Two-digit years and impossible calendar dates
 /// are invalid. The initial supported receipt-year range is 1970..2099.
 ReceiptDateResult parseReceiptDate(String text) {

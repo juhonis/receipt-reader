@@ -25,6 +25,8 @@ full date-range summaries and calendar price-range charts, preserving raw amount
 and separating discounts, deposits, returns and unit/revision groups.
 [Receipt spending](docs/spending-summary.md) adds full signed totals by branch and
 calendar month with inclusive branch/date filters and explicit coverage notices.
+The [weekly/monthly dashboard](docs/spending-dashboard.md) adds period charts,
+matched-day comparisons, receipt averages, branch filtering and receipt drill-down.
 [Migration/recovery rehearsals](docs/migration-recovery.md) verify supported-schema
 upgrades, retained history and analytics through encrypted restore and reopen.
 A Windows development ZIP includes OCR assets and a synthetic clean-machine test.

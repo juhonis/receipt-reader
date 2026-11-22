@@ -2,6 +2,13 @@ import 'package:receipt_parser/receipt_parser.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('today follows Helsinki winter/summer midnight independently of host timezone', () {
+    final winter = helsinkiCalendarDate(DateTime.utc(2026, 11, 21, 22, 30));
+    final summer = helsinkiCalendarDate(DateTime.utc(2026, 6, 21, 21, 30));
+    expect((winter.year, winter.month, winter.day), (2026, 11, 22));
+    expect((summer.year, summer.month, summer.day), (2026, 6, 22));
+    expect(winter.precision, DatePrecision.day);
+  });
   test('date-only preserves civil precision and has no invented instant', () {
     final result = parseReceiptDate(' 29.2.2024 ');
     expect(result.state, ReceiptDateState.valid);

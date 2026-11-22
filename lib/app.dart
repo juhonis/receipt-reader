@@ -19,6 +19,7 @@ import 'backup_page.dart';
 import 'backup_service.dart';
 import 'spending_service.dart';
 import 'spending_page.dart';
+import 'spending_dashboard_page.dart';
 import 'software_info_page.dart';
 
 class ReceiptReaderApp extends StatelessWidget {
@@ -233,6 +234,20 @@ class _HomePageState extends State<_HomePage> {
                       onPressed: _history,
                       icon: const Icon(Icons.history),
                       label: Text(strings.historyTitle),
+                    ),
+                  if (widget.store is SpendingDashboardService && !recovery)
+                    TextButton.icon(
+                      key: const Key('open-dashboard'),
+                      onPressed: () => Navigator.of(context).push<void>(
+                        MaterialPageRoute(
+                          builder: (_) => SpendingDashboardPage(
+                            store: widget.store!,
+                            service: widget.store! as SpendingDashboardService,
+                          ),
+                        ),
+                      ),
+                      icon: const Icon(Icons.bar_chart),
+                      label: Text(strings.dashboardTitle),
                     ),
                   if (widget.store is SpendingService && !recovery)
                     TextButton.icon(

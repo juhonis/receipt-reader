@@ -19,3 +19,4 @@ part 'src/catalog.dart';
 part 'src/purchase.dart';
 part 'src/purchase_summary.dart';
 part 'src/spending.dart';
+part 'src/spending_dashboard.dart';

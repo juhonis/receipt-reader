@@ -1,5 +1,9 @@
 # Receipt spending summaries
 
+For weekly/monthly charts, period comparisons and receipt drill-down, use the
+separate [spending dashboard](spending-dashboard.md). This page describes the
+original full-range summary screen and its existing rules.
+
 The Finnish **Kulutus** action opens receipt-level totals from the home screen on
 Android and Windows. This is separate from the catalog's product purchase prices.
 Use **Toimipiste ja aikaväli** to select a branch and optional first/last day;

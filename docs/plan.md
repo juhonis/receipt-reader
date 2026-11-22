@@ -269,6 +269,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Add linked product purchase history and page-scoped price charts with exact quantity arithmetic, unit/revision comparability, linked item discounts, deposit exclusion and explicit receipt-wide discount/adjustment warnings. See [purchase history](purchase-history.md).
 - [x] Extend product price trends to inclusive date-range summaries over every matching row, with exact counts/subtotals, bounded calendar min/max charts, exclusion counts and one consistent summary/detail snapshot. See [purchase history](purchase-history.md).
 - [x] Add receipt-level spending summaries by branch and calendar month, using complete current receipt totals, exact signed cents, inclusive branch/date filters and explicit coverage notices. See [spending summaries](spending-summary.md).
+- [x] Add an offline weekly/monthly dashboard with up to 12 calendar bars, exact averages/deltas, matched-day comparisons for unfinished periods, branch filters and receipt drill-down. See [spending dashboard](spending-dashboard.md).
 - [x] Implement the versioned structured backup/isolated recovery core on both platforms, including strict validation, preserved event/tombstone/row identities, fresh device identity and repeated restore/write tests. See [backup recovery](backup-recovery.md).
 - [x] Add password-protected backup files, native export/import UI, validated preview, explicit replacement confirmation, transactional activation/crash recovery and retained previous datasets on both platforms. See [password backups](password-backups.md).
 - [x] Rehearse supported-schema (1–4) migration, rollback, retained history, catalog links and exact analytics through encrypted recovery/reopen on both native platforms using synthetic data. See [migration/recovery integrity](migration-recovery.md). Keep independent backups; this does not establish sole-copy safety.
@@ -395,8 +396,14 @@ amounts. Windows dash recovery and Android split-decimal recovery retain explici
 warnings; matching sums never bypass review. This is not photograph accuracy
 certification.
 
-Next, audit privacy/permissions and verify the native import/backup picker
-workflows before release or networking work. Keep representative S-kaupat images and OCR exports in ignored
+The [weekly/monthly dashboard](spending-dashboard.md) begins the expanded
+analytics work: calendar charts, fair partial-period comparisons, exact averages
+and receipt drill-down are available on both platforms. Next analytics milestones
+are visual store breakdowns, reviewed product categories and richer product
+comparisons. Privacy/permission auditing and native import/backup picker checks
+remain required before release or networking work.
+
+Keep representative S-kaupat images and OCR exports in ignored
 `localreceipts/`; committed fixtures remain synthetic or explicitly anonymized.
 Complete standalone workflows and tested recovery before bidirectional sync.
 Representative photograph/layout evaluation, remaining clean-machine checks, privacy/permission audits,
