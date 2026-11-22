@@ -6,7 +6,8 @@ native OCR or database dependency and performs no network requests. Its pinned
 `timezone` 0.11.2 dependency supplies bundled IANA 2026e timezone data; the
 parser imports the local database, not the package's loading APIs. The main app
 now uses its financial/date rules in a [manual review prototype](review-prototype.md),
-and a draft can seed its gated OCR review view; image import remains unimplemented.
+and a draft seeds the shared [OCR review/save flow](ocr-saving.md) after offline
+image recognition on Android or Windows.
 All committed test inputs are invented, including prices,
 names, and geometry; no private OCR exports were copied into fixtures.
 
@@ -78,9 +79,13 @@ Supported candidates:
   places them in separate blocks. Duplicate product names stay separate rows.
 - `PANTTI` charges/returns and explicit `ALE`/`ALENNUS` discount rows.
 - An immediately following quantity/rate line such as `0,250 kg 2,00 €/kg`
-  or `3 kpl 1,00 €/kpl`, with matching units (`kg`, `kpl`, `l`). Attachment
+  or `3 kpl × 1,00 €/kpl`, with optional `x`/`×`, Unicode minus for returns,
+  and matching units (`kg`, `kpl`, `l`). Attachment
   is to the immediately preceding product only, never across another row.
 - A unique `YHTEENSÄ` before recognized payment/VAT boundaries as the total.
+  Exact colon and euro annotations such as `YHTEENSÄ (EUR)` are supported.
+  Posted amounts may end in `€`/`EUR`; a final standalone currency token may
+  have a wider gap without allowing separate numeric tokens to fuse.
   Later payment and VAT amounts do not become item rows. Competing totals before
   the boundary remain ambiguous, even if one would make arithmetic match.
 - Exact whole-label variants `YHTEENSA` and `YHTEENS` followed by an A with
@@ -89,7 +94,10 @@ Supported candidates:
   is applied. Footer boundaries also recognize bonus/member/payment identifiers
   (`BONUSTA`, `JÄSENNUMERO`, `TID`) so their amounts cannot become purchases.
 - OCR-only whitespace directly beside a decimal comma/point can be removed,
-  with `normalizedOcrAmount` recorded. Manual input remains strict. Adjacent
+  with `normalizedOcrAmount` recorded. This also applies inside a complete
+  quantity/rate line when split decimal fragments are within the smaller word
+  height. A leading OCR en/em dash in a posted amount is proposed as negative
+  only with the same review finding. Manual input remains strict. Adjacent
   digit runs in separate tokens and price tokens separated by more than a word
   height are not fused into a fabricated amount. Letters are never replaced.
 - `NORM.`, `NORMAALIHINTA`, and `KAMPANJA` explanations retained as notes,
@@ -101,6 +109,9 @@ amounts are preserved in draft notes and flagged. Wrapped names are not silently
 joined to the next product. Complex multi-buy offers, arbitrary footer formats,
 discount-parent relationships, and automatic rounding adjustments need further
 fixtures and implementation. Parent links and product identity are not inferred.
+
+The [Finnish corpus](finnish-ocr-corpus.md) records the expanded hand-annotated
+synthetic cases, actual Tesseract/ML Kit captures, review gates and limitations.
 
 `draft.wrappedNames` proposes a combined name for a single adjacent text-only
 line followed by a priced product. Lines must be left-aligned within one word

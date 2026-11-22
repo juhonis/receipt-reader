@@ -1,6 +1,7 @@
 import 'finance.dart';
 import 'geometry.dart';
 import 'receipt_date.dart';
+import 'receipt_syntax.dart';
 
 enum ParseIssue {
   missingTotal,
@@ -242,7 +243,11 @@ ReceiptDraft parseReceipt(
   String price(List<OcrWord> band) {
     final tokens = band.where((w) => w.box.left >= priceColumnLeft).toList();
     for (var i = 1; i < tokens.length; i++) {
-      if (tokens[i].box.left - tokens[i - 1].box.right > tokens[i].box.height ||
+      final currencySuffix =
+          i == tokens.length - 1 && euroCurrencyMarker(tokens[i].text);
+      if ((!currencySuffix &&
+              tokens[i].box.left - tokens[i - 1].box.right >
+                  tokens[i].box.height) ||
           (RegExp(r'[0-9]$').hasMatch(tokens[i - 1].text.trim()) &&
               RegExp(r'^[0-9]').hasMatch(tokens[i].text.trim()))) {
         return tokens
@@ -254,12 +259,12 @@ ReceiptDraft parseReceipt(
   }
 
   BigInt? amount(String text) {
+    text = amountWithoutCurrency(text);
     final strict = parseCents(text);
     if (strict != null) return strict;
-    // Only whitespace directly beside a decimal separator is recoverable.
-    final normalized = text
-        .replaceAll(RegExp(r'(?<=[,.])\s+(?=[0-9])'), '')
-        .replaceAll(RegExp(r'(?<=[0-9])\s+(?=[,.])'), '');
+    // Only decimal-adjacent whitespace and a leading OCR dash are recovered.
+    // The printed value is proposed with an explicit review finding.
+    final normalized = normalizedOcrAmountLiteral(text);
     final parsed = parseCents(normalized);
     if (parsed != null) report(ParseIssue.normalizedOcrAmount);
     return parsed;
@@ -272,16 +277,10 @@ ReceiptDraft parseReceipt(
   );
   bands.removeWhere((b) => b.any((w) => w.box.top < itemTop));
   final totals = bands
-      .where(
-        (b) => RegExp(r'^YHTEENS[ÄAĂÀÁÂÃÅ]$').hasMatch(label(b).toUpperCase()),
-      )
+      .where((b) => receiptTotalLabel(label(b)) != null)
       .toList();
   // VAT and payment sections are never scanned for purchased items.
-  final footer = bands.indexWhere(
-    (b) => RegExp(
-      r'^(ALV|VEROTON|VISA|MASTERCARD|KÄTEINEN|MAKSETTU|PANKKIKORTTI|VAIHTORAHA|BONUSTA|JÄSENNUMERO|TID)(?:\s|:|$)',
-    ).hasMatch(label(b).toUpperCase()),
-  );
+  final footer = bands.indexWhere((b) => receiptFooterLabel(label(b)));
   final candidates = totals
       .where((b) => footer < 0 || bands.indexOf(b) < footer)
       .toList();
@@ -294,7 +293,7 @@ ReceiptDraft parseReceipt(
     report(ParseIssue.ambiguousTotal);
   } else {
     total = amount(price(candidates.single));
-    if (label(candidates.single).toUpperCase() != 'YHTEENSÄ') {
+    if (receiptTotalLabel(label(candidates.single)) != 'YHTEENSÄ') {
       report(ParseIssue.totalLabelNeedsReview);
     }
     if (total == null) report(ParseIssue.invalidAmount);
@@ -311,7 +310,7 @@ ReceiptDraft parseReceipt(
   List<OcrWord>? pendingDescription;
   var canAttachQuantity = false;
   final quantityPattern = RegExp(
-    r'^(-?[0-9]+(?:[,.][0-9]+)?)\s+(kg|kpl|l)\s+([0-9]+(?:[,.][0-9]+)?)\s+(?:€|EUR)?/?(kg|kpl|l)$',
+    r'^([-\u2212]?[0-9]+(?:[,.][0-9]+)?)\s+(kg|kpl|l)\s+(?:[x×]\s*)?([0-9]+(?:[,.][0-9]+)?)\s+(?:€|EUR)?/?(kg|kpl|l)$',
     caseSensitive: false,
   );
   for (final band in bands.take(end)) {
@@ -324,7 +323,25 @@ ReceiptDraft parseReceipt(
     final upper = name.toUpperCase();
     final amountText = price(band);
     final fullText = band.map((w) => w.text).join(' ');
-    final quantity = quantityPattern.firstMatch(fullText);
+    // Recover decimal-adjacent OCR whitespace only within the complete quantity
+    // grammar. Distant fragments and separate digit runs must remain unparsed.
+    final closeDecimalFragments = !List.generate(band.length - 1, (i) => i).any(
+      (i) =>
+          ((RegExp(r'[,.]$').hasMatch(band[i].text.trim()) &&
+                  RegExp(r'^[0-9]').hasMatch(band[i + 1].text.trim())) ||
+              (RegExp(r'[0-9]$').hasMatch(band[i].text.trim()) &&
+                  RegExp(r'^[,.]').hasMatch(band[i + 1].text.trim()))) &&
+          band[i + 1].box.left - band[i].box.right >
+              (band[i].box.height < band[i + 1].box.height
+                  ? band[i].box.height
+                  : band[i + 1].box.height),
+    );
+    final quantityText = closeDecimalFragments
+        ? fullText
+              .replaceAll(RegExp(r'(?<=[,.])\s+(?=[0-9])'), '')
+              .replaceAll(RegExp(r'(?<=[0-9])\s+(?=[,.])'), '')
+        : fullText;
+    final quantity = quantityPattern.firstMatch(quantityText);
     if (quantity != null) {
       final value = parseFixed(quantity[1]!, 6);
       final rate = parseFixed(quantity[3]!, 6);
@@ -355,6 +372,7 @@ ReceiptDraft parseReceipt(
         rowEvidence.last.addAll(band);
         activeRow = rows.length - 1;
         activeWords = rowEvidence.last;
+        if (quantityText != fullText) report(ParseIssue.normalizedOcrAmount);
         if (rows.last.quantityMatches == false)
           report(ParseIssue.quantityMismatch);
       }

@@ -1,6 +1,7 @@
 import 'finance.dart';
 import 'geometry.dart';
 import 'receipt_date.dart';
+import 'receipt_syntax.dart';
 
 enum LayoutIssue {
   missingHeaderDate,
@@ -30,28 +31,14 @@ LayoutProposal proposeLayout(OcrPage page) {
   bool sameLine(OcrWord a, OcrWord b) =>
       (page.baselineY(a) - page.baselineY(b)).abs() <=
       (a.box.height < b.box.height ? a.box.height : b.box.height) * .45;
-  BigInt? money(OcrWord w) => parseCents(
-    w.text
-        .trim()
-        .replaceAll(RegExp(r'(?<=[,.])\s+(?=[0-9])'), '')
-        .replaceAll(RegExp(r'(?<=[0-9])\s+(?=[,.])'), ''),
-  );
-  final footers = page.words
-      .where(
-        (w) => RegExp(
-          r'^(BONUSTA|JÄSENNUMERO|TID|VISA|MASTERCARD|ALV|VEROTON)(?:\s|:|$)',
-        ).hasMatch(w.text.toUpperCase()),
-      )
-      .toList();
+  BigInt? money(OcrWord w) => parseCents(normalizedOcrAmountLiteral(w.text));
+  final footers = page.words.where((w) => receiptFooterLabel(w.text)).toList();
   final footerY = footers.isEmpty
       ? double.infinity
       : footers.map(page.baselineY).reduce((a, b) => a < b ? a : b);
   final totals = page.words
       .where(
-        (w) =>
-            RegExp(r'^YHTEENS[ÄAĂÀÁÂÃÅ]$')
-                .hasMatch(w.text.trim().toUpperCase()) &&
-            page.baselineY(w) < footerY,
+        (w) => receiptTotalLabel(w.text) != null && page.baselineY(w) < footerY,
       )
       .toList();
   if (totals.isEmpty) return fail(LayoutIssue.missingTotal);
@@ -67,13 +54,12 @@ LayoutProposal proposeLayout(OcrPage page) {
       .toList();
   if (totalAmounts.length != 1) return fail(LayoutIssue.ambiguousTotal);
   final totalAmount = totalAmounts.single;
-  if (page.words.any(
-    (w) =>
-        w != label &&
-        w != totalAmount &&
-        sameLine(label, w) &&
-        w.box.left < totalAmount.box.left,
-  )) {
+  final labelWords =
+      page.words
+          .where((w) => sameLine(label, w) && w.box.left < totalAmount.box.left)
+          .toList()
+        ..sort((a, b) => a.box.left.compareTo(b.box.left));
+  if (receiptTotalLabel(labelWords.map((w) => w.text).join(' ')) == null) {
     return fail(LayoutIssue.ambiguousTotal);
   }
   final headerWords =

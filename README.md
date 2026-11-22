@@ -34,7 +34,9 @@ history after moving the program folder, following the earlier offline test.
 approval for ordinary receipts, with highlighted validation problems and no
 mandatory checklist note. The [dependency notice audit](docs/dependency-licenses.md)
 adds an offline license screen, full SDK/native notices and artifact validation.
-Broader OCR evaluation, application licensing/distribution decisions, signing
+The [Finnish OCR corpus](docs/finnish-ocr-corpus.md) covers 23 synthetic receipt
+cases and three actual-engine cases on each platform, with review warnings for
+uncertain sign/decimal recovery. Photograph evaluation, application licensing/distribution decisions, signing
 and sync remain open.
 
 See [the project plan](docs/plan.md) for the next milestone and

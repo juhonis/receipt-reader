@@ -231,6 +231,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Define fixed-point arithmetic, financial row semantics, and printed date/time representation with explicit Helsinki DST ambiguity. See [parser conventions](parser-foundations.md); persistence range checks and review resolution remain open.
 - [x] Establish a standalone Dart parser foundation with exact arithmetic, geometry-based row candidates, header dates, and synthetic validation tests. See [parser scope and limitations](parser-foundations.md); broader layouts and review integration remain open.
 - [ ] Build representative geometry-preserving OCR fixtures and expected outputs.
+- [x] Add 23 hand-annotated synthetic Finnish cases and six actual-engine geometry captures, with native checks on both platforms and review/save safeguards. See [Finnish OCR corpus](finnish-ocr-corpus.md); representative photograph evaluation remains open.
 - [ ] Implement standalone Dart parser and validation tests, including discounts, deposits, returns, and weighed goods.
 - [x] Define schema constraints, causal revisions, event identities, conflict states, and versioning before creating migrations. See the [local storage contract](local-storage-contract.md); schema/event/review versions are independent, while transport limits and the wire format remain work for the sync implementation. Defer network implementation until both local workflows work.
 
@@ -387,9 +388,16 @@ hashes, preserves full native/SDK texts, provides an offline license screen and
 checks actual built notice assets. App licensing/end-user terms, builder licensing
 entitlement, signing and public distribution acceptance remain separate decisions.
 
-Next, broaden OCR fixtures and resolve representative parsing failures before
-release or networking work. Keep representative S-kaupat images and OCR exports in ignored
+The [Finnish OCR corpus](finnish-ocr-corpus.md) now covers 23 invented receipt
+cases, source coverage and review gates. Three actual-engine synthetic cases
+pass on each platform, including weighed purchases/returns and euro-suffixed
+amounts. Windows dash recovery and Android split-decimal recovery retain explicit
+warnings; matching sums never bypass review. This is not photograph accuracy
+certification.
+
+Next, audit privacy/permissions and verify the native import/backup picker
+workflows before release or networking work. Keep representative S-kaupat images and OCR exports in ignored
 `localreceipts/`; committed fixtures remain synthetic or explicitly anonymized.
 Complete standalone workflows and tested recovery before bidirectional sync.
-Broader parser fixtures, remaining clean-machine checks, privacy/permission audits,
+Representative photograph/layout evaluation, remaining clean-machine checks, privacy/permission audits,
 manufacturer transfer tests and native Windows picker verification remain required.
