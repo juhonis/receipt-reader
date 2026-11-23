@@ -45,9 +45,30 @@ final class PurchasePriceBucket {
     required this.count,
     required this.minimum,
     required this.maximum,
+    required this.weightedMean,
   });
   final int firstDay, lastDay, count;
-  final UnitPrice minimum, maximum;
+  final UnitPrice minimum, maximum, weightedMean;
+}
+
+/// Quantity-weighted price for all comparable purchases on one printed day.
+final class PurchaseDayPrice {
+  const PurchaseDayPrice(this.day, this.count, this.weightedMean);
+  final int day, count;
+  final UnitPrice weightedMean;
+}
+
+/// Product-row subtotal, including returns and rows with missing quantities.
+final class PurchaseSpendingBucket {
+  const PurchaseSpendingBucket({
+    required this.firstDay,
+    required this.lastDay,
+    required this.count,
+    required this.returnRows,
+    required this.effectiveCents,
+  });
+  final int firstDay, lastDay, count, returnRows;
+  final BigInt effectiveCents;
 }
 
 final class PurchasePriceGroup {
@@ -59,12 +80,21 @@ final class PurchasePriceGroup {
     required this.maximum,
     required this.receiptDiscountRows,
     required this.adjustmentRows,
+    required this.weightedMean,
+    required this.firstPurchaseDay,
+    required this.lastPurchaseDay,
     required Iterable<PurchasePriceBucket> buckets,
   }) : buckets = List.unmodifiable(buckets);
   final QuantityUnit unit;
   final RevisionId? productRevision;
   final int count, receiptDiscountRows, adjustmentRows;
-  final UnitPrice minimum, maximum;
+  final UnitPrice minimum, maximum, weightedMean;
+  final PurchaseDayPrice firstPurchaseDay, lastPurchaseDay;
+  BigInt? get changeTenthsPercent => firstPurchaseDay.day == lastPurchaseDay.day
+      ? null
+      : lastPurchaseDay.weightedMean.changeTenthsPercentFrom(
+          firstPurchaseDay.weightedMean,
+        );
   final List<PurchasePriceBucket> buckets;
 }
 
@@ -82,7 +112,9 @@ final class PurchaseSummary {
     required this.firstDay,
     required this.lastDay,
     required Iterable<PurchasePriceGroup> groups,
-  }) : groups = List.unmodifiable(groups);
+    required Iterable<PurchaseSpendingBucket> spendingBuckets,
+  }) : groups = List.unmodifiable(groups),
+       spendingBuckets = List.unmodifiable(spendingBuckets);
   final int totalRows,
       comparableRows,
       returnRows,
@@ -93,6 +125,7 @@ final class PurchaseSummary {
   final BigInt rawCents, effectiveCents;
   final int? firstDay, lastDay;
   final List<PurchasePriceGroup> groups;
+  final List<PurchaseSpendingBucket> spendingBuckets;
 }
 
 /// Exact streaming fold. At most 64 comparison groups, 24 buckets each.
@@ -114,6 +147,7 @@ final class PurchaseSummaryBuilder {
   final DurableId storeId, productId;
   final int? firstDay, lastDay;
   final _groups = <(QuantityUnit, RevisionId?), _PriceGroupBuilder>{};
+  final _spending = <int, _SpendingBucketBuilder>{};
   int _total = 0,
       _comparable = 0,
       _returns = 0,
@@ -144,6 +178,8 @@ final class PurchaseSummaryBuilder {
       _require(_groups.length < 64, 'purchase.summary', 'groupLimit');
       _groups[group] = _PriceGroupBuilder(group.$1, group.$2);
     }
+    final index = (day - firstDay!) * bucketCount ~/ (lastDay! - firstDay! + 1);
+    (_spending[index] ??= _SpendingBucketBuilder()).add(purchase);
     _total++;
     _raw += purchase.row.cents;
     _effective += purchase.effectiveCents;
@@ -157,8 +193,6 @@ final class PurchaseSummaryBuilder {
       _negative++;
     } else {
       _comparable++;
-      final index =
-          (day - firstDay!) * bucketCount ~/ (lastDay! - firstDay! + 1);
       _groups[group]!.add(purchase, price, index);
     }
   }
@@ -175,6 +209,16 @@ final class PurchaseSummaryBuilder {
     effectiveCents: _effective,
     firstDay: firstDay,
     lastDay: lastDay,
+    spendingBuckets: [
+      for (var i = 0; i < bucketCount; i++)
+        PurchaseSpendingBucket(
+          firstDay: _bucketBoundary(firstDay!, lastDay!, bucketCount, i),
+          lastDay: _bucketBoundary(firstDay!, lastDay!, bucketCount, i + 1) - 1,
+          count: _spending[i]?.count ?? 0,
+          returnRows: _spending[i]?.returns ?? 0,
+          effectiveCents: _spending[i]?.cents ?? BigInt.zero,
+        ),
+    ],
     groups: [
       for (final group in _groups.values)
         group.finish(firstDay!, lastDay!, bucketCount),
@@ -189,21 +233,29 @@ final class _PriceGroupBuilder {
   int count = 0, discounts = 0, adjustments = 0;
   UnitPrice? minimum, maximum;
   final buckets = <int, _PriceBucketBuilder>{};
+  final totals = _WeightedPriceBuilder();
+  _DayPriceBuilder? firstPurchaseDay, lastPurchaseDay;
   void add(ProductPurchase p, UnitPrice price, int index) {
     count++;
+    totals.add(p);
+    final day = purchaseCalendarDay(p.date);
+    if (firstPurchaseDay == null || day < firstPurchaseDay!.day)
+      firstPurchaseDay = _DayPriceBuilder(day);
+    if (lastPurchaseDay == null || day > lastPurchaseDay!.day)
+      lastPurchaseDay = _DayPriceBuilder(day);
+    if (firstPurchaseDay!.day == day) firstPurchaseDay!.totals.add(p);
+    if (lastPurchaseDay!.day == day) lastPurchaseDay!.totals.add(p);
     if (p.receiptDiscountCents != BigInt.zero) discounts++;
     if (p.hasReceiptAdjustment) adjustments++;
     if (minimum == null || price.compareTo(minimum!) < 0) minimum = price;
     if (maximum == null || price.compareTo(maximum!) > 0) maximum = price;
-    (buckets[index] ??= _PriceBucketBuilder()).add(price);
+    (buckets[index] ??= _PriceBucketBuilder()).add(p, price);
   }
 
   PurchasePriceGroup finish(int first, int last, int bucketCount) {
-    final span = last - first + 1;
     final indices = buckets.keys.toList()..sort();
     // Invert floor(day * count / span) with exact integer ceiling boundaries.
-    int boundary(int index) =>
-        first + (index * span + bucketCount - 1) ~/ bucketCount;
+    int boundary(int index) => _bucketBoundary(first, last, bucketCount, index);
     return PurchasePriceGroup(
       unit: unit,
       productRevision: revision,
@@ -212,6 +264,9 @@ final class _PriceGroupBuilder {
       maximum: maximum!,
       receiptDiscountRows: discounts,
       adjustmentRows: adjustments,
+      weightedMean: totals.mean,
+      firstPurchaseDay: firstPurchaseDay!.finish(),
+      lastPurchaseDay: lastPurchaseDay!.finish(),
       buckets: [
         for (final i in indices)
           PurchasePriceBucket(
@@ -220,6 +275,7 @@ final class _PriceGroupBuilder {
             count: buckets[i]!.count,
             minimum: buckets[i]!.minimum!,
             maximum: buckets[i]!.maximum!,
+            weightedMean: buckets[i]!.totals.mean,
           ),
       ],
     );
@@ -229,9 +285,45 @@ final class _PriceGroupBuilder {
 final class _PriceBucketBuilder {
   int count = 0;
   UnitPrice? minimum, maximum;
-  void add(UnitPrice price) {
+  final totals = _WeightedPriceBuilder();
+  void add(ProductPurchase purchase, UnitPrice price) {
     count++;
+    totals.add(purchase);
     if (minimum == null || price.compareTo(minimum!) < 0) minimum = price;
     if (maximum == null || price.compareTo(maximum!) > 0) maximum = price;
+  }
+}
+
+int _bucketBoundary(int first, int last, int count, int index) =>
+    first + (index * (last - first + 1) + count - 1) ~/ count;
+
+/// Quantities use a common exact 10^-6 scale; sums may exceed int64.
+final class _WeightedPriceBuilder {
+  BigInt cents = BigInt.zero, microQuantity = BigInt.zero;
+  int count = 0;
+  void add(ProductPurchase p) {
+    cents += p.effectiveCents;
+    microQuantity +=
+        p.row.quantityValue! * BigInt.from(10).pow(6 - p.row.quantityScale!);
+    count++;
+  }
+
+  UnitPrice get mean => UnitPrice.fromLine(cents, microQuantity, 6);
+}
+
+final class _DayPriceBuilder {
+  _DayPriceBuilder(this.day);
+  final int day;
+  final totals = _WeightedPriceBuilder();
+  PurchaseDayPrice finish() => PurchaseDayPrice(day, totals.count, totals.mean);
+}
+
+final class _SpendingBucketBuilder {
+  int count = 0, returns = 0;
+  BigInt cents = BigInt.zero;
+  void add(ProductPurchase p) {
+    count++;
+    if (p.isReturn) returns++;
+    cents += p.effectiveCents;
   }
 }

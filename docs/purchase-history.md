@@ -50,7 +50,7 @@ computed after exact comparison and scaling.
 Use **Valitse aikaväli** to enter inclusive Finnish calendar days (1970–2099).
 Either bound can be blank. Times, invalid calendar dates and reversed ranges are
 rejected. Cancel keeps the existing selection; **Tyhjennä suodattimet** restores
-all dates. Changing the range resets the receipt page to the beginning.
+all dates. Changing the range resets the receipt page and scrolls to the beginning.
 
 The summary and charts cover **every matching product row across all pages**.
 Detail rows remain paginated in groups of 30. Total rows partition exactly into
@@ -61,14 +61,18 @@ row counts. Product row subtotals include returns and linked item discounts wher
 labelled, but exclude deposits and unallocated receipt-wide amounts; these are
 not whole-receipt spending totals. Unlinked rows never enter this product summary.
 
-Each compatible group shows its exact count and minimum/maximum over the entire
-selected range. The chart has at most 24 calendar intervals of approximately equal
+Each compatible group shows its exact count, minimum/maximum and quantity-weighted
+average over the entire selected range. [Product trends](product-trends.md) add
+first/latest-day comparisons and signed product-spending charts with interval
+drill-down. The chart has at most 24 calendar intervals of approximately equal
 length. Each nonempty interval shows its minimum and maximum as a vertical bar.
-Empty intervals stay empty; there is no interpolation or inferred average. The
+A circle marks the quantity-weighted average of actual purchases in each observed
+interval. Empty intervals stay empty; there is no interpolation or inferred data. The
 horizontal axis represents calendar days. Explicit date bounds set its extent;
 an open bound uses the earliest/latest matching row, including excluded rows.
 Expand **Jaksojen tarkat hinnat ja havaintomäärät** for accessible text containing
-each nonempty interval's dates, exact displayed range and observation count.
+each nonempty interval's dates, displayed range, weighted average and observation
+count.
 The layout wraps on a 320 px screen with doubled text size.
 
 No-data and no-comparable-data states are distinct. A single observation retains
@@ -88,7 +92,8 @@ and summary share the same branch/product/date predicates. Workspace calls use t
 same queue as saves and backup activation, resolving the active database at execution.
 
 The accumulator retains at most 64 comparison groups with 24 calendar buckets
-each, plus exact counts and signed BigInt subtotals. Details keep their existing
+each, first/latest-day aggregates per group and 24 overall signed spending buckets,
+plus exact counts and BigInt subtotals. Details keep their existing
 bounded page. More than 64 unit/revision groups fails the complete operation with
 `purchaseGroupLimit`; the UI asks for a narrower date range and displays no partial
 summary. Runtime still grows with matching history, so long ranges can take longer

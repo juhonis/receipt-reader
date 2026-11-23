@@ -99,6 +99,108 @@ void main() {
     offset: offset,
   );
 
+  test('weighted trends, signed spending and encrypted recovery remain exact and read-only', () async {
+    await save(
+      1,
+      quantity: 2,
+      cents: 400,
+      discount: -100,
+      date: '16.11.2026',
+      warnings: true,
+    );
+    await save(2, quantity: 1, cents: 200, date: '16.11.2026');
+    await save(3, quantity: 3, cents: 600, date: '17.11.2026');
+    await save(4, quantity: -1, cents: -200, date: '18.11.2026');
+    await save(5, quantified: false, cents: 700, date: '19.11.2026');
+    final before = await h.repository.exportBackup();
+    void check(PurchaseHistoryResult data) {
+      final g = data.summary.groups.single;
+      expect(g.weightedMean.euros, '1,8333');
+      expect(g.firstPurchaseDay.count, 2);
+      expect(g.firstPurchaseDay.weightedMean.euros, '1,6667');
+      expect(g.lastPurchaseDay.weightedMean.euros, '2,0000');
+      expect(g.changeTenthsPercent, BigInt.from(200));
+      expect(data.summary.spendingBuckets.map((b) => b.effectiveCents), [
+        BigInt.from(500),
+        BigInt.from(600),
+        BigInt.from(-200),
+        BigInt.from(700),
+      ]);
+      expect(data.summary.effectiveCents, BigInt.from(1600));
+    }
+
+    check(await read());
+    expect(await h.repository.exportBackup(), before);
+    final protected = await ProtectedBackup.encrypt(
+      before,
+      'synthetic product trends password',
+    );
+    final restored = await ReceiptRepository.restoreBackup(
+      await ProtectedBackup.decrypt(
+        protected,
+        'synthetic product trends password',
+      ),
+      stagingParent: h.directory,
+    );
+    final recovered = await ReceiptRepository.open(restored.databaseFile);
+    try {
+      check(await recovered.purchaseHistory(branch.id, product.link.id));
+      expect(await recovered.exportBackup(), before);
+    } finally {
+      await recovered.close();
+    }
+    await h.reopen();
+    check(await read());
+  });
+
+  test(
+    'link removal and deletion update both weighted prices and signed spending',
+    () async {
+      final first = await save(1, date: '16.11.2026');
+      final last = await save(2, quantity: 2, cents: 600, date: '17.11.2026');
+      expect(
+        (await read()).summary.groups.single.changeTenthsPercent,
+        BigInt.from(500),
+      );
+      await h.repository.saveManual(
+        ReviewedReceipt.productLinks(
+          confirmation:
+              ProductLinkReviewChecks(
+                base: last.document,
+                expectedHead: last.revision,
+                selections: {last.document.snapshot.items.first.id: null},
+                mutationId: id(8000),
+              ).confirm(
+                reviewedAtMs: BigInt.from(3000),
+                appVersion: 'product-trends-test',
+              ),
+        ),
+      );
+      var result = await read();
+      expect(result.summary.groups.single.weightedMean.euros, '2,0000');
+      expect(result.summary.groups.single.changeTenthsPercent, isNull);
+      expect(
+        result.summary.spendingBuckets.single.effectiveCents,
+        BigInt.from(200),
+      );
+      await h.repository.deleteReceipt(
+        ReceiptDeletionChecks(
+          document: first.document,
+          expectedHead: first.revision,
+          mutationId: id(8001),
+          receiptReviewed: true,
+        ).confirm(
+          deletedAtMs: BigInt.from(3001),
+          appVersion: 'product-trends-test',
+        ),
+      );
+      result = await read();
+      expect(result.summary.groups, isEmpty);
+      expect(result.summary.spendingBuckets, isEmpty);
+      await h.repository.verifyIntegrity();
+    },
+  );
+
   test('all selected rows contribute beyond pages and scan batches; inclusive bounds filter details and summary together', () async {
     for (var i = 0; i < 67; i++) {
       await save(
@@ -130,6 +232,15 @@ void main() {
       expect(data.summary.rawCents, BigInt.from(15611));
       expect(data.summary.groups.single.minimum.euros, '2,0000');
       expect(data.summary.groups.single.maximum.euros, '2,6600');
+      final group = data.summary.groups.single;
+      expect(group.weightedMean.euros, '2,3300');
+      expect(group.firstPurchaseDay.weightedMean.euros, '2,1950');
+      expect(group.lastPurchaseDay.weightedMean.euros, '2,5300');
+      expect(group.changeTenthsPercent, BigInt.from(153));
+      expect(data.summary.spendingBuckets.map((b) => b.effectiveCents), [
+        BigInt.from(8780),
+        BigInt.from(6831),
+      ]);
       expect(data.summary.groups.single.buckets.map((b) => b.count), [40, 27]);
       expect(
         data.purchases.length,

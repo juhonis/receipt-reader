@@ -38,6 +38,7 @@ class PurchaseHistoryPage extends StatefulWidget {
 }
 
 class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
+  final _scroll = ScrollController();
   int _offset = 0;
   PurchaseDateRange _range = PurchaseDateRange();
   late Future<PurchaseHistoryResult> _items = _load();
@@ -50,15 +51,26 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
   void _reload() => setState(() {
     _items = _load();
   });
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _applyRange(PurchaseDateRange range) {
+    _range = range;
+    _offset = 0;
+    if (_scroll.hasClients) _scroll.jumpTo(0);
+    _reload();
+  }
+
   Future<void> _selectRange() async {
     final range = await showDialog<PurchaseDateRange>(
       context: context,
       builder: (_) => PurchaseRangeDialog(range: _range),
     );
     if (!mounted || range == null) return;
-    _range = range;
-    _offset = 0;
-    _reload();
+    _applyRange(range);
   }
 
   Future<void> _open(StoredProductPurchase item) async {
@@ -98,6 +110,7 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
                 final data = result.data;
                 final items = data?.purchases;
                 return ListView(
+                  controller: _scroll,
                   padding: const EdgeInsets.all(16),
                   children: [
                     Text(
@@ -127,9 +140,7 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
                           TextButton(
                             key: const Key('purchases-reset-range'),
                             onPressed: () {
-                              _range = PurchaseDateRange();
-                              _offset = 0;
-                              _reload();
+                              _applyRange(PurchaseDateRange());
                             },
                             child: Text(s.historyResetFilters),
                           ),
@@ -150,7 +161,10 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
                     else if (items == null)
                       const LinearProgressIndicator()
                     else ...[
-                      PurchaseSummaryView(summary: data!.summary),
+                      PurchaseSummaryView(
+                        summary: data!.summary,
+                        onRange: _applyRange,
+                      ),
                       if (data.summary.totalRows == 0)
                         Text(s.purchaseEmpty)
                       else if (items.isEmpty)

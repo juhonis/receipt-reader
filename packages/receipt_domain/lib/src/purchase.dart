@@ -25,6 +25,18 @@ final class UnitPrice implements Comparable<UnitPrice> {
     return '${numerator.isNegative && rounded != BigInt.zero ? '-' : ''}${text.substring(0, text.length - 4)},${text.substring(text.length - 4)}';
   }
 
+  /// Display percentage in tenths, rounded once; a free baseline is undefined.
+  BigInt? changeTenthsPercentFrom(UnitPrice baseline) {
+    if (baseline.numerator <= BigInt.zero) return null;
+    final delta =
+        (numerator * baseline.denominator - baseline.numerator * denominator) *
+        BigInt.from(1000);
+    final divisor = denominator * baseline.numerator;
+    var rounded = delta.abs() ~/ divisor;
+    if (delta.abs() % divisor * BigInt.two >= divisor) rounded += BigInt.one;
+    return delta.isNegative ? -rounded : rounded;
+  }
+
   /// Relative drawing coordinate only; comparisons remain exact.
   double positionBetween(UnitPrice low, UnitPrice high) {
     if (low.compareTo(high) == 0) return 0.5;

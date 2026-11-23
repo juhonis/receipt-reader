@@ -4,6 +4,7 @@ import 'package:receipt_parser/receipt_parser.dart';
 
 import 'l10n/generated/app_localizations.dart';
 import 'receipt_format.dart';
+import 'product_spending_trend_view.dart';
 
 String _unit(QuantityUnit unit) => switch (unit) {
   QuantityUnit.piece => 'kpl',
@@ -14,8 +15,9 @@ String _unit(QuantityUnit unit) => switch (unit) {
 String _day(int day) => receiptDateText(purchaseCalendarDate(day));
 
 class PurchaseSummaryView extends StatelessWidget {
-  const PurchaseSummaryView({super.key, required this.summary});
+  const PurchaseSummaryView({super.key, required this.summary, this.onRange});
   final PurchaseSummary summary;
+  final ValueChanged<PurchaseDateRange>? onRange;
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
@@ -44,6 +46,8 @@ class PurchaseSummaryView extends StatelessWidget {
         if (summary.adjustmentRows > 0) Text(s.purchaseAdjustment),
         if (summary.totalRows > 0 && summary.comparableRows == 0)
           Text(s.purchaseNoComparable),
+        if (summary.totalRows > 0)
+          ProductSpendingTrendView(summary: summary, onRange: onRange),
         if (summary.groups.isNotEmpty) Text(s.purchasePiecePolicy),
         for (final group in summary.groups) _group(context, group),
       ],
@@ -71,10 +75,35 @@ class PurchaseSummaryView extends StatelessWidget {
             Text(
               '${s.purchaseRange}: ${group.minimum.euros}–${group.maximum.euros} €/$unit',
             ),
+            Text(
+              '${s.purchaseWeightedAverage}: ${group.weightedMean.euros} €/$unit',
+              key: ValueKey(
+                'purchase-weighted-$unit-${group.productRevision?.origin.value}-${group.productRevision?.sequence}',
+              ),
+            ),
+            Text(
+              '${s.purchaseFirstDay}: ${_day(group.firstPurchaseDay.day)}: ${group.firstPurchaseDay.weightedMean.euros} €/$unit (n=${group.firstPurchaseDay.count})',
+            ),
+            Text(
+              '${s.purchaseLastDay}: ${_day(group.lastPurchaseDay.day)}: ${group.lastPurchaseDay.weightedMean.euros} €/$unit (n=${group.lastPurchaseDay.count})',
+            ),
+            if (group.firstPurchaseDay.day == group.lastPurchaseDay.day)
+              Text(s.purchaseDayComparisonMissing)
+            else if (group.changeTenthsPercent case final change?)
+              Text(
+                '${s.purchaseDayChange}: ${purchaseChangePercent(change)}',
+                key: ValueKey(
+                  'purchase-change-$unit-${group.productRevision?.origin.value}-${group.productRevision?.sequence}',
+                ),
+              )
+            else
+              Text(s.purchaseZeroBaseline),
+            Text(s.purchaseDayPolicy),
             if (group.receiptDiscountRows > 0) Text(s.purchaseReceiptDiscount),
             if (group.adjustmentRows > 0) Text(s.purchaseAdjustment),
             if (group.count == 1) Text(s.purchaseChartSingle),
             Text(s.purchaseBucketPolicy),
+            Text(s.purchaseAveragePolicy),
             ExcludeSemantics(
               child: SizedBox(
                 height: 120,
@@ -99,8 +128,16 @@ class PurchaseSummaryView extends StatelessWidget {
                 for (final bucket in group.buckets)
                   Padding(
                     padding: const EdgeInsets.all(8),
-                    child: Text(
-                      '${_day(bucket.firstDay)}–${_day(bucket.lastDay)}: ${bucket.minimum.euros}–${bucket.maximum.euros} €/$unit (n=${bucket.count})',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${_day(bucket.firstDay)}–${_day(bucket.lastDay)}: ${bucket.minimum.euros}–${bucket.maximum.euros} €/$unit (n=${bucket.count})',
+                        ),
+                        Text(
+                          '${s.purchaseWeightedAverage}: ${bucket.weightedMean.euros} €/$unit',
+                        ),
+                      ],
                     ),
                   ),
               ],
@@ -112,7 +149,8 @@ class PurchaseSummaryView extends StatelessWidget {
   }
 }
 
-/// Vertical min/max bars. Gaps stay empty; no interpolation or inferred mean.
+/// Vertical min/max bars with exact quantity-weighted mean markers.
+/// Gaps remain empty and points are never interpolated.
 class _RangePainter extends CustomPainter {
   _RangePainter(this.group, this.firstDay, this.lastDay, this.color);
   final PurchasePriceGroup group;
@@ -138,6 +176,7 @@ class _RangePainter extends CustomPainter {
       canvas.drawLine(Offset(x, low), Offset(x, high), paint);
       canvas.drawLine(Offset(x - 4, low), Offset(x + 4, low), paint);
       canvas.drawLine(Offset(x - 4, high), Offset(x + 4, high), paint);
+      canvas.drawCircle(Offset(x, y(bucket.weightedMean)), 5, paint);
     }
   }
 
@@ -147,4 +186,14 @@ class _RangePainter extends CustomPainter {
       old.firstDay != firstDay ||
       old.lastDay != lastDay ||
       old.color != color;
+}
+
+/// Already rounded in the domain; keep arbitrary-sized values out of doubles.
+String purchaseChangePercent(BigInt tenths) {
+  final value = tenths.abs().toString().padLeft(2, '0');
+  return '${tenths.isNegative
+      ? '-'
+      : tenths > BigInt.zero
+      ? '+'
+      : ''}${value.substring(0, value.length - 1)},${value.substring(value.length - 1)} %';
 }

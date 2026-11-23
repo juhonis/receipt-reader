@@ -536,5 +536,19 @@
   "productLinksChanged": "Liitos muutettu",
   "productLinksFailed": "Tallennuksen tulosta ei voitu varmistaa. Yritä samaa tallennusta uudelleen tai palaa historiaan tarkistamaan tilanne.",
   "productLinksStale": "Kuitti, toimipiste tai valittu tuote on muuttunut. Palaa historiaan ja avaa kuitti uudelleen.",
-  "productLinksPending": "Liitosvalinnat on lukittu saman tallennuksen uudelleenyritystä varten."
+  "productLinksPending": "Liitosvalinnat on lukittu saman tallennuksen uudelleenyritystä varten.",
+  "purchaseWeightedAverage": "Ostomäärällä painotettu keskihinta",
+  "purchaseAveragePolicy": "Keskihinta = vertailukelpoisten ostojen rivisummat rivialennusten jälkeen / tarkistetut ostomäärät. Ympyrä näyttää jakson keskihinnan. Palautukset ja puutteelliset määrät eivät kuulu hintavertailuun. Tyhjiä jaksoja ei yhdistetä.",
+  "purchaseFirstDay": "Ensimmäisen ostopäivän keskihinta",
+  "purchaseLastDay": "Viimeisen ostopäivän keskihinta",
+  "purchaseDayChange": "Muutos ensimmäisestä viimeiseen ostopäivään",
+  "purchaseDayComparisonMissing": "Hinnan muutoksen arviointiin tarvitaan vertailukelpoisia ostoja vähintään kahdelta päivältä.",
+  "purchaseZeroBaseline": "Ensimmäisen päivän keskihinta on nolla; prosenttimuutosta ei lasketa.",
+  "purchaseDayPolicy": "Päivän keskihinta käyttää kaikkia päivän vertailukelpoisia ostoja ostomäärillä painottaen. Vertailu koskee vain tätä tuotetta, toimipistettä ja samaa vertailuryhmää.",
+  "purchaseSpendingTrend": "Tuotteen ostomenot ajan mittaan",
+  "purchaseSpendingPolicy": "Nettosummat sisältävät tämän tuotteen kaikki liitetyt ostorivit, rivialennukset ja palautukset, myös ilman ostomäärää. Pantit, kuittialennukset ja oikaisut eivät sisälly. Enintään 24 aikavälin kattavaa kalenterijaksoa; ne eivät aina vastaa viikkoa tai kuukautta. Negatiivinen pylväs merkitsee hyvitysten ylittävän ostot. Avaa jakso nähdäksesi sen ostot.",
+  "purchaseSpendingDetails": "Jaksojen ostomenot ja ostorivit",
+  "purchasePeriodRows": "Ostorivejä",
+  "purchasePeriodReturns": "Palautusrivejä",
+  "purchasePeriodEmpty": "Ei liitettyjä ostorivejä"
 }
