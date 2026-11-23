@@ -13,6 +13,7 @@ import 'receipt_format.dart';
 import 'receipt_import.dart';
 import 'ocr_correction_page.dart';
 import 'receipt_deletion_dialog.dart';
+import 'category_labels.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({
@@ -84,6 +85,8 @@ class _HistoryPageState extends State<HistoryPage> {
   String _filterSummary(AppLocalizations s) {
     final filter = _selection!.filter;
     return [
+      if (filter.category != null)
+        '${s.productCategory}: ${categoryLabel(s, filter.category!)}',
       if (filter.branchId != null)
         '${s.branchLabel}: ${_selection!.branchName}',
       if (filter.fromDate != null)
@@ -147,6 +150,8 @@ class _HistoryPageState extends State<HistoryPage> {
                     _filterSummary(s),
                     key: const Key('history-filter-summary'),
                   ),
+                if (_selection?.filter.category != null)
+                  Text(s.categoryHistoryNotice),
                 if (!_loading && !_failed && _receipts.isEmpty)
                   Text(
                     _selection == null ? s.historyEmpty : s.historyNoMatches,

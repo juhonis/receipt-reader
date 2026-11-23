@@ -10,6 +10,7 @@ import '../generated/schema_v2.dart' as v2;
 import '../generated/schema_v3.dart' as v3;
 import '../generated/schema_v4.dart' as v4;
 import '../generated/schema_v5.dart' as v5;
+import '../generated/schema_v6.dart' as v6;
 
 /// Only synthetic fixture databases may be passed to these test helpers.
 Map<String, List<Map<String, Object?>>> captureReleasedTables(
@@ -22,13 +23,13 @@ Map<String, List<Map<String, Object?>>> captureReleasedTables(
     'event_dependencies',
     'entity_heads',
     'stores',
+    'products',
     'receipts',
     'row_identities',
     'receipt_items',
     'receipt_reviews',
     'received_cursors',
     'local_mutations',
-    'products',
     'product_aliases',
     'catalog_mutations',
   ])
@@ -52,7 +53,7 @@ Map<String, List<Map<String, Object?>>> captureReleasedTables(
 /// Source must contain only features representable by the requested version.
 Future<void> copyToReleasedSchema(File source, File target, int version) async {
   if (version < 1 ||
-      version > 5 ||
+      version > 6 ||
       await target.exists() ||
       source.parent.absolute.path != target.parent.absolute.path) {
     throw StateError('unsafe_released_fixture_target');
@@ -69,7 +70,8 @@ Future<void> copyToReleasedSchema(File source, File target, int version) async {
     2 => v2.DatabaseAtV2(NativeDatabase(target, setup: configureSqlite)),
     3 => v3.DatabaseAtV3(NativeDatabase(target, setup: configureSqlite)),
     4 => v4.DatabaseAtV4(NativeDatabase(target, setup: configureSqlite)),
-    _ => v5.DatabaseAtV5(NativeDatabase(target, setup: configureSqlite)),
+    5 => v5.DatabaseAtV5(NativeDatabase(target, setup: configureSqlite)),
+    _ => v6.DatabaseAtV6(NativeDatabase(target, setup: configureSqlite)),
   };
   try {
     await old.customSelect('SELECT 1').get();
@@ -121,8 +123,8 @@ Future<void> copyToReleasedSchema(File source, File target, int version) async {
 class FailingReviewUpgrade extends ReceiptDatabase {
   FailingReviewUpgrade(super.executor);
   @override
-  Future<void> upgradeReviewPolicy(Migrator m) async {
-    await super.upgradeReviewPolicy(m);
+  Future<void> upgradeProductCategories(Migrator m) async {
+    await super.upgradeProductCategories(m);
     throw StateError('synthetic migration failure');
   }
 }

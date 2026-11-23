@@ -80,6 +80,7 @@ class FakeCatalogStore extends FakeStore implements CatalogService {
       (p) => p.document.product.id == document.product.id,
     );
     productRecords.add(StoredProduct(document, result.revision));
+    categoryLabels[document.product.id] = document.product.category;
     if (uncertain) throw const StorageFailure('database');
     return result;
   }
@@ -105,13 +106,17 @@ class FakeCatalogStore extends FakeStore implements CatalogService {
     return result;
   }
 
-  StoredProduct seedProduct({String name = 'SYNTHETIC MILK'}) {
+  StoredProduct seedProduct({
+    String name = 'SYNTHETIC MILK',
+    String? category,
+  }) {
     final p = StoredProduct(
       ProductDocument(
         product: ProductSnapshot(
           id: DurableId.generate(),
           storeId: branch.id,
           canonicalName: name,
+          category: category,
         ),
         storeRevision: branch.revision!,
         expectedHead: null,
@@ -121,6 +126,7 @@ class FakeCatalogStore extends FakeStore implements CatalogService {
       RevisionId(branch.revision!.origin, BigInt.from(sequence++)),
     );
     productRecords.add(p);
+    categoryLabels[p.document.product.id] = category;
     return p;
   }
 

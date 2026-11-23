@@ -1,11 +1,14 @@
 # Native migration and recovery integrity rehearsal
 
-This rehearsal checks populated receipt database schemas 1–5 upgrading to schema 6,
+This rehearsal checks populated receipt database schemas 1–6 upgrading to schema 7,
 then using the current catalog, spending and product-price APIs before and after
 encrypted recovery. The same assertions run in the pure Dart storage suite and
 native Flutter integration tests on Windows and Android. Application behavior and
 the database schema were unchanged by the original rehearsal milestone. The
 November 21 extension covers schema 6 for receipt-level OCR approval.
+The November 23 extension adds source schema 6 and target schema 7 for categories.
+The separate [native category workflow](product-categories.md) also migrates a
+schema-6 fixture containing existing product-linked purchases on both platforms.
 
 ## Historical fixture matrix
 
@@ -16,6 +19,7 @@ November 21 extension covers schema 6 for receipt-level OCR approval.
 | 3 | All schema-2 cases plus a reviewed deletion and retained tombstone history |
 | 4 | All schema-3 cases plus a product edit and alias creation/deactivation history |
 | 5 | The same history in the released product-link-capable schema, retaining policy-2 reviews |
+| 6 | The same compatible history in the released receipt-level-review schema |
 
 The fixture builder creates each historical database from its committed generated
 Drift schema. It copies compatible synthetic commands and projections from a
@@ -130,3 +134,10 @@ the storage suite now has 196 passing tests. The review-projection migration
 retains historical policy-2 canonical bytes. Separate policy-3 storage regressions
 exercise quick/guided save, reopen, identical retries and encrypted recovery; see
 [receipt review](receipt-review.md).
+
+On November 23, source schema 6 and target schema 7 were added for product
+categories. All seven native cases pass on Windows and offline Android, and all
+206 storage tests pass. A separate native category rehearsal upgrades an actual
+schema-6 fixture with existing product links, checks unchanged export/receipt
+bytes, then exercises category edits, encrypted recovery and retained datasets.
+See [product categories](product-categories.md) for product-v2/backup-v4 details.

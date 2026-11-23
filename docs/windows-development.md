@@ -312,7 +312,7 @@ uninstalling or clearing app data.
 
 ## Native migration and recovery rehearsal
 
-[The upgrade rehearsal](migration-recovery.md) exercises populated schemas 1–4,
+[The upgrade rehearsal](migration-recovery.md) exercises populated schemas 1–6,
 transaction rollback/retry, exact retained history, catalog links, both analytics
 screens and repeated encrypted recovery. Run:
 
@@ -325,6 +325,15 @@ build-dir for its Debug executable; restore the previous configuration afterward
 Run Android in airplane mode and restore its prior setting, then rebuild and
 upgrade-install the normal Android app without uninstalling or clearing data.
 The package version runs in packages/receipt_storage/test/upgrade_recovery_test.dart.
+
+The [category workflow](product-categories.md) separately verifies existing
+product links through a schema-6→7 upgrade, reviewed classification, dashboard
+receipt links and encrypted backup recovery:
+
+    flutter test integration_test/category_workflow_test.dart -d windows
+    flutter test integration_test/category_workflow_test.dart -d emulator-5554
+
+The same offline, isolated-data and normal-build restoration rules apply.
 
 ## App-owned Windows OCR setup
 

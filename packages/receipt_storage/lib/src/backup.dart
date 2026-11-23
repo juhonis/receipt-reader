@@ -37,20 +37,28 @@ const _countKeys = [
 ];
 
 String _backupFormat(Map<String, Object?> content) {
+  var linked = false;
   for (final entry in content['events']! as List) {
     final event =
         jsonDecode((entry as Map)['canonical_event']! as String) as Map;
+    if (event['entity_kind'] == 'product' &&
+        (event['payload'] as Map)['payload_version'] == '2')
+      return '4';
     if (event['entity_kind'] == 'receipt' && event['operation'] == 'snapshot') {
       final payload = event['payload'] as Map;
       final receipt = payload['receipt'] as Map;
       if ((receipt['items'] as List).any(
         (row) => (row as Map)['product'] != null,
       )) {
-        return '3';
+        linked = true;
       }
     }
   }
-  return (content['counts']! as Map).containsKey('products') ? '2' : '1';
+  return linked
+      ? '3'
+      : (content['counts']! as Map).containsKey('products')
+      ? '2'
+      : '1';
 }
 
 Uint8List _encodeBackup(Map<String, Object?> content) {
@@ -140,7 +148,12 @@ final class _BackupEvent {
       'payload',
     ]);
     _check(
-      event['event_version'] == '1' && event['payload_version'] == '1',
+      event['event_version'] == '1' &&
+          event['payload_version'] ==
+              _eventPayloadVersion(
+                _backupString(event['entity_kind']),
+                jsonEncode(event['payload']),
+              ).toString(),
       'unsupportedBackup',
     );
     _check(event['dataset_id'] == dataset.value, 'invalidBackup');
@@ -236,7 +249,7 @@ _DecodedBackup _decodeBackup(Uint8List bytes) {
     ]);
     _check(
       root['format'] == 'receipt_reader_backup' &&
-          ['1', '2', '3'].contains(root['format_version']),
+          ['1', '2', '3', '4'].contains(root['format_version']),
       'unsupportedBackup',
     );
     _check(jsonEncode(root) == text, 'invalidBackup');

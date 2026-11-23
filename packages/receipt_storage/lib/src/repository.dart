@@ -170,6 +170,13 @@ final class ReceiptRepository {
     final where = conditions.isEmpty
         ? ''
         : 'WHERE ${conditions.join(' AND ')} ';
+    if (filter?.category case final category?) {
+      return _guard(
+        () => _db.transaction(
+          () => _categoryHistory(where, args, category, limit, offset),
+        ),
+      );
+    }
     return _guard(
       () => _db.transaction(() async {
         final rows = await _rows(
@@ -658,7 +665,7 @@ final class ReceiptRepository {
       'dataset_id': state.datasetId.value,
       'entity_kind': kind,
       'entity_id': id.value,
-      'payload_version': 1,
+      'payload_version': _eventPayloadVersion(kind, payload),
       'operation': operation,
       'payload': payload,
       'canonical_event': event,
@@ -859,7 +866,7 @@ String _eventJson(
     'sequence': revision.sequence.toString(),
     'entity_kind': kind,
     'entity_id': id.value,
-    'payload_version': '1',
+    'payload_version': _eventPayloadVersion(kind, payload).toString(),
     'operation': operation,
     'audit_at_ms': auditAt.toString(),
     'mutation_id': mutation.value,
@@ -870,6 +877,11 @@ String _eventJson(
     'payload': jsonDecode(payload),
   });
 }
+
+int _eventPayloadVersion(String kind, String payload) =>
+    kind == 'product' && (jsonDecode(payload) as Map)['payload_version'] == '2'
+    ? 2
+    : 1;
 
 Map<String, Object?> _receiptFields(
   ReceiptDocument document,

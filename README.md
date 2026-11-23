@@ -13,8 +13,8 @@ SQLite. [Manual saving](docs/manual-saving.md),
 [reviewed manual corrections](docs/manual-corrections.md),
 [fresh-image OCR corrections](docs/ocr-corrections.md) and
 [reviewed receipt deletion](docs/receipt-deletion.md) have synthetic native
-integration checks on both platforms. SQLite schema 6 migrates existing data
-from schemas 1–5 without changing prior event bytes. The
+integration checks on both platforms. SQLite schema 7 migrates existing data
+from schemas 1–6 without changing prior event bytes. The
 [structured backup/recovery core](docs/backup-recovery.md) and
 [password-protected backup UI](docs/password-backups.md) include reviewed recovery
 and retained previous datasets, with native checks on both platforms.
@@ -31,6 +31,9 @@ receipt averages, branch filtering and receipt drill-down. A separate Kuitit tab
 contains receipt entry, history, products and backups.
 [Store comparisons](docs/store-comparisons.md) add signed net bars, positive-net
 spending shares and per-branch statistics with receipt links.
+[Editable product categories](docs/product-categories.md) add category spending
+bars and receipt links, with visible unclassified coverage. Category edits regroup
+earlier explicitly linked purchases while preserving receipt amounts and details.
 [Migration/recovery rehearsals](docs/migration-recovery.md) verify supported-schema
 upgrades, retained history and analytics through encrypted restore and reopen.
 A Windows development ZIP includes OCR assets and a synthetic clean-machine test.

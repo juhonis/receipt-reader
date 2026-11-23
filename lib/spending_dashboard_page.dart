@@ -13,6 +13,7 @@ import 'receipt_format.dart';
 import 'spending_service.dart';
 import 'dashboard_range_dialog.dart';
 import 'store_spending_view.dart';
+import 'category_spending_view.dart';
 
 class SpendingDashboardPage extends StatefulWidget {
   const SpendingDashboardPage({
@@ -166,6 +167,7 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
   Future<void> _receipts(
     SpendingPeriod period, {
     ReceiptBranch? forBranch,
+    ReceiptCategory? category,
   }) async {
     final selectedBranch = forBranch ?? _branch;
     await Navigator.of(context).push<void>(
@@ -175,6 +177,7 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
           initialSelection: HistoryFilterSelection(
             HistoryFilter(
               branchId: selectedBranch?.id,
+              category: category,
               fromDate: purchaseCalendarDate(period.firstDay),
               throughDate: purchaseCalendarDate(period.lastDay),
             ),
@@ -294,6 +297,11 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
                                     (snapshot.error! as StorageFailure).code ==
                                         'spendingGroupLimit'
                                 ? s.spendingLimit
+                                : snapshot.error is StorageFailure &&
+                                      (snapshot.error! as StorageFailure)
+                                              .code ==
+                                          'categoryGroupLimit'
+                                ? s.categoryLimit
                                 : s.spendingFailed,
                           ),
                           TextButton(
@@ -409,6 +417,12 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
                           data: data,
                           onBranch: (branch) =>
                               _receipts(period, forBranch: branch),
+                        ),
+                        const Divider(),
+                        CategorySpendingView(
+                          summary: data.categories,
+                          onCategory: (category) =>
+                              _receipts(period, category: category),
                         ),
                         const Divider(),
                         Text(

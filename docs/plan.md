@@ -272,9 +272,10 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Add an offline weekly/monthly dashboard with up to 12 calendar bars, exact averages/deltas, matched-day comparisons for unfinished periods, branch filters and receipt drill-down. See [spending dashboard](spending-dashboard.md).
 - [x] Make Seuranta the default home tab and group receipt entry/management in Kuitit; add year/custom ranges and charts covering exactly the selected timeframe, with independent whole-range totals. See [dashboard navigation and ranges](spending-dashboard.md).
 - [x] Add selected-range store comparisons with exact branch nets/counts/averages, signed bars, a positive-net donut with explicit grouped-store choice, receipt drill-down and a whole-result branch limit. See [store comparisons](store-comparisons.md).
+- [x] Add editable product category labels with five starter suggestions, historical regrouping of explicitly linked purchases, signed category spending/coverage, receipt drill-down and schema-7/inner-v4 encrypted recovery. See [product categories](product-categories.md).
 - [x] Implement the versioned structured backup/isolated recovery core on both platforms, including strict validation, preserved event/tombstone/row identities, fresh device identity and repeated restore/write tests. See [backup recovery](backup-recovery.md).
 - [x] Add password-protected backup files, native export/import UI, validated preview, explicit replacement confirmation, transactional activation/crash recovery and retained previous datasets on both platforms. See [password backups](password-backups.md).
-- [x] Rehearse supported-schema (1–4) migration, rollback, retained history, catalog links and exact analytics through encrypted recovery/reopen on both native platforms using synthetic data. See [migration/recovery integrity](migration-recovery.md). Keep independent backups; this does not establish sole-copy safety.
+- [x] Rehearse supported-schema (1–6) migration, rollback, retained history, catalog links and exact analytics through encrypted recovery/reopen using synthetic data. See [migration/recovery integrity](migration-recovery.md). Keep independent backups; this does not establish sole-copy safety.
 
 ### Phase 4: Adaptive UI & Standalone Feature Parity
 - [ ] Refine Windows navigation, wide tables, keyboard shortcuts, split-screen editing, and charts alongside compact Android layouts.
@@ -308,8 +309,8 @@ Restore must assign a fresh local device identity and preserve imported event id
 [reviewed receipt deletion](receipt-deletion.md) share reviewed persistence on
 Android and Windows. App-bundled recognition now runs on both platforms; broader
 quality and clean-machine release verification remain open. The normal
-app owns one application-support database with schema-6 migration from released
-schemas 1, 2, 3, 4 and 5. Native synthetic save/reopen, filtered-history,
+app owns one application-support database with schema-7 migration from released
+schemas 1, 2, 3, 4, 5 and 6. Native synthetic save/reopen, filtered-history,
 correction/stale-write and deletion/tombstone checks pass on both platforms,
 including Android airplane mode. Deletion retains prior structured snapshots;
 it is not secure erasure and receipt undo is not implemented.
@@ -355,7 +356,8 @@ These totals are separate from comparable product prices and update after encryp
 recovery without changing stored financial data.
 
 [Migration/recovery integrity](migration-recovery.md) now has a shared synthetic
-rehearsal for source schemas 1–5 on native Windows and Android. It checks migration
+rehearsal for source schemas 1–6, with native category checks for 6→7 on Windows
+and Android. It checks migration
 rollback/retry, unchanged existing values/event bytes, corrections and tombstones,
 retired row identities, catalog revisions/aliases and exact spending/price summaries.
 Repeated encrypted recovery, fresh-origin writes, reopen and retained previous
@@ -404,9 +406,14 @@ and receipt drill-down are available on both platforms. Home now separates the
 default Seuranta dashboard from Kuitit management. Week, month, year and custom
 range selections scope the full-width total, statistics and charts together.
 The [store comparisons](store-comparisons.md) now provide signed bars, positive-net
-shares, exact store statistics and receipt links for the selected range. Next
-analytics milestones are reviewed product categories and richer product
-comparisons. Privacy/permission auditing and native import/backup picker checks
+shares, exact store statistics and receipt links for the selected range.
+[Product categories](product-categories.md) now provide editable starter/custom
+labels, historical regrouping of explicit product links, signed category bars,
+classification coverage and receipt drill-down. Product-v2 events use schema 7
+and inner backup format 4; existing receipt amounts and canonical bytes remain
+unchanged. Next analytics work is richer product comparisons and easier explicit
+classification/linking of unclassified purchases. Privacy/permission auditing
+and native import/backup picker checks
 remain required before release or networking work.
 
 Keep representative S-kaupat images and OCR exports in ignored

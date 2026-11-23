@@ -12,6 +12,7 @@ class FakeStore implements LocalStore {
   final deletions = <ReviewedReceiptDeletion>[];
   final tombstones = <DurableId, ReceiptTombstone>{};
   final documents = <StoredReceipt>[];
+  final categoryLabels = <DurableId, String?>{};
   bool failSaveAfterCommit = false, failBranches = false, failHistory = false;
   int closeCount = 0, historyCalls = 0;
   final historyOffsets = <int>[];
@@ -51,7 +52,12 @@ class FakeStore implements LocalStore {
               (filter?.minTotalCents == null ||
                   s.totalCents >= filter!.minTotalCents!) &&
               (filter?.maxTotalCents == null ||
-                  s.totalCents <= filter!.maxTotalCents!);
+                  s.totalCents <= filter!.maxTotalCents!) &&
+              (filter?.category == null ||
+                  categorizeReceipt(
+                    s,
+                    categoryLabels,
+                  ).any((v) => v.category == filter!.category));
         })
         .skip(offset)
         .take(limit)

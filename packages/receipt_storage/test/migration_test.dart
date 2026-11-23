@@ -87,7 +87,7 @@ void main() {
     await copyToReleasedSchema(seed, file, version);
   }
 
-  for (final version in [1, 2, 3, 4, 5]) {
+  for (final version in [1, 2, 3, 4, 5, 6]) {
     test(
       'populated released v$version migrates without changing any persisted values or retry identity',
       () async {
@@ -101,10 +101,10 @@ void main() {
           GeneratedHelper(),
           setup: configureSqlite,
         );
-        await verifier.migrateAndValidate(db, 6);
+        await verifier.migrateAndValidate(db, 7);
         final repository = await ReceiptRepository.connect(db);
         final migrated = sqlite.sqlite3.open(file.path);
-        expect(migrated.userVersion, 6);
+        expect(migrated.userVersion, 7);
         expect({
           for (final key in before.keys) key: capture(migrated)[key],
         }, before);

@@ -2,7 +2,8 @@
 
 Status: Finnish catalog management and explicit reviewed receipt linking implemented
 on 2026-11-17. Existing receipts are never automatically matched or rewritten.
-Price history and trends are the next increment.
+[Purchase history and trends](purchase-history.md) and editable
+[product categories](product-categories.md) are now available.
 
 ## Identity and matching rules
 
@@ -11,7 +12,8 @@ do not merge products, even within a branch. A product has a corrected canonical
 name and optional package quantity represented as an integer value, scale 0..6
 and unit (`piece`, `kg`, `litre`). The package group is all present or all absent;
 its quantity must be positive. These are package details, not a receipt's purchased
-quantity, and no price comparison is inferred yet.
+quantity. Package metadata alone never supplies the purchased quantity required
+for [price comparisons](purchase-history.md).
 
 Aliases map exact normalized receipt names to products in the same branch.
 They reuse `normalizeReceiptNameV1`: trim, collapse whitespace and lowercase,
@@ -33,7 +35,9 @@ Deterministic concurrent conflict resolution remains required before sync.
 ## Storage-facing APIs
 
 `receipt_domain` adds immutable `ProductSnapshot`, `ProductDocument`,
-`ProductAliasSnapshot` and `ProductAliasDocument` values and canonical v1 codecs.
+`ProductAliasSnapshot` and `ProductAliasDocument` values and canonical codecs.
+Uncategorized product documents and alias documents retain v1; categorized product
+documents use v2. Categories are optional reviewed labels, not product identities.
 Documents capture the expected previous head (null only on creation), reviewed
 branch revision, review time and app version. Alias documents also capture the
 reviewed product revision. The application must present and confirm these values
@@ -63,7 +67,7 @@ sequence stamp. The app exposes these calls through `CatalogService`; the
 workspace adapter queues them with receipt reads/writes and backup
 preparation/activation.
 
-## Schema 5 and integrity
+## Schema and integrity
 
 Schema 4 adds strict `products`, `product_aliases` and `catalog_mutations` tables,
 indexes and immutable retry triggers. A composite foreign key enforces alias
@@ -81,6 +85,11 @@ version assignment. Existing installation identity, history, tombstones and retr
 results survive. A failed upgrade rolls back DDL, values and schema version so
 opening can retry. Released schema snapshots remain committed unchanged, alongside
 the schema-4 and schema-5 snapshots and generated migration verification helper.
+
+Current schema 7 additionally permits categorized product-v2 events; schema 6
+introduced receipt-level review policy 3. Migrations now support source schemas
+1–6, with released snapshots preserved. See [product categories](product-categories.md)
+for current classification behavior and compatibility.
 
 The complete integrity audit replays catalog history in causal order. It checks
 canonical bytes/digests, parents, dependency types/identities, immutable ownership
@@ -105,11 +114,14 @@ The **inner structured format** is independently versioned:
   including after unlinking or deleting its current receipt. It retains the v2
   catalog manifest and permits one branch plus distinct product dependencies per
   receipt. Restore verifies dependency kinds, identities, ownership and revisions.
+- Retained categorized product-v2 events select inner version 4, including after
+  category clearing. Current-label reporting can regroup older explicitly linked
+  rows without rewriting those receipts.
 - Older builds reject unsupported inner versions; they cannot silently discard links.
   Returning to an older executable after migrating a database also fails its
   schema-version check. Keep the newer app available to restore these backups.
 
-Recovery rebuilds schema 5 and all catalog projections, audits complete history,
+Recovery rebuilds schema 7 and all catalog projections, audits complete history,
 and compares the canonical manifest. Original event bytes and retry results remain
 intact. Only the active installation identity is fresh. Subsequent catalog edits
 start the new device's stream at sequence 1 and retain historical parents.

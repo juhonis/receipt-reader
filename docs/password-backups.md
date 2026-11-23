@@ -38,8 +38,10 @@ on private OS application storage. Retaining an old slot is not secure erasure.
 The encrypted envelope remains v1 when the inner package contains catalog data.
 [Product/alias backups](product-catalog.md) use structured inner version 2, or
 version 3 when retained receipts have product links. The encrypted envelope stays
-v1; legacy
-receipt-only packages retain inner version 1. Both recover through this workflow.
+v1. Retained [product category events](product-categories.md) require inner version
+4, including after clearing a category; legacy receipt-only packages retain inner
+version 1. All four recover through this workflow. Older apps refuse category
+backups and schema-7 databases; keep the newer executable available.
 
 ## Encrypted envelope v1
 

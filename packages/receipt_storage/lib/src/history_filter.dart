@@ -9,6 +9,7 @@ final class HistoryFilter {
     this.throughDate,
     this.minTotalCents,
     this.maxTotalCents,
+    this.category,
   }) {
     for (final date in [fromDate, throughDate]) {
       if (date != null && date.hour != null) {
@@ -33,13 +34,15 @@ final class HistoryFilter {
   final DurableId? branchId;
   final StoredReceiptDate? fromDate, throughDate;
   final BigInt? minTotalCents, maxTotalCents;
+  final ReceiptCategory? category;
 
   bool get isEmpty =>
       branchId == null &&
       fromDate == null &&
       throughDate == null &&
       minTotalCents == null &&
-      maxTotalCents == null;
+      maxTotalCents == null &&
+      category == null;
 
   static int _day(StoredReceiptDate date) =>
       date.year * 10000 + date.month * 100 + date.day;

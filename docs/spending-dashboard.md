@@ -43,6 +43,9 @@ harness retains receipt review, with analytics disabled.
   share donut and per-store receipt counts/averages. Store chart links open that
   store's receipts across the entire selected timeframe. Negative store nets are
   separate from the donut's positive denominator.
+- [Product categories](product-categories.md) add signed category bars, exact
+  totals, classification coverage and category receipt links for the selected
+  range. They use current reviewed product labels, including for earlier links.
 
 An em dash means that no receipts are stored for a period. A stored zero-total
 period has a receipt count and a displayed zero amount. Neither establishes

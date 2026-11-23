@@ -152,6 +152,10 @@ class _CatalogPageState extends State<CatalogPage> {
                                 'catalog-product-${item.document.product.id.value}',
                               ),
                               title: Text(productLabel(item)),
+                              subtitle: Text(
+                                item.document.product.category ??
+                                    s.categoryUncategorized,
+                              ),
                               trailing: widget.store is PurchaseHistoryService
                                   ? IconButton(
                                       key: ValueKey(
@@ -256,6 +260,7 @@ class _CatalogEditor extends StatefulWidget {
 
 class _CatalogEditorState extends State<_CatalogEditor> {
   final _name = TextEditingController(), _package = TextEditingController();
+  final _category = TextEditingController();
   final _id = DurableId.generate(), _mutation = DurableId.generate();
   QuantityUnit? _unit;
   ReceiptProductLink? _target;
@@ -270,6 +275,7 @@ class _CatalogEditorState extends State<_CatalogEditor> {
     super.initState();
     final p = widget.product?.document.product, a = widget.alias?.document;
     _name.text = p?.canonicalName ?? a?.alias.normalizedName ?? '';
+    _category.text = p?.category ?? '';
     if (p?.packageValue != null) {
       _package.text = formatFixed(p!.packageValue!, p.packageScale!);
       _unit = p.packageUnit;
@@ -353,6 +359,9 @@ class _CatalogEditorState extends State<_CatalogEditor> {
               id: original?.id ?? _id,
               storeId: widget.branch.id,
               canonicalName: _name.text.trim(),
+              category: _category.text.trim().isEmpty
+                  ? null
+                  : normalizeProductCategory(_category.text),
               packageValue: quantity,
               packageScale: empty ? null : scale,
               packageUnit: _unit,
@@ -410,6 +419,7 @@ class _CatalogEditorState extends State<_CatalogEditor> {
   void dispose() {
     _name.dispose();
     _package.dispose();
+    _category.dispose();
     super.dispose();
   }
 
@@ -472,6 +482,46 @@ class _CatalogEditorState extends State<_CatalogEditor> {
                         },
                 ),
               ] else ...[
+                TextField(
+                  key: const Key('catalog-category'),
+                  controller: _category,
+                  enabled: !locked,
+                  maxLength: 80,
+                  decoration: InputDecoration(labelText: s.productCategory),
+                  onChanged: _edit,
+                ),
+                Text(s.categoryEditNotice),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final label in [
+                      s.categoryFood,
+                      s.categoryHousehold,
+                      s.categoryHygiene,
+                      s.categoryLeisure,
+                      s.categoryOther,
+                    ])
+                      TextButton(
+                        onPressed: locked
+                            ? null
+                            : () {
+                                _category.text = label;
+                                _edit();
+                              },
+                        child: Text(label),
+                      ),
+                    TextButton(
+                      key: const Key('catalog-category-clear'),
+                      onPressed: locked
+                          ? null
+                          : () {
+                              _category.clear();
+                              _edit();
+                            },
+                      child: Text(s.categoryUncategorized),
+                    ),
+                  ],
+                ),
                 TextField(
                   key: const Key('catalog-package'),
                   controller: _package,

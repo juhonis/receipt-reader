@@ -38,7 +38,7 @@ Future<void> waitFor(WidgetTester tester, Finder finder) async {
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  for (final version in [1, 2, 3, 4, 5]) {
+  for (final version in [1, 2, 3, 4, 5, 6]) {
     testWidgets(
       'native v$version migration, rollback, analytics and encrypted recovery',
       (tester) async {

@@ -81,7 +81,7 @@ extension _Integrity on ReceiptRepository {
         'eventDigest',
       );
       _check(
-        event['payload_version'] == 1 &&
+        event['payload_version'] == _eventPayloadVersion(kind, payload) &&
             ['snapshot', 'tombstone'].contains(event['operation']),
         'unsupportedEvent',
       );
