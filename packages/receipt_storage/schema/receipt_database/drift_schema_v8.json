@@ -1,0 +1,2489 @@
+{
+  "_meta": {
+    "description": "This file contains a serialized version of schema entities for drift.",
+    "version": "1.3.0"
+  },
+  "options": {
+    "store_date_time_values_as_text": true
+  },
+  "entities": [
+    {
+      "id": 0,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "dataset_state",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "singleton",
+            "getter_name": "singleton",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL PRIMARY KEY CHECK (singleton = 1)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "primary-key"
+            ]
+          },
+          {
+            "name": "dataset_id",
+            "getter_name": "datasetId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL UNIQUE CHECK (length(dataset_id) = 36 AND dataset_id GLOB '????????-????-4???-[89ab]???-????????????' AND length(\"replace\"(dataset_id, '-', '')) = 32 AND \"replace\"(dataset_id, '-', '') NOT GLOB '*[^0-9a-f]*')",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "unique"
+            ]
+          },
+          {
+            "name": "device_id",
+            "getter_name": "deviceId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(device_id) = 36 AND device_id GLOB '????????-????-4???-[89ab]???-????????????' AND length(\"replace\"(device_id, '-', '')) = 32 AND \"replace\"(device_id, '-', '') NOT GLOB '*[^0-9a-f]*')",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "next_local_seq",
+            "getter_name": "nextLocalSeq",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (next_local_seq > 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "strict": true
+      }
+    },
+    {
+      "id": 1,
+      "references": [
+        0
+      ],
+      "type": "table",
+      "data": {
+        "name": "change_log",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "origin_device_id",
+            "getter_name": "originDeviceId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(origin_device_id) = 36 AND origin_device_id GLOB '????????-????-4???-[89ab]???-????????????' AND length(\"replace\"(origin_device_id, '-', '')) = 32 AND \"replace\"(origin_device_id, '-', '') NOT GLOB '*[^0-9a-f]*')",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "origin_seq",
+            "getter_name": "originSeq",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (origin_seq > 0 AND origin_seq < 9223372036854775807)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "dataset_id",
+            "getter_name": "datasetId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL REFERENCES dataset_state(dataset_id)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "dataset_state",
+                    "column": "dataset_id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": null
+                }
+              }
+            ]
+          },
+          {
+            "name": "entity_kind",
+            "getter_name": "entityKind",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (entity_kind IN ('store', 'receipt', 'product', 'alias'))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "entity_id",
+            "getter_name": "entityId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(entity_id) = 36 AND entity_id GLOB '????????-????-4???-[89ab]???-????????????' AND length(\"replace\"(entity_id, '-', '')) = 32 AND \"replace\"(entity_id, '-', '') NOT GLOB '*[^0-9a-f]*')",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "payload_version",
+            "getter_name": "payloadVersion",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (payload_version = 1 OR(payload_version = 2 AND entity_kind = 'product'))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "operation",
+            "getter_name": "operation",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (operation IN ('snapshot', 'tombstone') AND(operation <> 'tombstone' OR entity_kind = 'receipt'))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "payload",
+            "getter_name": "payload",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (json_valid(payload))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "canonical_event",
+            "getter_name": "canonicalEvent",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (json_valid(canonical_event))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "event_sha256",
+            "getter_name": "eventSha256",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(event_sha256) = 64 AND event_sha256 NOT GLOB '*[^0-9a-f]*')",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "audit_at_ms",
+            "getter_name": "auditAtMs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (audit_at_ms >= 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "mutation_id",
+            "getter_name": "mutationId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(mutation_id) = 36 AND mutation_id GLOB '????????-????-4???-[89ab]???-????????????' AND length(\"replace\"(mutation_id, '-', '')) = 32 AND \"replace\"(mutation_id, '-', '') NOT GLOB '*[^0-9a-f]*')",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "mutation_index",
+            "getter_name": "mutationIndex",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (mutation_index >= 0 AND mutation_index < mutation_count)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "mutation_count",
+            "getter_name": "mutationCount",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (mutation_count IN (1, 2))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [
+          "PRIMARY KEY(origin_device_id, origin_seq)",
+          "UNIQUE(origin_device_id, origin_seq, entity_kind, entity_id)",
+          "UNIQUE(origin_device_id, mutation_id, mutation_index)"
+        ],
+        "strict": true,
+        "explicit_pk": [
+          "origin_device_id",
+          "origin_seq"
+        ],
+        "unique_keys": [
+          [
+            "origin_device_id",
+            "origin_seq",
+            "entity_kind",
+            "entity_id"
+          ],
+          [
+            "origin_device_id",
+            "mutation_id",
+            "mutation_index"
+          ]
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "references": [
+        1
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 1,
+        "references_in_body": [
+          1
+        ],
+        "name": "change_log_no_update",
+        "sql": "CREATE TRIGGER change_log_no_update BEFORE UPDATE ON change_log BEGIN SELECT RAISE(ABORT, 'immutable_event'); END;"
+      }
+    },
+    {
+      "id": 3,
+      "references": [
+        1
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 1,
+        "references_in_body": [
+          1
+        ],
+        "name": "change_log_no_delete",
+        "sql": "CREATE TRIGGER change_log_no_delete BEFORE DELETE ON change_log BEGIN SELECT RAISE(ABORT, 'immutable_event'); END;"
+      }
+    },
+    {
+      "id": 4,
+      "references": [
+        1
+      ],
+      "type": "table",
+      "data": {
+        "name": "revision_parents",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "child_origin",
+            "getter_name": "childOrigin",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "child_seq",
+            "getter_name": "childSeq",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "parent_origin",
+            "getter_name": "parentOrigin",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "parent_seq",
+            "getter_name": "parentSeq",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [
+          "PRIMARY KEY(child_origin, child_seq, parent_origin, parent_seq)",
+          "FOREIGN KEY(child_origin, child_seq)REFERENCES change_log(origin_device_id, origin_seq)",
+          "FOREIGN KEY(parent_origin, parent_seq)REFERENCES change_log(origin_device_id, origin_seq)",
+          "CHECK(child_origin <> parent_origin OR child_seq <> parent_seq)"
+        ],
+        "strict": true,
+        "explicit_pk": [
+          "child_origin",
+          "child_seq",
+          "parent_origin",
+          "parent_seq"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "references": [
+        4
+      ],
+      "type": "index",
+      "data": {
+        "on": 4,
+        "name": "revision_parents_parent",
+        "sql": "CREATE INDEX revision_parents_parent ON revision_parents(parent_origin, parent_seq);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 6,
+      "references": [
+        4
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 4,
+        "references_in_body": [
+          4
+        ],
+        "name": "revision_parents_no_update",
+        "sql": "CREATE TRIGGER revision_parents_no_update BEFORE UPDATE ON revision_parents BEGIN SELECT RAISE(ABORT, 'immutable_parent'); END;"
+      }
+    },
+    {
+      "id": 7,
+      "references": [
+        4
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 4,
+        "references_in_body": [
+          4
+        ],
+        "name": "revision_parents_no_delete",
+        "sql": "CREATE TRIGGER revision_parents_no_delete BEFORE DELETE ON revision_parents BEGIN SELECT RAISE(ABORT, 'immutable_parent'); END;"
+      }
+    },
+    {
+      "id": 8,
+      "references": [
+        1
+      ],
+      "type": "table",
+      "data": {
+        "name": "event_dependencies",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "child_origin",
+            "getter_name": "childOrigin",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "child_seq",
+            "getter_name": "childSeq",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "dependency_origin",
+            "getter_name": "dependencyOrigin",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "dependency_seq",
+            "getter_name": "dependencySeq",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [
+          "PRIMARY KEY(child_origin, child_seq, dependency_origin, dependency_seq)",
+          "FOREIGN KEY(child_origin, child_seq)REFERENCES change_log(origin_device_id, origin_seq)",
+          "FOREIGN KEY(dependency_origin, dependency_seq)REFERENCES change_log(origin_device_id, origin_seq)"
+        ],
+        "strict": true,
+        "explicit_pk": [
+          "child_origin",
+          "child_seq",
+          "dependency_origin",
+          "dependency_seq"
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "references": [
+        8
+      ],
+      "type": "index",
+      "data": {
+        "on": 8,
+        "name": "event_dependencies_target",
+        "sql": "CREATE INDEX event_dependencies_target ON event_dependencies(dependency_origin, dependency_seq);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 10,
+      "references": [
+        8
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 8,
+        "references_in_body": [
+          8
+        ],
+        "name": "event_dependencies_no_update",
+        "sql": "CREATE TRIGGER event_dependencies_no_update BEFORE UPDATE ON event_dependencies BEGIN SELECT RAISE(ABORT, 'immutable_dependency'); END;"
+      }
+    },
+    {
+      "id": 11,
+      "references": [
+        8
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 8,
+        "references_in_body": [
+          8
+        ],
+        "name": "event_dependencies_no_delete",
+        "sql": "CREATE TRIGGER event_dependencies_no_delete BEFORE DELETE ON event_dependencies BEGIN SELECT RAISE(ABORT, 'immutable_dependency'); END;"
+      }
+    },
+    {
+      "id": 12,
+      "references": [
+        1
+      ],
+      "type": "table",
+      "data": {
+        "name": "entity_heads",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "entity_kind",
+            "getter_name": "entityKind",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (entity_kind IN ('store', 'receipt', 'product', 'alias'))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "entity_id",
+            "getter_name": "entityId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "origin_device_id",
+            "getter_name": "originDeviceId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "origin_seq",
+            "getter_name": "originSeq",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [
+          "PRIMARY KEY(entity_kind, entity_id, origin_device_id, origin_seq)",
+          "FOREIGN KEY(origin_device_id, origin_seq, entity_kind, entity_id)REFERENCES change_log(origin_device_id, origin_seq, entity_kind, entity_id)"
+        ],
+        "strict": true,
+        "explicit_pk": [
+          "entity_kind",
+          "entity_id",
+          "origin_device_id",
+          "origin_seq"
+        ]
+      }
+    },
+    {
+      "id": 13,
+      "references": [
+        12
+      ],
+      "type": "index",
+      "data": {
+        "on": 12,
+        "name": "entity_heads_revision",
+        "sql": "CREATE INDEX entity_heads_revision ON entity_heads(origin_device_id, origin_seq);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 14,
+      "references": [
+        1
+      ],
+      "type": "table",
+      "data": {
+        "name": "stores",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL PRIMARY KEY CHECK (length(id) = 36 AND id GLOB '????????-????-4???-[89ab]???-????????????' AND length(\"replace\"(id, '-', '')) = 32 AND \"replace\"(id, '-', '') NOT GLOB '*[^0-9a-f]*')",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "primary-key"
+            ]
+          },
+          {
+            "name": "display_name",
+            "getter_name": "displayName",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(trim(display_name)) > 0 AND display_name = trim(display_name))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "chain",
+            "getter_name": "chain",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "CHECK (chain IS NULL OR(length(trim(chain)) > 0 AND chain = trim(chain)))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "address",
+            "getter_name": "address",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "CHECK (address IS NULL OR(length(trim(address)) > 0 AND address = trim(address)))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "printed_identifier",
+            "getter_name": "printedIdentifier",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "CHECK (printed_identifier IS NULL OR(length(trim(printed_identifier)) > 0 AND printed_identifier = trim(printed_identifier)))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "current_revision_origin",
+            "getter_name": "currentRevisionOrigin",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "current_revision_seq",
+            "getter_name": "currentRevisionSeq",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "created_at_ms",
+            "getter_name": "createdAtMs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (created_at_ms >= 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "updated_at_ms",
+            "getter_name": "updatedAtMs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (updated_at_ms >= 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [
+          "FOREIGN KEY(current_revision_origin, current_revision_seq)REFERENCES change_log(origin_device_id, origin_seq)"
+        ],
+        "strict": true
+      }
+    },
+    {
+      "id": 15,
+      "references": [
+        14
+      ],
+      "type": "index",
+      "data": {
+        "on": 14,
+        "name": "stores_revision",
+        "sql": "CREATE INDEX stores_revision ON stores(current_revision_origin, current_revision_seq);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 16,
+      "references": [
+        14,
+        1
+      ],
+      "type": "table",
+      "data": {
+        "name": "receipts",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL PRIMARY KEY CHECK (length(id) = 36 AND id GLOB '????????-????-4???-[89ab]???-????????????' AND length(\"replace\"(id, '-', '')) = 32 AND \"replace\"(id, '-', '') NOT GLOB '*[^0-9a-f]*')",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "primary-key"
+            ]
+          },
+          {
+            "name": "is_deleted",
+            "getter_name": "isDeleted",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1))",
+            "default_dart": "const CustomExpression('0')",
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "store_id",
+            "getter_name": "storeId",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "REFERENCES stores(id)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "stores",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": null
+                }
+              }
+            ]
+          },
+          {
+            "name": "printed_year",
+            "getter_name": "printedYear",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "CHECK (printed_year BETWEEN 1970 AND 2099)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "printed_month",
+            "getter_name": "printedMonth",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "CHECK (printed_month BETWEEN 1 AND 12)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "printed_day",
+            "getter_name": "printedDay",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "CHECK (printed_day BETWEEN 1 AND 31)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "printed_hour",
+            "getter_name": "printedHour",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "CHECK (printed_hour IS NULL OR printed_hour BETWEEN 0 AND 23)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "printed_minute",
+            "getter_name": "printedMinute",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "CHECK (printed_minute IS NULL OR printed_minute BETWEEN 0 AND 59)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "printed_second",
+            "getter_name": "printedSecond",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "CHECK (printed_second IS NULL OR printed_second BETWEEN 0 AND 59)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "date_precision",
+            "getter_name": "datePrecision",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "CHECK (date_precision IN ('day', 'minute', 'second'))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "timezone_id",
+            "getter_name": "timezoneId",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "CHECK (timezone_id = 'Europe/Helsinki')",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "utc_instant_ms",
+            "getter_name": "utcInstantMs",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "currency",
+            "getter_name": "currency",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "CHECK (currency = 'EUR')",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "total_amount_cents",
+            "getter_name": "totalAmountCents",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "reviewed_at_ms",
+            "getter_name": "reviewedAtMs",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "CHECK (reviewed_at_ms >= 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "current_revision_origin",
+            "getter_name": "currentRevisionOrigin",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "current_revision_seq",
+            "getter_name": "currentRevisionSeq",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "created_at_ms",
+            "getter_name": "createdAtMs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (created_at_ms >= 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "updated_at_ms",
+            "getter_name": "updatedAtMs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (updated_at_ms >= 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [
+          "UNIQUE(id, store_id)",
+          "FOREIGN KEY(current_revision_origin, current_revision_seq)REFERENCES change_log(origin_device_id, origin_seq)",
+          "CHECK(is_deleted = 1 OR((date_precision = 'day' AND printed_hour IS NULL AND printed_minute IS NULL AND printed_second IS NULL AND utc_instant_ms IS NULL)OR(date_precision = 'minute' AND printed_hour IS NOT NULL AND printed_minute IS NOT NULL AND printed_second IS NULL AND utc_instant_ms IS NOT NULL)OR(date_precision = 'second' AND printed_hour IS NOT NULL AND printed_minute IS NOT NULL AND printed_second IS NOT NULL AND utc_instant_ms IS NOT NULL)))",
+          "CHECK((is_deleted = 0 AND store_id IS NOT NULL AND printed_year IS NOT NULL AND printed_month IS NOT NULL AND printed_day IS NOT NULL AND date_precision IS NOT NULL AND timezone_id IS NOT NULL AND currency IS NOT NULL AND total_amount_cents IS NOT NULL AND reviewed_at_ms IS NOT NULL)OR(is_deleted = 1 AND store_id IS NULL AND printed_year IS NULL AND printed_month IS NULL AND printed_day IS NULL AND printed_hour IS NULL AND printed_minute IS NULL AND printed_second IS NULL AND date_precision IS NULL AND timezone_id IS NULL AND utc_instant_ms IS NULL AND currency IS NULL AND total_amount_cents IS NULL AND reviewed_at_ms IS NULL))"
+        ],
+        "strict": true,
+        "unique_keys": [
+          [
+            "id",
+            "store_id"
+          ]
+        ]
+      }
+    },
+    {
+      "id": 17,
+      "references": [
+        16
+      ],
+      "type": "index",
+      "data": {
+        "on": 16,
+        "name": "receipts_branch_date",
+        "sql": "CREATE INDEX receipts_branch_date ON receipts(store_id, printed_year, printed_month, printed_day, id);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 18,
+      "references": [
+        16
+      ],
+      "type": "index",
+      "data": {
+        "on": 16,
+        "name": "receipts_revision",
+        "sql": "CREATE INDEX receipts_revision ON receipts(current_revision_origin, current_revision_seq);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 19,
+      "references": [
+        16,
+        1
+      ],
+      "type": "table",
+      "data": {
+        "name": "row_identities",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "row_id",
+            "getter_name": "rowId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL PRIMARY KEY CHECK (length(row_id) = 36 AND row_id GLOB '????????-????-4???-[89ab]???-????????????' AND length(\"replace\"(row_id, '-', '')) = 32 AND \"replace\"(row_id, '-', '') NOT GLOB '*[^0-9a-f]*')",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "primary-key"
+            ]
+          },
+          {
+            "name": "receipt_id",
+            "getter_name": "receiptId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL REFERENCES receipts(id)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "receipts",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": null
+                }
+              }
+            ]
+          },
+          {
+            "name": "first_origin",
+            "getter_name": "firstOrigin",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "first_seq",
+            "getter_name": "firstSeq",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [
+          "UNIQUE(receipt_id, row_id)",
+          "FOREIGN KEY(first_origin, first_seq)REFERENCES change_log(origin_device_id, origin_seq)"
+        ],
+        "strict": true,
+        "unique_keys": [
+          [
+            "receipt_id",
+            "row_id"
+          ]
+        ]
+      }
+    },
+    {
+      "id": 20,
+      "references": [
+        19
+      ],
+      "type": "index",
+      "data": {
+        "on": 19,
+        "name": "row_identities_revision",
+        "sql": "CREATE INDEX row_identities_revision ON row_identities(first_origin, first_seq);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 21,
+      "references": [
+        19
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 19,
+        "references_in_body": [
+          19
+        ],
+        "name": "row_identities_no_update",
+        "sql": "CREATE TRIGGER row_identities_no_update BEFORE UPDATE ON row_identities BEGIN SELECT RAISE(ABORT, 'immutable_row_identity'); END;"
+      }
+    },
+    {
+      "id": 22,
+      "references": [
+        19
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 19,
+        "references_in_body": [
+          19
+        ],
+        "name": "row_identities_no_delete",
+        "sql": "CREATE TRIGGER row_identities_no_delete BEFORE DELETE ON row_identities BEGIN SELECT RAISE(ABORT, 'immutable_row_identity'); END;"
+      }
+    },
+    {
+      "id": 23,
+      "references": [
+        14,
+        1
+      ],
+      "type": "table",
+      "data": {
+        "name": "products",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL PRIMARY KEY CHECK (length(id) = 36 AND id GLOB '????????-????-4???-[89ab]???-????????????' AND length(\"replace\"(id, '-', '')) = 32 AND \"replace\"(id, '-', '') NOT GLOB '*[^0-9a-f]*')",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "primary-key"
+            ]
+          },
+          {
+            "name": "store_id",
+            "getter_name": "storeId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL REFERENCES stores(id)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "stores",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": null
+                }
+              }
+            ]
+          },
+          {
+            "name": "canonical_name",
+            "getter_name": "canonicalName",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(trim(canonical_name)) > 0 AND canonical_name = trim(canonical_name))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "package_value",
+            "getter_name": "packageValue",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "package_scale",
+            "getter_name": "packageScale",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "package_unit",
+            "getter_name": "packageUnit",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "current_revision_origin",
+            "getter_name": "currentRevisionOrigin",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "current_revision_seq",
+            "getter_name": "currentRevisionSeq",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "created_at_ms",
+            "getter_name": "createdAtMs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (created_at_ms >= 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "updated_at_ms",
+            "getter_name": "updatedAtMs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (updated_at_ms >= 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [
+          "UNIQUE(store_id, id)",
+          "FOREIGN KEY(current_revision_origin, current_revision_seq)REFERENCES change_log(origin_device_id, origin_seq)",
+          "CHECK((package_value IS NULL AND package_scale IS NULL AND package_unit IS NULL)OR(package_value IS NOT NULL AND package_value > 0 AND package_scale IS NOT NULL AND package_scale BETWEEN 0 AND 6 AND package_unit IS NOT NULL AND package_unit IN ('piece', 'kg', 'litre')))"
+        ],
+        "strict": true,
+        "unique_keys": [
+          [
+            "store_id",
+            "id"
+          ]
+        ]
+      }
+    },
+    {
+      "id": 24,
+      "references": [
+        16,
+        23,
+        19
+      ],
+      "type": "table",
+      "data": {
+        "name": "receipt_items",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL PRIMARY KEY",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "primary-key"
+            ]
+          },
+          {
+            "name": "receipt_id",
+            "getter_name": "receiptId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "store_id",
+            "getter_name": "storeId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "position",
+            "getter_name": "position",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (position >= 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "kind",
+            "getter_name": "kind",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (kind IN ('product', 'discount', 'deposit', 'adjustment'))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "parent_item_id",
+            "getter_name": "parentItemId",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "discount_scope",
+            "getter_name": "discountScope",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "CHECK (discount_scope IS NULL OR discount_scope IN ('item', 'receipt'))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "product_id",
+            "getter_name": "productId",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "raw_name",
+            "getter_name": "rawName",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "CHECK (raw_name IS NULL OR(length(trim(raw_name)) > 0 AND raw_name = trim(raw_name)))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "name",
+            "getter_name": "name",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(trim(name)) > 0 AND name = trim(name))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "normalized_name",
+            "getter_name": "normalizedName",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(normalized_name) > 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "normalizer_version",
+            "getter_name": "normalizerVersion",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (normalizer_version = 1)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "quantity_value",
+            "getter_name": "quantityValue",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "quantity_scale",
+            "getter_name": "quantityScale",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "CHECK (quantity_scale IS NULL OR quantity_scale BETWEEN 0 AND 6)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "quantity_unit",
+            "getter_name": "quantityUnit",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "CHECK (quantity_unit IS NULL OR quantity_unit IN ('piece', 'kg', 'litre'))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "rate_micros",
+            "getter_name": "rateMicros",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "CHECK (rate_micros IS NULL OR rate_micros >= 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "line_total_cents",
+            "getter_name": "lineTotalCents",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "adjustment_reason",
+            "getter_name": "adjustmentReason",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "CHECK (adjustment_reason IS NULL OR(length(trim(adjustment_reason)) > 0 AND adjustment_reason = trim(adjustment_reason)))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [
+          "UNIQUE(receipt_id, position)",
+          "UNIQUE(receipt_id, id)",
+          "FOREIGN KEY(receipt_id, store_id)REFERENCES receipts(id, store_id)",
+          "FOREIGN KEY(store_id, product_id)REFERENCES products(store_id, id)",
+          "CHECK(product_id IS NULL OR kind = 'product')",
+          "FOREIGN KEY(receipt_id, id)REFERENCES row_identities(receipt_id, row_id)",
+          "FOREIGN KEY(receipt_id, parent_item_id)REFERENCES receipt_items(receipt_id, id)DEFERRABLE INITIALLY DEFERRED",
+          "CHECK(parent_item_id IS NULL OR(parent_item_id <> id AND kind IN ('discount', 'deposit')))",
+          "CHECK((kind = 'discount' AND line_total_cents < 0 AND discount_scope IS NOT NULL AND((discount_scope = 'item' AND parent_item_id IS NOT NULL)OR(discount_scope = 'receipt' AND parent_item_id IS NULL)))OR(kind <> 'discount' AND discount_scope IS NULL))",
+          "CHECK((kind = 'adjustment' AND adjustment_reason IS NOT NULL)OR(kind <> 'adjustment' AND adjustment_reason IS NULL))",
+          "CHECK((quantity_value IS NULL AND quantity_scale IS NULL AND quantity_unit IS NULL AND rate_micros IS NULL)OR(quantity_value IS NOT NULL AND quantity_value <> 0 AND quantity_scale IS NOT NULL AND quantity_unit IS NOT NULL AND rate_micros IS NOT NULL))"
+        ],
+        "strict": true,
+        "unique_keys": [
+          [
+            "receipt_id",
+            "position"
+          ],
+          [
+            "receipt_id",
+            "id"
+          ]
+        ]
+      }
+    },
+    {
+      "id": 25,
+      "references": [
+        24
+      ],
+      "type": "index",
+      "data": {
+        "on": 24,
+        "name": "receipt_items_parent",
+        "sql": "CREATE INDEX receipt_items_parent ON receipt_items(receipt_id, parent_item_id);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 26,
+      "references": [
+        16
+      ],
+      "type": "table",
+      "data": {
+        "name": "receipt_reviews",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "receipt_id",
+            "getter_name": "receiptId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL PRIMARY KEY REFERENCES receipts(id)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "primary-key",
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "receipts",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": null
+                }
+              }
+            ]
+          },
+          {
+            "name": "payload_version",
+            "getter_name": "payloadVersion",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (payload_version = 1)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "policy_version",
+            "getter_name": "policyVersion",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (policy_version IN (1, 2, 3, 4))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "source",
+            "getter_name": "source",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK ((source = 'manual' AND policy_version IN (1, 4))OR(source = 'ocr' AND policy_version IN (2, 3, 4)))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "app_version",
+            "getter_name": "appVersion",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(trim(app_version)) > 0 AND app_version = trim(app_version))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "timezone_rules_version",
+            "getter_name": "timezoneRulesVersion",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "row_count",
+            "getter_name": "rowCount",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (row_count > 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "approved_sha256",
+            "getter_name": "approvedSha256",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(approved_sha256) = 64 AND approved_sha256 NOT GLOB '*[^0-9a-f]*')",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "canonical_document",
+            "getter_name": "canonicalDocument",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (json_valid(canonical_document))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "strict": true
+      }
+    },
+    {
+      "id": 27,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "received_cursors",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "origin_device_id",
+            "getter_name": "originDeviceId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL PRIMARY KEY",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "primary-key"
+            ]
+          },
+          {
+            "name": "committed_seq",
+            "getter_name": "committedSeq",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (committed_seq >= 0 AND committed_seq < 9223372036854775807)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "strict": true
+      }
+    },
+    {
+      "id": 28,
+      "references": [
+        16,
+        1
+      ],
+      "type": "table",
+      "data": {
+        "name": "local_mutations",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "mutation_id",
+            "getter_name": "mutationId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL PRIMARY KEY",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "primary-key"
+            ]
+          },
+          {
+            "name": "command_sha256",
+            "getter_name": "commandSha256",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(command_sha256) = 64 AND command_sha256 NOT GLOB '*[^0-9a-f]*')",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "receipt_id",
+            "getter_name": "receiptId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL REFERENCES receipts(id)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "receipts",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": null
+                }
+              }
+            ]
+          },
+          {
+            "name": "result_origin",
+            "getter_name": "resultOrigin",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "result_seq",
+            "getter_name": "resultSeq",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [
+          "FOREIGN KEY(result_origin, result_seq)REFERENCES change_log(origin_device_id, origin_seq)"
+        ],
+        "strict": true
+      }
+    },
+    {
+      "id": 29,
+      "references": [
+        28
+      ],
+      "type": "index",
+      "data": {
+        "on": 28,
+        "name": "local_mutations_revision",
+        "sql": "CREATE INDEX local_mutations_revision ON local_mutations(result_origin, result_seq);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 30,
+      "references": [
+        28
+      ],
+      "type": "index",
+      "data": {
+        "on": 28,
+        "name": "local_mutations_receipt",
+        "sql": "CREATE INDEX local_mutations_receipt ON local_mutations(receipt_id);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 31,
+      "references": [
+        28
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 28,
+        "references_in_body": [
+          28
+        ],
+        "name": "local_mutations_no_update",
+        "sql": "CREATE TRIGGER local_mutations_no_update BEFORE UPDATE ON local_mutations BEGIN SELECT RAISE(ABORT, 'immutable_mutation'); END;"
+      }
+    },
+    {
+      "id": 32,
+      "references": [
+        28
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 28,
+        "references_in_body": [
+          28
+        ],
+        "name": "local_mutations_no_delete",
+        "sql": "CREATE TRIGGER local_mutations_no_delete BEFORE DELETE ON local_mutations BEGIN SELECT RAISE(ABORT, 'immutable_mutation'); END;"
+      }
+    },
+    {
+      "id": 33,
+      "references": [
+        23
+      ],
+      "type": "index",
+      "data": {
+        "on": 23,
+        "name": "products_branch_name",
+        "sql": "CREATE INDEX products_branch_name ON products(store_id, canonical_name, id);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 34,
+      "references": [
+        23
+      ],
+      "type": "index",
+      "data": {
+        "on": 23,
+        "name": "products_revision",
+        "sql": "CREATE INDEX products_revision ON products(current_revision_origin, current_revision_seq);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 35,
+      "references": [
+        23,
+        1
+      ],
+      "type": "table",
+      "data": {
+        "name": "product_aliases",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL PRIMARY KEY CHECK (length(id) = 36 AND id GLOB '????????-????-4???-[89ab]???-????????????' AND length(\"replace\"(id, '-', '')) = 32 AND \"replace\"(id, '-', '') NOT GLOB '*[^0-9a-f]*')",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "primary-key"
+            ]
+          },
+          {
+            "name": "store_id",
+            "getter_name": "storeId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "normalized_name",
+            "getter_name": "normalizedName",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(normalized_name) > 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "normalizer_version",
+            "getter_name": "normalizerVersion",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (normalizer_version = 1)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "product_id",
+            "getter_name": "productId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "is_active",
+            "getter_name": "isActive",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (is_active IN (0, 1))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "current_revision_origin",
+            "getter_name": "currentRevisionOrigin",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "current_revision_seq",
+            "getter_name": "currentRevisionSeq",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "created_at_ms",
+            "getter_name": "createdAtMs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (created_at_ms >= 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "updated_at_ms",
+            "getter_name": "updatedAtMs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (updated_at_ms >= 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [
+          "FOREIGN KEY(store_id, product_id)REFERENCES products(store_id, id)",
+          "FOREIGN KEY(current_revision_origin, current_revision_seq)REFERENCES change_log(origin_device_id, origin_seq)"
+        ],
+        "strict": true
+      }
+    },
+    {
+      "id": 36,
+      "references": [
+        35
+      ],
+      "type": "index",
+      "data": {
+        "on": 35,
+        "name": "product_aliases_active_name",
+        "sql": "CREATE UNIQUE INDEX product_aliases_active_name ON product_aliases(store_id, normalized_name) WHERE is_active = 1;",
+        "unique": true,
+        "columns": []
+      }
+    },
+    {
+      "id": 37,
+      "references": [
+        35
+      ],
+      "type": "index",
+      "data": {
+        "on": 35,
+        "name": "product_aliases_product",
+        "sql": "CREATE INDEX product_aliases_product ON product_aliases(store_id, product_id);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 38,
+      "references": [
+        35
+      ],
+      "type": "index",
+      "data": {
+        "on": 35,
+        "name": "product_aliases_revision",
+        "sql": "CREATE INDEX product_aliases_revision ON product_aliases(current_revision_origin, current_revision_seq);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 39,
+      "references": [
+        1
+      ],
+      "type": "table",
+      "data": {
+        "name": "catalog_mutations",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "mutation_id",
+            "getter_name": "mutationId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL PRIMARY KEY",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "primary-key"
+            ]
+          },
+          {
+            "name": "command_sha256",
+            "getter_name": "commandSha256",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(command_sha256) = 64 AND command_sha256 NOT GLOB '*[^0-9a-f]*')",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "entity_kind",
+            "getter_name": "entityKind",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (entity_kind IN ('product', 'alias'))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "entity_id",
+            "getter_name": "entityId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "result_origin",
+            "getter_name": "resultOrigin",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "result_seq",
+            "getter_name": "resultSeq",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [
+          "FOREIGN KEY(result_origin, result_seq, entity_kind, entity_id)REFERENCES change_log(origin_device_id, origin_seq, entity_kind, entity_id)"
+        ],
+        "strict": true
+      }
+    },
+    {
+      "id": 40,
+      "references": [
+        39
+      ],
+      "type": "index",
+      "data": {
+        "on": 39,
+        "name": "catalog_mutations_revision",
+        "sql": "CREATE INDEX catalog_mutations_revision ON catalog_mutations(result_origin, result_seq);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 41,
+      "references": [
+        39
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 39,
+        "references_in_body": [
+          39
+        ],
+        "name": "catalog_mutations_no_update",
+        "sql": "CREATE TRIGGER catalog_mutations_no_update BEFORE UPDATE ON catalog_mutations BEGIN SELECT RAISE(ABORT, 'immutable_mutation'); END;"
+      }
+    },
+    {
+      "id": 42,
+      "references": [
+        39
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 39,
+        "references_in_body": [
+          39
+        ],
+        "name": "catalog_mutations_no_delete",
+        "sql": "CREATE TRIGGER catalog_mutations_no_delete BEFORE DELETE ON catalog_mutations BEGIN SELECT RAISE(ABORT, 'immutable_mutation'); END;"
+      }
+    }
+  ],
+  "fixed_sql": [
+    {
+      "name": "dataset_state",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"dataset_state\" (\"singleton\" INTEGER NOT NULL PRIMARY KEY CHECK (singleton = 1), \"dataset_id\" TEXT NOT NULL UNIQUE CHECK (length(dataset_id) = 36 AND dataset_id GLOB '????????-????-4???-[89ab]???-????????????' AND length(\"replace\"(dataset_id, '-', '')) = 32 AND \"replace\"(dataset_id, '-', '') NOT GLOB '*[^0-9a-f]*'), \"device_id\" TEXT NOT NULL CHECK (length(device_id) = 36 AND device_id GLOB '????????-????-4???-[89ab]???-????????????' AND length(\"replace\"(device_id, '-', '')) = 32 AND \"replace\"(device_id, '-', '') NOT GLOB '*[^0-9a-f]*'), \"next_local_seq\" INTEGER NOT NULL CHECK (next_local_seq > 0)) STRICT;"
+        }
+      ]
+    },
+    {
+      "name": "change_log",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"change_log\" (\"origin_device_id\" TEXT NOT NULL CHECK (length(origin_device_id) = 36 AND origin_device_id GLOB '????????-????-4???-[89ab]???-????????????' AND length(\"replace\"(origin_device_id, '-', '')) = 32 AND \"replace\"(origin_device_id, '-', '') NOT GLOB '*[^0-9a-f]*'), \"origin_seq\" INTEGER NOT NULL CHECK (origin_seq > 0 AND origin_seq < 9223372036854775807), \"dataset_id\" TEXT NOT NULL REFERENCES dataset_state(dataset_id), \"entity_kind\" TEXT NOT NULL CHECK (entity_kind IN ('store', 'receipt', 'product', 'alias')), \"entity_id\" TEXT NOT NULL CHECK (length(entity_id) = 36 AND entity_id GLOB '????????-????-4???-[89ab]???-????????????' AND length(\"replace\"(entity_id, '-', '')) = 32 AND \"replace\"(entity_id, '-', '') NOT GLOB '*[^0-9a-f]*'), \"payload_version\" INTEGER NOT NULL CHECK (payload_version = 1 OR(payload_version = 2 AND entity_kind = 'product')), \"operation\" TEXT NOT NULL CHECK (operation IN ('snapshot', 'tombstone') AND(operation <> 'tombstone' OR entity_kind = 'receipt')), \"payload\" TEXT NOT NULL CHECK (json_valid(payload)), \"canonical_event\" TEXT NOT NULL CHECK (json_valid(canonical_event)), \"event_sha256\" TEXT NOT NULL CHECK (length(event_sha256) = 64 AND event_sha256 NOT GLOB '*[^0-9a-f]*'), \"audit_at_ms\" INTEGER NOT NULL CHECK (audit_at_ms >= 0), \"mutation_id\" TEXT NOT NULL CHECK (length(mutation_id) = 36 AND mutation_id GLOB '????????-????-4???-[89ab]???-????????????' AND length(\"replace\"(mutation_id, '-', '')) = 32 AND \"replace\"(mutation_id, '-', '') NOT GLOB '*[^0-9a-f]*'), \"mutation_index\" INTEGER NOT NULL CHECK (mutation_index >= 0 AND mutation_index < mutation_count), \"mutation_count\" INTEGER NOT NULL CHECK (mutation_count IN (1, 2)), PRIMARY KEY(origin_device_id, origin_seq), UNIQUE(origin_device_id, origin_seq, entity_kind, entity_id), UNIQUE(origin_device_id, mutation_id, mutation_index)) STRICT;"
+        }
+      ]
+    },
+    {
+      "name": "change_log_no_update",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER change_log_no_update BEFORE UPDATE ON change_log BEGIN SELECT RAISE (ABORT, 'immutable_event');END"
+        }
+      ]
+    },
+    {
+      "name": "change_log_no_delete",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER change_log_no_delete BEFORE DELETE ON change_log BEGIN SELECT RAISE (ABORT, 'immutable_event');END"
+        }
+      ]
+    },
+    {
+      "name": "revision_parents",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"revision_parents\" (\"child_origin\" TEXT NOT NULL, \"child_seq\" INTEGER NOT NULL, \"parent_origin\" TEXT NOT NULL, \"parent_seq\" INTEGER NOT NULL, PRIMARY KEY(child_origin, child_seq, parent_origin, parent_seq), FOREIGN KEY(child_origin, child_seq)REFERENCES change_log(origin_device_id, origin_seq), FOREIGN KEY(parent_origin, parent_seq)REFERENCES change_log(origin_device_id, origin_seq), CHECK(child_origin <> parent_origin OR child_seq <> parent_seq)) STRICT;"
+        }
+      ]
+    },
+    {
+      "name": "revision_parents_parent",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX revision_parents_parent ON revision_parents (parent_origin, parent_seq)"
+        }
+      ]
+    },
+    {
+      "name": "revision_parents_no_update",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER revision_parents_no_update BEFORE UPDATE ON revision_parents BEGIN SELECT RAISE (ABORT, 'immutable_parent');END"
+        }
+      ]
+    },
+    {
+      "name": "revision_parents_no_delete",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER revision_parents_no_delete BEFORE DELETE ON revision_parents BEGIN SELECT RAISE (ABORT, 'immutable_parent');END"
+        }
+      ]
+    },
+    {
+      "name": "event_dependencies",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"event_dependencies\" (\"child_origin\" TEXT NOT NULL, \"child_seq\" INTEGER NOT NULL, \"dependency_origin\" TEXT NOT NULL, \"dependency_seq\" INTEGER NOT NULL, PRIMARY KEY(child_origin, child_seq, dependency_origin, dependency_seq), FOREIGN KEY(child_origin, child_seq)REFERENCES change_log(origin_device_id, origin_seq), FOREIGN KEY(dependency_origin, dependency_seq)REFERENCES change_log(origin_device_id, origin_seq)) STRICT;"
+        }
+      ]
+    },
+    {
+      "name": "event_dependencies_target",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX event_dependencies_target ON event_dependencies (dependency_origin, dependency_seq)"
+        }
+      ]
+    },
+    {
+      "name": "event_dependencies_no_update",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER event_dependencies_no_update BEFORE UPDATE ON event_dependencies BEGIN SELECT RAISE (ABORT, 'immutable_dependency');END"
+        }
+      ]
+    },
+    {
+      "name": "event_dependencies_no_delete",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER event_dependencies_no_delete BEFORE DELETE ON event_dependencies BEGIN SELECT RAISE (ABORT, 'immutable_dependency');END"
+        }
+      ]
+    },
+    {
+      "name": "entity_heads",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"entity_heads\" (\"entity_kind\" TEXT NOT NULL CHECK (entity_kind IN ('store', 'receipt', 'product', 'alias')), \"entity_id\" TEXT NOT NULL, \"origin_device_id\" TEXT NOT NULL, \"origin_seq\" INTEGER NOT NULL, PRIMARY KEY(entity_kind, entity_id, origin_device_id, origin_seq), FOREIGN KEY(origin_device_id, origin_seq, entity_kind, entity_id)REFERENCES change_log(origin_device_id, origin_seq, entity_kind, entity_id)) STRICT;"
+        }
+      ]
+    },
+    {
+      "name": "entity_heads_revision",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX entity_heads_revision ON entity_heads (origin_device_id, origin_seq)"
+        }
+      ]
+    },
+    {
+      "name": "stores",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"stores\" (\"id\" TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36 AND id GLOB '????????-????-4???-[89ab]???-????????????' AND length(\"replace\"(id, '-', '')) = 32 AND \"replace\"(id, '-', '') NOT GLOB '*[^0-9a-f]*'), \"display_name\" TEXT NOT NULL CHECK (length(trim(display_name)) > 0 AND display_name = trim(display_name)), \"chain\" TEXT CHECK (chain IS NULL OR(length(trim(chain)) > 0 AND chain = trim(chain))), \"address\" TEXT CHECK (address IS NULL OR(length(trim(address)) > 0 AND address = trim(address))), \"printed_identifier\" TEXT CHECK (printed_identifier IS NULL OR(length(trim(printed_identifier)) > 0 AND printed_identifier = trim(printed_identifier))), \"current_revision_origin\" TEXT NOT NULL, \"current_revision_seq\" INTEGER NOT NULL, \"created_at_ms\" INTEGER NOT NULL CHECK (created_at_ms >= 0), \"updated_at_ms\" INTEGER NOT NULL CHECK (updated_at_ms >= 0), FOREIGN KEY(current_revision_origin, current_revision_seq)REFERENCES change_log(origin_device_id, origin_seq)) STRICT;"
+        }
+      ]
+    },
+    {
+      "name": "stores_revision",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX stores_revision ON stores (current_revision_origin, current_revision_seq)"
+        }
+      ]
+    },
+    {
+      "name": "receipts",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"receipts\" (\"id\" TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36 AND id GLOB '????????-????-4???-[89ab]???-????????????' AND length(\"replace\"(id, '-', '')) = 32 AND \"replace\"(id, '-', '') NOT GLOB '*[^0-9a-f]*'), \"is_deleted\" INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)), \"store_id\" TEXT REFERENCES stores(id), \"printed_year\" INTEGER CHECK (printed_year BETWEEN 1970 AND 2099), \"printed_month\" INTEGER CHECK (printed_month BETWEEN 1 AND 12), \"printed_day\" INTEGER CHECK (printed_day BETWEEN 1 AND 31), \"printed_hour\" INTEGER CHECK (printed_hour IS NULL OR printed_hour BETWEEN 0 AND 23), \"printed_minute\" INTEGER CHECK (printed_minute IS NULL OR printed_minute BETWEEN 0 AND 59), \"printed_second\" INTEGER CHECK (printed_second IS NULL OR printed_second BETWEEN 0 AND 59), \"date_precision\" TEXT CHECK (date_precision IN ('day', 'minute', 'second')), \"timezone_id\" TEXT CHECK (timezone_id = 'Europe/Helsinki'), \"utc_instant_ms\" INTEGER, \"currency\" TEXT CHECK (currency = 'EUR'), \"total_amount_cents\" INTEGER, \"reviewed_at_ms\" INTEGER CHECK (reviewed_at_ms >= 0), \"current_revision_origin\" TEXT NOT NULL, \"current_revision_seq\" INTEGER NOT NULL, \"created_at_ms\" INTEGER NOT NULL CHECK (created_at_ms >= 0), \"updated_at_ms\" INTEGER NOT NULL CHECK (updated_at_ms >= 0), UNIQUE(id, store_id), FOREIGN KEY(current_revision_origin, current_revision_seq)REFERENCES change_log(origin_device_id, origin_seq), CHECK(is_deleted = 1 OR((date_precision = 'day' AND printed_hour IS NULL AND printed_minute IS NULL AND printed_second IS NULL AND utc_instant_ms IS NULL)OR(date_precision = 'minute' AND printed_hour IS NOT NULL AND printed_minute IS NOT NULL AND printed_second IS NULL AND utc_instant_ms IS NOT NULL)OR(date_precision = 'second' AND printed_hour IS NOT NULL AND printed_minute IS NOT NULL AND printed_second IS NOT NULL AND utc_instant_ms IS NOT NULL))), CHECK((is_deleted = 0 AND store_id IS NOT NULL AND printed_year IS NOT NULL AND printed_month IS NOT NULL AND printed_day IS NOT NULL AND date_precision IS NOT NULL AND timezone_id IS NOT NULL AND currency IS NOT NULL AND total_amount_cents IS NOT NULL AND reviewed_at_ms IS NOT NULL)OR(is_deleted = 1 AND store_id IS NULL AND printed_year IS NULL AND printed_month IS NULL AND printed_day IS NULL AND printed_hour IS NULL AND printed_minute IS NULL AND printed_second IS NULL AND date_precision IS NULL AND timezone_id IS NULL AND utc_instant_ms IS NULL AND currency IS NULL AND total_amount_cents IS NULL AND reviewed_at_ms IS NULL))) STRICT;"
+        }
+      ]
+    },
+    {
+      "name": "receipts_branch_date",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX receipts_branch_date ON receipts (store_id, printed_year, printed_month, printed_day, id)"
+        }
+      ]
+    },
+    {
+      "name": "receipts_revision",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX receipts_revision ON receipts (current_revision_origin, current_revision_seq)"
+        }
+      ]
+    },
+    {
+      "name": "row_identities",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"row_identities\" (\"row_id\" TEXT NOT NULL PRIMARY KEY CHECK (length(row_id) = 36 AND row_id GLOB '????????-????-4???-[89ab]???-????????????' AND length(\"replace\"(row_id, '-', '')) = 32 AND \"replace\"(row_id, '-', '') NOT GLOB '*[^0-9a-f]*'), \"receipt_id\" TEXT NOT NULL REFERENCES receipts(id), \"first_origin\" TEXT NOT NULL, \"first_seq\" INTEGER NOT NULL, UNIQUE(receipt_id, row_id), FOREIGN KEY(first_origin, first_seq)REFERENCES change_log(origin_device_id, origin_seq)) STRICT;"
+        }
+      ]
+    },
+    {
+      "name": "row_identities_revision",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX row_identities_revision ON row_identities (first_origin, first_seq)"
+        }
+      ]
+    },
+    {
+      "name": "row_identities_no_update",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER row_identities_no_update BEFORE UPDATE ON row_identities BEGIN SELECT RAISE (ABORT, 'immutable_row_identity');END"
+        }
+      ]
+    },
+    {
+      "name": "row_identities_no_delete",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER row_identities_no_delete BEFORE DELETE ON row_identities BEGIN SELECT RAISE (ABORT, 'immutable_row_identity');END"
+        }
+      ]
+    },
+    {
+      "name": "products",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"products\" (\"id\" TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36 AND id GLOB '????????-????-4???-[89ab]???-????????????' AND length(\"replace\"(id, '-', '')) = 32 AND \"replace\"(id, '-', '') NOT GLOB '*[^0-9a-f]*'), \"store_id\" TEXT NOT NULL REFERENCES stores(id), \"canonical_name\" TEXT NOT NULL CHECK (length(trim(canonical_name)) > 0 AND canonical_name = trim(canonical_name)), \"package_value\" INTEGER, \"package_scale\" INTEGER, \"package_unit\" TEXT, \"current_revision_origin\" TEXT NOT NULL, \"current_revision_seq\" INTEGER NOT NULL, \"created_at_ms\" INTEGER NOT NULL CHECK (created_at_ms >= 0), \"updated_at_ms\" INTEGER NOT NULL CHECK (updated_at_ms >= 0), UNIQUE(store_id, id), FOREIGN KEY(current_revision_origin, current_revision_seq)REFERENCES change_log(origin_device_id, origin_seq), CHECK((package_value IS NULL AND package_scale IS NULL AND package_unit IS NULL)OR(package_value IS NOT NULL AND package_value > 0 AND package_scale IS NOT NULL AND package_scale BETWEEN 0 AND 6 AND package_unit IS NOT NULL AND package_unit IN ('piece', 'kg', 'litre')))) STRICT;"
+        }
+      ]
+    },
+    {
+      "name": "receipt_items",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"receipt_items\" (\"id\" TEXT NOT NULL PRIMARY KEY, \"receipt_id\" TEXT NOT NULL, \"store_id\" TEXT NOT NULL, \"position\" INTEGER NOT NULL CHECK (position >= 0), \"kind\" TEXT NOT NULL CHECK (kind IN ('product', 'discount', 'deposit', 'adjustment')), \"parent_item_id\" TEXT, \"discount_scope\" TEXT CHECK (discount_scope IS NULL OR discount_scope IN ('item', 'receipt')), \"product_id\" TEXT, \"raw_name\" TEXT CHECK (raw_name IS NULL OR(length(trim(raw_name)) > 0 AND raw_name = trim(raw_name))), \"name\" TEXT NOT NULL CHECK (length(trim(name)) > 0 AND name = trim(name)), \"normalized_name\" TEXT NOT NULL CHECK (length(normalized_name) > 0), \"normalizer_version\" INTEGER NOT NULL CHECK (normalizer_version = 1), \"quantity_value\" INTEGER, \"quantity_scale\" INTEGER CHECK (quantity_scale IS NULL OR quantity_scale BETWEEN 0 AND 6), \"quantity_unit\" TEXT CHECK (quantity_unit IS NULL OR quantity_unit IN ('piece', 'kg', 'litre')), \"rate_micros\" INTEGER CHECK (rate_micros IS NULL OR rate_micros >= 0), \"line_total_cents\" INTEGER NOT NULL, \"adjustment_reason\" TEXT CHECK (adjustment_reason IS NULL OR(length(trim(adjustment_reason)) > 0 AND adjustment_reason = trim(adjustment_reason))), UNIQUE(receipt_id, position), UNIQUE(receipt_id, id), FOREIGN KEY(receipt_id, store_id)REFERENCES receipts(id, store_id), FOREIGN KEY(store_id, product_id)REFERENCES products(store_id, id), CHECK(product_id IS NULL OR kind = 'product'), FOREIGN KEY(receipt_id, id)REFERENCES row_identities(receipt_id, row_id), FOREIGN KEY(receipt_id, parent_item_id)REFERENCES receipt_items(receipt_id, id)DEFERRABLE INITIALLY DEFERRED, CHECK(parent_item_id IS NULL OR(parent_item_id <> id AND kind IN ('discount', 'deposit'))), CHECK((kind = 'discount' AND line_total_cents < 0 AND discount_scope IS NOT NULL AND((discount_scope = 'item' AND parent_item_id IS NOT NULL)OR(discount_scope = 'receipt' AND parent_item_id IS NULL)))OR(kind <> 'discount' AND discount_scope IS NULL)), CHECK((kind = 'adjustment' AND adjustment_reason IS NOT NULL)OR(kind <> 'adjustment' AND adjustment_reason IS NULL)), CHECK((quantity_value IS NULL AND quantity_scale IS NULL AND quantity_unit IS NULL AND rate_micros IS NULL)OR(quantity_value IS NOT NULL AND quantity_value <> 0 AND quantity_scale IS NOT NULL AND quantity_unit IS NOT NULL AND rate_micros IS NOT NULL))) STRICT;"
+        }
+      ]
+    },
+    {
+      "name": "receipt_items_parent",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX receipt_items_parent ON receipt_items (receipt_id, parent_item_id)"
+        }
+      ]
+    },
+    {
+      "name": "receipt_reviews",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"receipt_reviews\" (\"receipt_id\" TEXT NOT NULL PRIMARY KEY REFERENCES receipts(id), \"payload_version\" INTEGER NOT NULL CHECK (payload_version = 1), \"policy_version\" INTEGER NOT NULL CHECK (policy_version IN (1, 2, 3, 4)), \"source\" TEXT NOT NULL CHECK ((source = 'manual' AND policy_version IN (1, 4))OR(source = 'ocr' AND policy_version IN (2, 3, 4))), \"app_version\" TEXT NOT NULL CHECK (length(trim(app_version)) > 0 AND app_version = trim(app_version)), \"timezone_rules_version\" TEXT NOT NULL, \"row_count\" INTEGER NOT NULL CHECK (row_count > 0), \"approved_sha256\" TEXT NOT NULL CHECK (length(approved_sha256) = 64 AND approved_sha256 NOT GLOB '*[^0-9a-f]*'), \"canonical_document\" TEXT NOT NULL CHECK (json_valid(canonical_document))) STRICT;"
+        }
+      ]
+    },
+    {
+      "name": "received_cursors",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"received_cursors\" (\"origin_device_id\" TEXT NOT NULL PRIMARY KEY, \"committed_seq\" INTEGER NOT NULL CHECK (committed_seq >= 0 AND committed_seq < 9223372036854775807)) STRICT;"
+        }
+      ]
+    },
+    {
+      "name": "local_mutations",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"local_mutations\" (\"mutation_id\" TEXT NOT NULL PRIMARY KEY, \"command_sha256\" TEXT NOT NULL CHECK (length(command_sha256) = 64 AND command_sha256 NOT GLOB '*[^0-9a-f]*'), \"receipt_id\" TEXT NOT NULL REFERENCES receipts(id), \"result_origin\" TEXT NOT NULL, \"result_seq\" INTEGER NOT NULL, FOREIGN KEY(result_origin, result_seq)REFERENCES change_log(origin_device_id, origin_seq)) STRICT;"
+        }
+      ]
+    },
+    {
+      "name": "local_mutations_revision",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX local_mutations_revision ON local_mutations (result_origin, result_seq)"
+        }
+      ]
+    },
+    {
+      "name": "local_mutations_receipt",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX local_mutations_receipt ON local_mutations (receipt_id)"
+        }
+      ]
+    },
+    {
+      "name": "local_mutations_no_update",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER local_mutations_no_update BEFORE UPDATE ON local_mutations BEGIN SELECT RAISE (ABORT, 'immutable_mutation');END"
+        }
+      ]
+    },
+    {
+      "name": "local_mutations_no_delete",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER local_mutations_no_delete BEFORE DELETE ON local_mutations BEGIN SELECT RAISE (ABORT, 'immutable_mutation');END"
+        }
+      ]
+    },
+    {
+      "name": "products_branch_name",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX products_branch_name ON products (store_id, canonical_name, id)"
+        }
+      ]
+    },
+    {
+      "name": "products_revision",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX products_revision ON products (current_revision_origin, current_revision_seq)"
+        }
+      ]
+    },
+    {
+      "name": "product_aliases",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"product_aliases\" (\"id\" TEXT NOT NULL PRIMARY KEY CHECK (length(id) = 36 AND id GLOB '????????-????-4???-[89ab]???-????????????' AND length(\"replace\"(id, '-', '')) = 32 AND \"replace\"(id, '-', '') NOT GLOB '*[^0-9a-f]*'), \"store_id\" TEXT NOT NULL, \"normalized_name\" TEXT NOT NULL CHECK (length(normalized_name) > 0), \"normalizer_version\" INTEGER NOT NULL CHECK (normalizer_version = 1), \"product_id\" TEXT NOT NULL, \"is_active\" INTEGER NOT NULL CHECK (is_active IN (0, 1)), \"current_revision_origin\" TEXT NOT NULL, \"current_revision_seq\" INTEGER NOT NULL, \"created_at_ms\" INTEGER NOT NULL CHECK (created_at_ms >= 0), \"updated_at_ms\" INTEGER NOT NULL CHECK (updated_at_ms >= 0), FOREIGN KEY(store_id, product_id)REFERENCES products(store_id, id), FOREIGN KEY(current_revision_origin, current_revision_seq)REFERENCES change_log(origin_device_id, origin_seq)) STRICT;"
+        }
+      ]
+    },
+    {
+      "name": "product_aliases_active_name",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE UNIQUE INDEX product_aliases_active_name ON product_aliases (store_id, normalized_name) WHERE is_active = 1"
+        }
+      ]
+    },
+    {
+      "name": "product_aliases_product",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX product_aliases_product ON product_aliases (store_id, product_id)"
+        }
+      ]
+    },
+    {
+      "name": "product_aliases_revision",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX product_aliases_revision ON product_aliases (current_revision_origin, current_revision_seq)"
+        }
+      ]
+    },
+    {
+      "name": "catalog_mutations",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"catalog_mutations\" (\"mutation_id\" TEXT NOT NULL PRIMARY KEY, \"command_sha256\" TEXT NOT NULL CHECK (length(command_sha256) = 64 AND command_sha256 NOT GLOB '*[^0-9a-f]*'), \"entity_kind\" TEXT NOT NULL CHECK (entity_kind IN ('product', 'alias')), \"entity_id\" TEXT NOT NULL, \"result_origin\" TEXT NOT NULL, \"result_seq\" INTEGER NOT NULL, FOREIGN KEY(result_origin, result_seq, entity_kind, entity_id)REFERENCES change_log(origin_device_id, origin_seq, entity_kind, entity_id)) STRICT;"
+        }
+      ]
+    },
+    {
+      "name": "catalog_mutations_revision",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX catalog_mutations_revision ON catalog_mutations (result_origin, result_seq)"
+        }
+      ]
+    },
+    {
+      "name": "catalog_mutations_no_update",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER catalog_mutations_no_update BEFORE UPDATE ON catalog_mutations BEGIN SELECT RAISE (ABORT, 'immutable_mutation');END"
+        }
+      ]
+    },
+    {
+      "name": "catalog_mutations_no_delete",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER catalog_mutations_no_delete BEFORE DELETE ON catalog_mutations BEGIN SELECT RAISE (ABORT, 'immutable_mutation');END"
+        }
+      ]
+    }
+  ]
+}

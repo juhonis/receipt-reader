@@ -23,7 +23,7 @@ class ManualReceiptPage extends StatefulWidget {
     required LocalStore store,
     required StoredReceipt receipt,
   }) {
-    if (receipt.document.review is! ManualReviewRecord) {
+    if (receipt.document.review.source != 'manual') {
       throw ArgumentError('manual_correction_requires_manual_source');
     }
     return ManualReceiptPage._(key: key, store: store, initial: receipt);

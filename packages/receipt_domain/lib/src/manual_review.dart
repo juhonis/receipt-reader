@@ -71,6 +71,7 @@ sealed class ReceiptReviewRecord {
   final BigInt reviewedAtMs;
   final String appVersion;
   final List<RevisionId> expectedHeads;
+  /// All rows for full receipt approvals; only changed product rows for policy 4.
   final List<DurableId> reviewedRowIds;
   String get source;
   int get policyVersion;
@@ -119,6 +120,13 @@ final class ReviewedReceipt {
          expectedHeads,
          confirmation,
        );
+
+  ReviewedReceipt.productLinks({required ProductLinkConfirmation confirmation})
+    : mutationId = confirmation._checks.mutationId,
+      document = confirmation._checks._document(
+        confirmation.reviewedAtMs,
+        confirmation.appVersion,
+      );
 
   static ReceiptDocument _build(
     ReceiptSnapshot current,

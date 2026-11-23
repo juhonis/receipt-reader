@@ -15,7 +15,7 @@ projections. Export does not allocate sequences or change dataset/device identit
 `ReceiptRepository.restoreBackup(bytes, stagingParent: privateDirectory)` validates
 the bytes and creates a unique `receipt-restore-*` subdirectory under the existing
 caller-selected directory. It never chooses or replaces an active database path.
-It rebuilds a new schema-7 database transactionally from immutable events, audits
+It rebuilds a new schema-8 database transactionally from immutable events, audits
 it, checks the rebuilt manifest and heads, and closes it before returning a
 `RestoredReceiptBackup`. The result exposes its directory, database file, fresh
 identity and counts. It can be opened with `ReceiptRepository.open` for inspection.
@@ -27,7 +27,7 @@ can leave staging output; the workspace now cleans unregistered staging on start
 and retains all activated slots. This API is not a restore-over-existing-data operation and
 has no hidden replace or merge fallback.
 
-## Structured formats 1, 2, 3 and 4
+## Structured formats 1, 2, 3, 4 and 5
 
 [Catalog storage](product-catalog.md) adds inner version 2 for datasets with
 products/aliases, including their full event history and manifest counts. Datasets
@@ -41,8 +41,13 @@ when no links occur. Password encryption is independently versioned and unchange
 history includes a categorized product-v2 event, including after category clearing.
 Original receipt/event bytes remain intact. Product event payload version 2 is
 explicit; all other event kinds retain version 1. Earlier datasets still select
-their exact v1/v2/v3 formats. Restore accepts versions 1–4 and refuses unsupported
+their exact v1/v2/v3 formats. Restore accepts versions 1–5 and refuses unsupported
 or downgraded declarations. Older apps cannot restore category backups.
+
+[Saved product-link reviews](saved-product-links.md) add inner version 5 whenever
+retained history contains policy 4, including after unlinking or deletion. Replay
+validates the exact predecessor digest and permits only product-link changes.
+Earlier datasets retain their exact v1/v2/v3/v4 formats. Encryption remains v1.
 
 The v1 envelope has a fixed format name (`receipt_reader_backup`), string version
 `1`, SHA-256 of canonical content, and content. Content contains:
@@ -65,8 +70,8 @@ Checksums detect corruption; they do not authenticate who created a package.
 Current bounds are 64 MiB per package, 20,000 events, 1 MiB per canonical event,
 128 event origins and 200,000 historical row identities. Exports exceeding a bound
 fail explicitly rather than truncating history. Schema, backup, event, review and
-deletion-policy versions are separate. Recovery now targets schema 7;
-schema-1–6 migration and legacy-format recovery checks remain required.
+deletion-policy versions are separate. Recovery now targets schema 8;
+schema-1–7 migration and legacy-format recovery checks remain required.
 
 The core representation is plaintext and contains financial history, including
 prior corrected/deleted records. It excludes receipt images, raw OCR dumps,

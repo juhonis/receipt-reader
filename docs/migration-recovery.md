@@ -1,6 +1,6 @@
 # Native migration and recovery integrity rehearsal
 
-This rehearsal checks populated receipt database schemas 1–6 upgrading to schema 7,
+This rehearsal checks populated receipt database schemas 1–7 upgrading to schema 8,
 then using the current catalog, spending and product-price APIs before and after
 encrypted recovery. The same assertions run in the pure Dart storage suite and
 native Flutter integration tests on Windows and Android. Application behavior and
@@ -9,6 +9,9 @@ November 21 extension covers schema 6 for receipt-level OCR approval.
 The November 23 extension adds source schema 6 and target schema 7 for categories.
 The separate [native category workflow](product-categories.md) also migrates a
 schema-6 fixture containing existing product-linked purchases on both platforms.
+The subsequent [saved-link workflow](saved-product-links.md) adds source schema 7,
+target schema 8, review policy 4 and inner-backup-v5 recovery on both platforms.
+The shared rollback/recovery rehearsal covers every source schema 1–7.
 
 ## Historical fixture matrix
 

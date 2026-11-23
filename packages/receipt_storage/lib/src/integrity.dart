@@ -181,6 +181,7 @@ extension _Integrity on ReceiptRepository {
         _check(kind == 'receipt', 'unsupportedEvent');
         _check(!deletions.containsKey(id), 'historicalResurrection');
         final document = ReceiptDocumentCodec.decode(payload);
+        validateProductLinkRevision(document, documents[id]);
         final snapshot = document.snapshot;
         _check(
           snapshot.id == id &&
@@ -237,7 +238,8 @@ extension _Integrity on ReceiptRepository {
               snapshot.branch.revision == branchRevision,
           'branchRevision',
         );
-        if (snapshot.branch.revision == null) {
+        if (snapshot.branch.revision == null &&
+            document.review is! ProductLinkReviewRecord) {
           _check(
             branchEvent['mutation_id'] == event['mutation_id'],
             'pendingBranchDependency',

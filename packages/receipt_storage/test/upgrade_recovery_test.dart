@@ -20,7 +20,7 @@ void main() {
     }
     await directory.delete(recursive: true);
   });
-  for (final version in [1, 2, 3, 4, 5, 6]) {
+  for (final version in [1, 2, 3, 4, 5, 6, 7]) {
     test(
       'v$version upgrade, exact analytics, encrypted recovery and retained history',
       () => rehearseUpgrade(directory, version),

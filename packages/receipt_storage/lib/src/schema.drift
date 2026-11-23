@@ -164,9 +164,9 @@ CREATE INDEX receipt_items_parent ON receipt_items(receipt_id, parent_item_id);
 CREATE TABLE receipt_reviews (
   receipt_id TEXT NOT NULL PRIMARY KEY REFERENCES receipts(id),
   payload_version INTEGER NOT NULL CHECK (payload_version = 1),
-  policy_version INTEGER NOT NULL CHECK (policy_version IN (1, 2, 3)),
-  source TEXT NOT NULL CHECK ((source = 'manual' AND policy_version = 1)
-      OR (source = 'ocr' AND policy_version IN (2, 3))),
+  policy_version INTEGER NOT NULL CHECK (policy_version IN (1, 2, 3, 4)),
+  source TEXT NOT NULL CHECK ((source = 'manual' AND policy_version IN (1, 4))
+      OR (source = 'ocr' AND policy_version IN (2, 3, 4))),
   app_version TEXT NOT NULL CHECK (length(trim(app_version)) > 0 AND app_version = trim(app_version)),
   timezone_rules_version TEXT NOT NULL,
   row_count INTEGER NOT NULL CHECK (row_count > 0),

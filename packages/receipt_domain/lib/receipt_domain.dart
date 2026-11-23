@@ -21,3 +21,5 @@ part 'src/purchase_summary.dart';
 part 'src/spending.dart';
 part 'src/spending_dashboard.dart';
 part 'src/category_spending.dart';
+
+part 'src/product_link_review.dart';

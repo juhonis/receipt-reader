@@ -14,6 +14,7 @@ import 'receipt_import.dart';
 import 'ocr_correction_page.dart';
 import 'receipt_deletion_dialog.dart';
 import 'category_labels.dart';
+import 'receipt_product_links_page.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({
@@ -245,7 +246,29 @@ class ReceiptDetailPage extends StatelessWidget {
                       ? s.savedOcrNotice
                       : s.savedManualNotice,
                 ),
-                if (receipt.document.review is ManualReviewRecord)
+                if (store is CatalogService &&
+                    snapshot.items.any((r) => r.kind == LineKind.product))
+                  OutlinedButton.icon(
+                    key: const Key('edit-product-links'),
+                    onPressed: () async {
+                      final changed = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute<bool>(
+                          builder: (_) => ReceiptProductLinksPage(
+                            store: store,
+                            catalog: store as CatalogService,
+                            receipt: receipt,
+                          ),
+                        ),
+                      );
+                      if (context.mounted && changed == true) {
+                        Navigator.pop(context, true);
+                      }
+                    },
+                    icon: const Icon(Icons.link),
+                    label: Text(s.productLinksTitle),
+                  ),
+                if (receipt.document.review.source == 'manual')
                   OutlinedButton.icon(
                     key: const Key('edit-manual-receipt'),
                     onPressed: () async {

@@ -451,33 +451,13 @@ final class ReceiptRepository {
         );
         return SaveResult(revision, replayed: true);
       }
-      final productRevisions = <RevisionId>{};
-      final productHeads = <DurableId, RevisionId>{};
-      for (final row in snapshot.items) {
-        if (row.product case final link?) {
-          final product = await _product(link.id);
-          _check(
-            product.document.product.storeId == snapshot.branch.id &&
-                link.storeId == snapshot.branch.id,
-            'crossStoreProduct',
-          );
-          _check(product.revision == link.revision, 'staleProduct');
-          _check(
-            productHeads[link.id] == null ||
-                productHeads[link.id] == link.revision,
-            'staleProduct',
-          );
-          productHeads[link.id] = link.revision;
-          productRevisions.add(link.revision);
-        }
-      }
+      final current = await _read(snapshot.id);
       _check(
         (await _rows('SELECT is_deleted FROM receipts WHERE id = ?', [
           snapshot.id.value,
         ])).every((r) => r['is_deleted'] == 0),
         'receiptDeleted',
       );
-      final current = await _read(snapshot.id);
       _check(
         current == null || current.document.review.source == source,
         'provenanceChange',
@@ -489,6 +469,31 @@ final class ReceiptRepository {
             : expected.length == 1 && expected.single == current.revision,
         'staleReceipt',
       );
+      validateProductLinkRevision(document, current?.document);
+      final linkReview = document.review is ProductLinkReviewRecord;
+      final changedLinks = document.review.reviewedRowIds.toSet();
+      final productRevisions = <RevisionId>{};
+      final productHeads = <DurableId, RevisionId>{};
+      for (final row in snapshot.items) {
+        if (row.product case final link?) {
+          final product = await _product(link.id);
+          _check(
+            product.document.product.storeId == snapshot.branch.id &&
+                link.storeId == snapshot.branch.id,
+            'crossStoreProduct',
+          );
+          final retained = linkReview && !changedLinks.contains(row.id);
+          _check(retained || product.revision == link.revision, 'staleProduct');
+          _check(
+            linkReview ||
+                productHeads[link.id] == null ||
+                productHeads[link.id] == link.revision,
+            'staleProduct',
+          );
+          productHeads[link.id] = link.revision;
+          productRevisions.add(link.revision);
+        }
+      }
       final oldIds = current == null
           ? <DurableId>{}
           : _documentRowIds(current.document);
@@ -520,7 +525,8 @@ final class ReceiptRepository {
         final branch = _branch(storeRows.single);
         final branchHeads = await _heads('store', branch.id);
         _check(
-          snapshot.branch.revision == branch.revision &&
+          (snapshot.branch.revision == branch.revision ||
+                  (linkReview && snapshot.branch.revision == null)) &&
               branchHeads.length == 1 &&
               branchHeads.single == branch.revision &&
               _branchPayload(snapshot.branch) == _branchPayload(branch),
@@ -565,7 +571,7 @@ final class ReceiptRepository {
         });
         await _selectHead('store', snapshot.branch.id, branchRevision);
       } else {
-        branchRevision = snapshot.branch.revision!;
+        branchRevision = _branch(storeRows.single).revision!;
       }
       final revision = RevisionId(state.deviceId, next - BigInt.one);
       await _appendEvent(
@@ -983,6 +989,5 @@ bool _sameFields(Map<String, Object?> actual, Map<String, Object?> expected) =>
 
 Set<DurableId> _documentRowIds(ReceiptDocument document) => {
   ...document.snapshot.items.map((row) => row.id),
-  if (document.review case final OcrReviewRecord review)
-    ...review.originalRowIds,
+  ...originalReceiptRowIds(document),
 };

@@ -40,8 +40,10 @@ The encrypted envelope remains v1 when the inner package contains catalog data.
 version 3 when retained receipts have product links. The encrypted envelope stays
 v1. Retained [product category events](product-categories.md) require inner version
 4, including after clearing a category; legacy receipt-only packages retain inner
-version 1. All four recover through this workflow. Older apps refuse category
-backups and schema-7 databases; keep the newer executable available.
+version 1. [Saved product-link reviews](saved-product-links.md) require inner
+version 5, including after unlink/deletion. All five recover through this workflow.
+Older apps refuse unsupported backups and schema-8 databases; keep the newer
+executable available.
 
 ## Encrypted envelope v1
 

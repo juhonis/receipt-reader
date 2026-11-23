@@ -378,3 +378,20 @@ Run Android offline, restore its previous airplane setting, and rebuild/install
 normal app entry points afterward. The test binding disables automatic license
 registration, so this test registers the real packaged asset explicitly; ordinary
 app startup uses Flutter's standard ServicesBinding registry.
+
+
+## Saved product-link workflow
+
+[Saved product links](saved-product-links.md) add a receipt-scoped offline editor
+for explicit catalog references. The app migrates released schemas 1–7 to schema
+8; retained link-only review history requires inner backup 5 inside the existing
+password-protected envelope. Keep using the updated executable after migration.
+
+The focused native regression uses only a guarded `saved-links-smoke-*` dataset:
+
+    flutter test integration_test/receipt_product_links_test.dart -d windows
+    flutter test integration_test/receipt_product_links_test.dart -d emulator-5554
+
+Run the Android check offline and restore its prior airplane setting. Rebuild
+normal application entry points after integration tests and upgrade-install the
+normal Android APK with `adb install -r`; never clear the app's data.

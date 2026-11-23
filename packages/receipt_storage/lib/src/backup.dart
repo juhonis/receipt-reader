@@ -38,14 +38,16 @@ const _countKeys = [
 
 String _backupFormat(Map<String, Object?> content) {
   var linked = false;
+  var categorized = false;
   for (final entry in content['events']! as List) {
     final event =
         jsonDecode((entry as Map)['canonical_event']! as String) as Map;
     if (event['entity_kind'] == 'product' &&
         (event['payload'] as Map)['payload_version'] == '2')
-      return '4';
+      categorized = true;
     if (event['entity_kind'] == 'receipt' && event['operation'] == 'snapshot') {
       final payload = event['payload'] as Map;
+      if ((payload['review'] as Map)['policy_version'] == '4') return '5';
       final receipt = payload['receipt'] as Map;
       if ((receipt['items'] as List).any(
         (row) => (row as Map)['product'] != null,
@@ -54,6 +56,7 @@ String _backupFormat(Map<String, Object?> content) {
       }
     }
   }
+  if (categorized) return '4';
   return linked
       ? '3'
       : (content['counts']! as Map).containsKey('products')
@@ -249,7 +252,7 @@ _DecodedBackup _decodeBackup(Uint8List bytes) {
     ]);
     _check(
       root['format'] == 'receipt_reader_backup' &&
-          ['1', '2', '3', '4'].contains(root['format_version']),
+          ['1', '2', '3', '4', '5'].contains(root['format_version']),
       'unsupportedBackup',
     );
     _check(jsonEncode(root) == text, 'invalidBackup');

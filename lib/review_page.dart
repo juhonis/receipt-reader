@@ -35,7 +35,7 @@ class ReviewPage extends StatefulWidget {
     ReceiptDraft? draft,
     Future<OcrPage> Function(ReceiptEvidence)? recognizer,
   }) {
-    if (receipt.document.review is! OcrReviewRecord) {
+    if (receipt.document.review.source != 'ocr') {
       throw ArgumentError.value(receipt, 'receipt', 'OCR receipt required');
     }
     return ReviewPage._correction(

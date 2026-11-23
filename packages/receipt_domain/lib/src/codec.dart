@@ -13,30 +13,32 @@ final class ReceiptDocumentCodec {
   static String encode(ReceiptDocument document) => _encode({
     'payload_version': '1',
     'receipt': _snapshotObject(document.snapshot),
-    'review': {
-      'policy_version': document.review.policyVersion.toString(),
-      'source': document.review.source,
-      'app_version': document.review.appVersion,
-      'timezone_rules_version': receiptTimezoneRulesVersion,
-      'reviewed_at_ms': document.review.reviewedAtMs.toString(),
-      'expected_heads': document.review.expectedHeads
-          .map(_revisionObject)
-          .toList(),
-      'branch_reviewed': true,
-      'date_reviewed': true,
-      'total_reviewed': true,
-      'reconciled': true,
-      'reviewed_row_ids': document.review.reviewedRowIds
-          .map((id) => id.value)
-          .toList(),
-      if (document.review case final OcrReviewRecord ocr)
-        'ocr_evidence': _ocrEvidenceObject(
-          ocr.originalRowIds,
-          ocr.decisions,
-          ocr.originalFindingCount,
-          receiptReviewMethod: ocr.receiptReviewMethod,
-        ),
-    },
+    'review': document.review is ProductLinkReviewRecord
+        ? _productLinkReviewObject(document.review as ProductLinkReviewRecord)
+        : {
+            'policy_version': document.review.policyVersion.toString(),
+            'source': document.review.source,
+            'app_version': document.review.appVersion,
+            'timezone_rules_version': receiptTimezoneRulesVersion,
+            'reviewed_at_ms': document.review.reviewedAtMs.toString(),
+            'expected_heads': document.review.expectedHeads
+                .map(_revisionObject)
+                .toList(),
+            'branch_reviewed': true,
+            'date_reviewed': true,
+            'total_reviewed': true,
+            'reconciled': true,
+            'reviewed_row_ids': document.review.reviewedRowIds
+                .map((id) => id.value)
+                .toList(),
+            if (document.review case final OcrReviewRecord ocr)
+              'ocr_evidence': _ocrEvidenceObject(
+                ocr.originalRowIds,
+                ocr.decisions,
+                ocr.originalFindingCount,
+                receiptReviewMethod: ocr.receiptReviewMethod,
+              ),
+          },
   });
 
   static ReceiptDocument decode(String json) => _canonicalDecode(json, (value) {
@@ -44,6 +46,12 @@ final class ReceiptDocumentCodec {
     _require(root['payload_version'] == '1', 'payloadVersion', 'unsupported');
     final snapshot = _readSnapshot(root['receipt']);
     _require(root['review'] is Map<String, Object?>, 'review', 'type');
+    if ((root['review'] as Map<String, Object?>)['policy_version'] == '4') {
+      return ReceiptDocument._(
+        snapshot,
+        _readProductLinkReview(root['review'], snapshot),
+      );
+    }
     final isOcr = (root['review'] as Map<String, Object?>)['source'] == 'ocr';
     final review = _object(root['review'], [
       'policy_version',

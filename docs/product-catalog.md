@@ -86,9 +86,10 @@ results survive. A failed upgrade rolls back DDL, values and schema version so
 opening can retry. Released schema snapshots remain committed unchanged, alongside
 the schema-4 and schema-5 snapshots and generated migration verification helper.
 
-Current schema 7 additionally permits categorized product-v2 events; schema 6
-introduced receipt-level review policy 3. Migrations now support source schemas
-1–6, with released snapshots preserved. See [product categories](product-categories.md)
+Schema 7 introduced categorized product-v2 events; schema 6 introduced
+receipt-level review policy 3. Current schema 8 adds
+[saved link-only reviews](saved-product-links.md), policy 4. Migrations support
+source schemas 1–7, with released snapshots preserved. See [product categories](product-categories.md)
 for current classification behavior and compatibility.
 
 The complete integrity audit replays catalog history in causal order. It checks
@@ -121,7 +122,7 @@ The **inner structured format** is independently versioned:
   Returning to an older executable after migrating a database also fails its
   schema-version check. Keep the newer app available to restore these backups.
 
-Recovery rebuilds schema 7 and all catalog projections, audits complete history,
+Recovery rebuilds schema 8 and all catalog projections, audits complete history,
 and compares the canonical manifest. Original event bytes and retry results remain
 intact. Only the active installation identity is fresh. Subsequent catalog edits
 start the new device's stream at sequence 1 and retain historical parents.

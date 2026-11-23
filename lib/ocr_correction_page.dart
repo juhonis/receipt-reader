@@ -1,5 +1,4 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:receipt_domain/receipt_domain.dart';
 import 'package:receipt_parser/receipt_parser.dart' show OcrPage, formatCents;
 import 'package:receipt_storage/receipt_storage.dart' show StoredReceipt;
 
@@ -18,7 +17,7 @@ class OcrCorrectionPage extends StatefulWidget {
     this.imagePicker = pickReceiptImage,
     this.recognizer,
   }) {
-    if (receipt.document.review is! OcrReviewRecord) {
+    if (receipt.document.review.source != 'ocr') {
       throw ArgumentError.value(receipt, 'receipt', 'OCR receipt required');
     }
   }

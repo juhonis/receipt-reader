@@ -274,9 +274,10 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Add selected-range store comparisons with exact branch nets/counts/averages, signed bars, a positive-net donut with explicit grouped-store choice, receipt drill-down and a whole-result branch limit. See [store comparisons](store-comparisons.md).
 - [x] Add editable product category labels with five starter suggestions, historical regrouping of explicitly linked purchases, signed category spending/coverage, receipt drill-down and schema-7/inner-v4 encrypted recovery. See [product categories](product-categories.md).
 - [x] Add reviewed product creation/category editing inside receipt product selection, visible category labels and direct catalog editing from saved linked rows, preserving explicit linking, retries and original receipt bytes. See [inline product editing](inline-product-editing.md).
+- [x] Add explicit link-only review for saved manual/OCR receipt rows, preserving financial/evidence values, original history, frozen retries and schema-8/inner-v5 recovery. See [saved product links](saved-product-links.md).
 - [x] Implement the versioned structured backup/isolated recovery core on both platforms, including strict validation, preserved event/tombstone/row identities, fresh device identity and repeated restore/write tests. See [backup recovery](backup-recovery.md).
 - [x] Add password-protected backup files, native export/import UI, validated preview, explicit replacement confirmation, transactional activation/crash recovery and retained previous datasets on both platforms. See [password backups](password-backups.md).
-- [x] Rehearse supported-schema (1–6) migration, rollback, retained history, catalog links and exact analytics through encrypted recovery/reopen using synthetic data. See [migration/recovery integrity](migration-recovery.md). Keep independent backups; this does not establish sole-copy safety.
+- [x] Rehearse supported-schema (1–7) migration, rollback, retained history, catalog links and exact analytics through encrypted recovery/reopen using synthetic data. See [migration/recovery integrity](migration-recovery.md). Keep independent backups; this does not establish sole-copy safety.
 
 ### Phase 4: Adaptive UI & Standalone Feature Parity
 - [ ] Refine Windows navigation, wide tables, keyboard shortcuts, split-screen editing, and charts alongside compact Android layouts.
@@ -310,8 +311,8 @@ Restore must assign a fresh local device identity and preserve imported event id
 [reviewed receipt deletion](receipt-deletion.md) share reviewed persistence on
 Android and Windows. App-bundled recognition now runs on both platforms; broader
 quality and clean-machine release verification remain open. The normal
-app owns one application-support database with schema-7 migration from released
-schemas 1, 2, 3, 4, 5 and 6. Native synthetic save/reopen, filtered-history,
+app owns one application-support database with schema-8 migration from released
+schemas 1, 2, 3, 4, 5, 6 and 7. Native synthetic save/reopen, filtered-history,
 correction/stale-write and deletion/tombstone checks pass on both platforms,
 including Android airplane mode. Deletion retains prior structured snapshots;
 it is not secure erasure and receipt undo is not implemented.
@@ -357,8 +358,8 @@ These totals are separate from comparable product prices and update after encryp
 recovery without changing stored financial data.
 
 [Migration/recovery integrity](migration-recovery.md) now has a shared synthetic
-rehearsal for source schemas 1–6, with native category checks for 6→7 on Windows
-and Android. It checks migration
+rehearsal for source schemas 1–7, with native category checks for 6→8 and
+saved-link checks for 7→8 on Windows and Android. It checks migration
 rollback/retry, unchanged existing values/event bytes, corrections and tombstones,
 retired row identities, catalog revisions/aliases and exact spending/price summaries.
 Repeated encrypted recovery, fresh-origin writes, reopen and retained previous
@@ -415,8 +416,11 @@ and inner backup format 4; existing receipt amounts and canonical bytes remain
 unchanged. [Inline product editing](inline-product-editing.md) now makes reviewed
 product creation/classification available during receipt selection, and lets saved
 linked rows edit their current catalog category directly. Catalog saves remain
-separate and selecting a product remains explicit. Next analytics work is richer
-product comparisons and faster reviewed linking of saved unlinked rows.
+separate and selecting a product remains explicit. [Saved product-link review](saved-product-links.md)
+now links, replaces or unlinks saved manual/OCR rows without changing financial
+values or repeating image review. Schema 8 and inner backup 5 retain original
+approvals and validate exact predecessors. Next analytics work is richer product
+comparisons and purchase trends.
 Privacy/permission auditing and native import/backup picker checks remain required
 before release or networking work.
 

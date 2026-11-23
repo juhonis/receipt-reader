@@ -377,7 +377,7 @@ Future<void> rehearseUpgrade(
     workspace = await ReceiptWorkspace.open(directory);
     var repository = workspace.repository;
     final migrated = _capture(file);
-    expect(migrated['version'], 7);
+    expect(migrated['version'], 8);
     final beforeTables =
         before['tables']! as Map<String, List<Map<String, Object?>>>;
     final afterTables =
@@ -567,7 +567,7 @@ Future<void> rehearseRefusal(Directory directory) async {
     final raw = sqlite.sqlite3.open(target.path);
     try {
       if (name == 'future') {
-        raw.userVersion = 8;
+        raw.userVersion = 9;
       } else {
         raw.execute(
           'UPDATE receipts SET total_amount_cents = 999 WHERE id = ?',

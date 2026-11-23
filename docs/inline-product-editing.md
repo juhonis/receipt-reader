@@ -38,9 +38,10 @@ Historical reporting regroups earlier linked purchases as described in
 
 Receipt history reloads when returning from a detail screen. A receipt can leave
 the **Luokittelematon** filtered list after its linked products are categorized.
-Unlinked saved rows still need the existing receipt correction workflow to add a
-link. OCR financial corrections retain the original-image/evidence requirements;
-this change does not add silent or bulk historical matching.
+Saved rows can now add, replace or remove explicit product links through the
+separate [saved product-link review](saved-product-links.md), without repeating
+financial review. OCR financial corrections retain their original-image/evidence
+requirements. There is no silent or bulk historical matching.
 
 ## Implementation and compatibility
 
@@ -48,8 +49,9 @@ One shared catalog editor serves the catalog screen, product picker and linked
 receipt details. Categories are visible on picker entries and selected-product
 labels. Product identity, branch ownership, expected revisions, reviewed values,
 package precision, mutation retries and catalog write validation use the existing
-domain/storage commands. Schema 7 and the structured/protected backup formats are
-unchanged. No toolchain or dependencies were upgraded.
+domain/storage commands. The initial inline editor used schema 7 without changing
+backup formats; [saved product links](saved-product-links.md) subsequently add
+schema 8 and inner backup 5. No toolchain or dependencies were upgraded.
 
 ## Verification
 

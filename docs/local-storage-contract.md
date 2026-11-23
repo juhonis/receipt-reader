@@ -36,8 +36,9 @@ is implemented; automatic matching and sync remain outside this increment.
   Transactions serialize repository mutations. No UI or plugin writes SQL.
 - SQLite schema version starts at 1. Event payload version, review-policy
   version, and future wire-protocol version are independent integers, initially
-  1. The current implementation uses schema 6 and OCR review policy 3 while
-  preserving historical OCR policy 2, manual policy 1 and receipt/event payload 1. A schema migration
+  1. The current implementation uses schema 8 with OCR review policy 3 and
+  link-only policy 4, preserving historical OCR policy 2 and manual policy 1.
+  Receipt payloads remain v1; categorized product payloads use v2. A schema migration
   must not rewrite historical event payloads or identities.
 - Opening a newer, unsupported schema is a visible error, never a reset. A
   failed migration rolls back; keep the original database recoverable and never

@@ -529,5 +529,12 @@
   "categoryLimit": "Rajauksessa on yli 64 luokitteluryhmää. Rajaa toimipiste tai lyhyempi aikaväli. Osittaista yhteenvetoa ei näytetä.",
   "productEditCategory": "Muokkaa tuotetta ja luokkaa",
   "productRecentlySaved": "Juuri tallennettu tuote",
-  "productPickerEditNotice": "Tuote ja sen luokka tallentuvat tuoteluetteloon erikseen. Valitse tuote tästä luettelosta liittääksesi sen kuittiriviin. Kuitin peruminen ei poista tallennettua tuotetta."
+  "productPickerEditNotice": "Tuote ja sen luokka tallentuvat tuoteluetteloon erikseen. Valitse tuote tästä luettelosta liittääksesi sen kuittiriviin. Kuitin peruminen ei poista tallennettua tuotetta.",
+  "productLinksTitle": "Muokkaa kuitin tuoteliitoksia",
+  "productLinksNotice": "Valitse kuittiriveille tuotteet tai poista liitos. Päivämäärä, rivien nimet, määrät, alennukset ja summat säilyvät. Liitokset vaikuttavat myös aiempien ostojen luokitteluun ja tuotevertailuihin. Tuoteluetteloon tehdyt muutokset tallentuvat erikseen.",
+  "productLinksSave": "Hyväksy tuoteliitokset ja tallenna",
+  "productLinksChanged": "Liitos muutettu",
+  "productLinksFailed": "Tallennuksen tulosta ei voitu varmistaa. Yritä samaa tallennusta uudelleen tai palaa historiaan tarkistamaan tilanne.",
+  "productLinksStale": "Kuitti, toimipiste tai valittu tuote on muuttunut. Palaa historiaan ja avaa kuitti uudelleen.",
+  "productLinksPending": "Liitosvalinnat on lukittu saman tallennuksen uudelleenyritystä varten."
 }
