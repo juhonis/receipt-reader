@@ -6,6 +6,10 @@ juoma**, **Kodinhoito**, **Hygienia ja terveys**, **Vapaa-aika** or **Muut**, or
 a custom label. Clear the field to leave the product unclassified. Check the
 existing catalog review box and save. Categories are not guessed from OCR.
 
+[Inline editing](inline-product-editing.md) also provides product creation/category
+editing inside receipt product selection, and a shortcut on saved linked rows.
+Catalog saves remain separate; explicitly choose the product to link a receipt row.
+
 Labels trim and collapse whitespace when saved and allow at most 80 Unicode code
 points. Case remains significant. The suggestions are shortcuts, not a locked
 taxonomy or separate category registry. Editing one product's label does not

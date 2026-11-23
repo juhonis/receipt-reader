@@ -3,6 +3,7 @@ import 'package:receipt_storage/receipt_storage.dart';
 
 /// Catalog calls share the same dataset queue as receipt saves and restores.
 abstract interface class CatalogService {
+  Future<List<ReceiptBranch>> branches();
   Future<List<StoredProduct>> products(
     DurableId storeId, {
     int limit = 30,

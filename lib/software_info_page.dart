@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'l10n/generated/app_localizations.dart';
-import 'manual_receipt_page.dart' show receiptAppVersion;
+import 'app_version.dart';
 
 class SoftwareInfoPage extends StatelessWidget {
   const SoftwareInfoPage({super.key});

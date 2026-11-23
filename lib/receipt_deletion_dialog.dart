@@ -5,7 +5,7 @@ import 'package:receipt_storage/receipt_storage.dart';
 
 import 'l10n/generated/app_localizations.dart';
 import 'local_store.dart';
-import 'manual_receipt_page.dart' show receiptAppVersion;
+import 'app_version.dart';
 import 'receipt_format.dart';
 
 /// One explicit confirmation; an uncertain write retains the immutable command.

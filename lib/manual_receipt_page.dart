@@ -8,9 +8,7 @@ import 'local_store.dart';
 import 'catalog_service.dart';
 import 'product_picker.dart';
 import 'receipt_format.dart';
-
-// Keep aligned with pubspec.yaml when cutting a release.
-const receiptAppVersion = '0.1.0+1';
+import 'app_version.dart';
 
 class ManualReceiptPage extends StatefulWidget {
   const ManualReceiptPage({super.key, required this.store}) : _initial = null;

@@ -172,7 +172,7 @@ class _HistoryPageState extends State<HistoryPage> {
                       ],
                     ),
                     onTap: () async {
-                      final changed = await Navigator.push<bool>(
+                      await Navigator.push<bool>(
                         context,
                         MaterialPageRoute<bool>(
                           builder: (_) => ReceiptDetailPage(
@@ -182,7 +182,7 @@ class _HistoryPageState extends State<HistoryPage> {
                           ),
                         ),
                       );
-                      if (mounted && changed == true) {
+                      if (mounted) {
                         await _load(refresh: true);
                       }
                     },
@@ -321,6 +321,7 @@ class ReceiptDetailPage extends StatelessWidget {
                               ProductLinkLabel(
                                 service: store as CatalogService,
                                 link: snapshot.items[i].product!,
+                                editable: true,
                               ),
                           Text(kinds[snapshot.items[i].kind]!),
                           Text('${formatCents(snapshot.items[i].cents)} €'),

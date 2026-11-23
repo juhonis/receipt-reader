@@ -4,6 +4,7 @@ import 'package:receipt_parser/receipt_parser.dart';
 import 'package:receipt_storage/receipt_storage.dart';
 
 import 'catalog_service.dart';
+import 'catalog_editor.dart';
 import 'l10n/generated/app_localizations.dart';
 
 String productLabel(StoredProduct product) {
@@ -54,8 +55,15 @@ class _ProductPicker extends StatefulWidget {
 
 class _ProductPickerState extends State<_ProductPicker> {
   int _offset = 0;
-  late Future<(List<StoredProduct>, ProductAliasMatch?)> _load = _read();
-  Future<(List<StoredProduct>, ProductAliasMatch?)> _read() async {
+  StoredProduct? _recent;
+  bool _editing = false;
+  late Future<(List<StoredProduct>, ProductAliasMatch?, ReceiptBranch)> _load =
+      _read()..ignore();
+  Future<(List<StoredProduct>, ProductAliasMatch?, ReceiptBranch)>
+  _read() async {
+    final branch = (await widget.service.branches()).firstWhere(
+      (b) => b.id == widget.storeId,
+    );
     final products = await widget.service.products(
       widget.storeId,
       offset: _offset,
@@ -63,17 +71,55 @@ class _ProductPickerState extends State<_ProductPicker> {
     final match = widget.receiptName == null
         ? null
         : await widget.service.matchAlias(widget.storeId, widget.receiptName!);
-    return (products, match);
+    return (products, match, branch);
+  }
+
+  Future<void> _edit(ReceiptBranch branch, [StoredProduct? product]) async {
+    if (_editing) return;
+    setState(() => _editing = true);
+    try {
+      final result = await showDialog<CatalogEditResult>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => CatalogEditor(
+          service: widget.service,
+          branch: branch,
+          aliasMode: false,
+          product: product,
+          initialName: widget.receiptName,
+        ),
+      );
+      if (mounted) {
+        setState(() {
+          _recent = result?.product;
+          _load = _read()..ignore();
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _editing = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
-    Widget tile(StoredProduct product, String key) => ListTile(
-      key: ValueKey(key),
-      title: Text(productLabel(product)),
-      onTap: () => Navigator.pop(context, ProductChoice(product)),
-    );
+    Widget tile(StoredProduct product, String key, ReceiptBranch branch) =>
+        ListTile(
+          key: ValueKey(key),
+          title: Text(productLabel(product)),
+          subtitle: Text(
+            product.document.product.category ?? s.categoryUncategorized,
+          ),
+          onTap: _editing
+              ? null
+              : () => Navigator.pop(context, ProductChoice(product)),
+          trailing: IconButton(
+            key: ValueKey('edit-product-$key'),
+            tooltip: s.productEditCategory,
+            onPressed: _editing ? null : () => _edit(branch, product),
+            icon: const Icon(Icons.edit_outlined),
+          ),
+        );
     return AlertDialog(
       title: Text(s.productChoose),
       scrollable: true,
@@ -87,7 +133,9 @@ class _ProductPickerState extends State<_ProductPicker> {
                 children: [
                   Text(s.catalogLoadFailed),
                   TextButton(
-                    onPressed: () => setState(() => _load = _read()),
+                    onPressed: () => setState(() {
+                      _load = _read()..ignore();
+                    }),
                     child: Text(s.catalogReload),
                   ),
                 ],
@@ -96,22 +144,40 @@ class _ProductPickerState extends State<_ProductPicker> {
             if (!snapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
-            final (products, match) = snapshot.data!;
+            final (products, match, branch) = snapshot.data!;
             return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (match != null) ...[
-                  Text(s.productSuggestion),
-                  tile(match.product, 'product-suggestion'),
+                Text(s.productPickerEditNotice),
+                TextButton.icon(
+                  key: const Key('picker-create-product'),
+                  onPressed: _editing ? null : () => _edit(branch),
+                  icon: const Icon(Icons.add),
+                  label: Text(s.catalogAddProduct),
+                ),
+                if (_recent != null) ...[
+                  Text(s.productRecentlySaved),
+                  tile(_recent!, 'product-recent', branch),
                   const Divider(),
                 ],
-                if (products.isEmpty) Text(s.catalogEmpty),
+                if (match != null &&
+                    match.product.document.product.id !=
+                        _recent?.document.product.id) ...[
+                  Text(s.productSuggestion),
+                  tile(match.product, 'product-suggestion', branch),
+                  const Divider(),
+                ],
+                if (products.isEmpty && _recent == null && match == null)
+                  Text(s.catalogEmpty),
                 for (final product in products)
-                  tile(
-                    product,
-                    'pick-product-${product.document.product.id.value}',
-                  ),
+                  if (product.document.product.id !=
+                      _recent?.document.product.id)
+                    tile(
+                      product,
+                      'pick-product-${product.document.product.id.value}',
+                      branch,
+                    ),
                 Wrap(
                   spacing: 12,
                   children: [
@@ -120,7 +186,7 @@ class _ProductPickerState extends State<_ProductPicker> {
                           ? null
                           : () => setState(() {
                               _offset -= 30;
-                              _load = _read();
+                              _load = _read()..ignore();
                             }),
                       child: Text(s.catalogPrevious),
                     ),
@@ -129,7 +195,7 @@ class _ProductPickerState extends State<_ProductPicker> {
                           ? null
                           : () => setState(() {
                               _offset += 30;
-                              _load = _read();
+                              _load = _read()..ignore();
                             }),
                       child: Text(s.catalogNext),
                     ),
@@ -160,17 +226,59 @@ class ProductLinkLabel extends StatefulWidget {
     super.key,
     required this.service,
     required this.link,
+    this.editable = false,
   });
   final CatalogService service;
   final ReceiptProductLink link;
+  final bool editable;
   @override
   State<ProductLinkLabel> createState() => _ProductLinkLabelState();
 }
 
 class _ProductLinkLabelState extends State<ProductLinkLabel> {
+  bool _busy = false;
+  String? _error;
   late Future<StoredProduct?> _product = widget.service.readProduct(
     widget.link.id,
   );
+
+  Future<void> _edit() async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final product = await widget.service.readProduct(widget.link.id);
+      final branch = (await widget.service.branches()).firstWhere(
+        (b) => b.id == widget.link.storeId,
+      );
+      if (product == null || product.document.product.storeId != branch.id) {
+        throw StateError('missingProduct');
+      }
+      if (!mounted) return;
+      await showDialog<CatalogEditResult>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => CatalogEditor(
+          service: widget.service,
+          branch: branch,
+          aliasMode: false,
+          product: product,
+        ),
+      );
+    } catch (_) {
+      if (mounted) _error = AppLocalizations.of(context)!.catalogLoadFailed;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _product = widget.service.readProduct(widget.link.id)..ignore();
+        });
+      }
+    }
+  }
+
   @override
   void didUpdateWidget(ProductLinkLabel oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -191,8 +299,19 @@ class _ProductLinkLabelState extends State<ProductLinkLabel> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('${s.productSelected}: ${productLabel(product)}'),
+            Text(
+              '${s.productCategory}: ${product.document.product.category ?? s.categoryUncategorized}',
+            ),
             if (product.revision != widget.link.revision)
               Text(s.productCurrentLabel),
+            if (widget.editable)
+              TextButton.icon(
+                key: ValueKey('receipt-edit-product-${widget.link.id.value}'),
+                onPressed: _busy ? null : _edit,
+                icon: const Icon(Icons.edit_outlined),
+                label: Text(s.productEditCategory),
+              ),
+            if (_error != null) Text(_error!),
           ],
         );
       },
@@ -238,7 +357,12 @@ class ReceiptProductSelector extends StatelessWidget {
                     receiptName: receiptName,
                   );
                   if (context.mounted && choice != null) {
-                    onChanged(choice.product?.link);
+                    final current = context.widget as ReceiptProductSelector;
+                    if (current.enabled &&
+                        current.storeId == storeId &&
+                        current.receiptName == receiptName) {
+                      current.onChanged(choice.product?.link);
+                    }
                   }
                 },
           icon: const Icon(Icons.link),

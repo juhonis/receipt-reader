@@ -526,5 +526,8 @@
   "categoryUnclassifiedHint": "Luokittele tuote Kuitit-välilehden tuoteluettelossa ja liitä kuittirivi tuotteeseen, jos liitos puuttuu. Luokittelemattomat rivit ovat mukana summissa.",
   "categoryRows": "Rivejä",
   "categoryHistoryNotice": "Näytetään kuitit, joilla on valitun ryhmän rivejä. Kuittien loppusummat sisältävät myös muut ryhmät. Luokitus käyttää tuotteiden nykyisiä luokkia.",
-  "categoryLimit": "Rajauksessa on yli 64 luokitteluryhmää. Rajaa toimipiste tai lyhyempi aikaväli. Osittaista yhteenvetoa ei näytetä."
+  "categoryLimit": "Rajauksessa on yli 64 luokitteluryhmää. Rajaa toimipiste tai lyhyempi aikaväli. Osittaista yhteenvetoa ei näytetä.",
+  "productEditCategory": "Muokkaa tuotetta ja luokkaa",
+  "productRecentlySaved": "Juuri tallennettu tuote",
+  "productPickerEditNotice": "Tuote ja sen luokka tallentuvat tuoteluetteloon erikseen. Valitse tuote tästä luettelosta liittääksesi sen kuittiriviin. Kuitin peruminen ei poista tallennettua tuotetta."
 }

@@ -34,6 +34,8 @@ spending shares and per-branch statistics with receipt links.
 [Editable product categories](docs/product-categories.md) add category spending
 bars and receipt links, with visible unclassified coverage. Category edits regroup
 earlier explicitly linked purchases while preserving receipt amounts and details.
+[Inline product editing](docs/inline-product-editing.md) lets receipt workflows
+create categorized products in the picker and edit categories from saved linked rows.
 [Migration/recovery rehearsals](docs/migration-recovery.md) verify supported-schema
 upgrades, retained history and analytics through encrypted restore and reopen.
 A Windows development ZIP includes OCR assets and a synthetic clean-machine test.

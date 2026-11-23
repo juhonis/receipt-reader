@@ -273,6 +273,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Make Seuranta the default home tab and group receipt entry/management in Kuitit; add year/custom ranges and charts covering exactly the selected timeframe, with independent whole-range totals. See [dashboard navigation and ranges](spending-dashboard.md).
 - [x] Add selected-range store comparisons with exact branch nets/counts/averages, signed bars, a positive-net donut with explicit grouped-store choice, receipt drill-down and a whole-result branch limit. See [store comparisons](store-comparisons.md).
 - [x] Add editable product category labels with five starter suggestions, historical regrouping of explicitly linked purchases, signed category spending/coverage, receipt drill-down and schema-7/inner-v4 encrypted recovery. See [product categories](product-categories.md).
+- [x] Add reviewed product creation/category editing inside receipt product selection, visible category labels and direct catalog editing from saved linked rows, preserving explicit linking, retries and original receipt bytes. See [inline product editing](inline-product-editing.md).
 - [x] Implement the versioned structured backup/isolated recovery core on both platforms, including strict validation, preserved event/tombstone/row identities, fresh device identity and repeated restore/write tests. See [backup recovery](backup-recovery.md).
 - [x] Add password-protected backup files, native export/import UI, validated preview, explicit replacement confirmation, transactional activation/crash recovery and retained previous datasets on both platforms. See [password backups](password-backups.md).
 - [x] Rehearse supported-schema (1–6) migration, rollback, retained history, catalog links and exact analytics through encrypted recovery/reopen using synthetic data. See [migration/recovery integrity](migration-recovery.md). Keep independent backups; this does not establish sole-copy safety.
@@ -411,10 +412,13 @@ shares, exact store statistics and receipt links for the selected range.
 labels, historical regrouping of explicit product links, signed category bars,
 classification coverage and receipt drill-down. Product-v2 events use schema 7
 and inner backup format 4; existing receipt amounts and canonical bytes remain
-unchanged. Next analytics work is richer product comparisons and easier explicit
-classification/linking of unclassified purchases. Privacy/permission auditing
-and native import/backup picker checks
-remain required before release or networking work.
+unchanged. [Inline product editing](inline-product-editing.md) now makes reviewed
+product creation/classification available during receipt selection, and lets saved
+linked rows edit their current catalog category directly. Catalog saves remain
+separate and selecting a product remains explicit. Next analytics work is richer
+product comparisons and faster reviewed linking of saved unlinked rows.
+Privacy/permission auditing and native import/backup picker checks remain required
+before release or networking work.
 
 Keep representative S-kaupat images and OCR exports in ignored
 `localreceipts/`; committed fixtures remain synthetic or explicitly anonymized.

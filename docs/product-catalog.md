@@ -172,6 +172,11 @@ optional exact package quantity/unit, then check the review box before saving.
 Package details describe the package, not the quantity bought on a receipt.
 A short identity code distinguishes independent same-name products.
 
+The same reviewed editor is available [inside receipt product selection and from
+saved linked rows](inline-product-editing.md). Inline creation prefills the receipt
+name and supports categories; a separate explicit choice links the saved product
+to the draft row. Cancelling a receipt does not remove a separately saved product.
+
 Add a kuittinimi with the printed receipt name and an explicitly selected product.
 You can remap or deactivate it later. Its normalized key and branch are immutable;
 for another spelling, deactivate the old key and create another. A collision or

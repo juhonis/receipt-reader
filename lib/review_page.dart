@@ -17,7 +17,7 @@ import 'local_store.dart';
 import 'catalog_service.dart';
 import 'product_picker.dart';
 import 'ocr_save_dialog.dart';
-import 'manual_receipt_page.dart' show receiptAppVersion;
+import 'app_version.dart';
 
 class ReviewPage extends StatefulWidget {
   const ReviewPage({
