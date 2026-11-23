@@ -56,6 +56,13 @@ void main() {
       final result = await h.repository.spendingDashboard(query());
       expect(result.selected.receiptCount, 36);
       expect(result.selected.totalCents, BigInt.from(6950));
+      expect(result.branches, hasLength(2));
+      expect(result.branches.first.totals.totalCents, BigInt.from(7000));
+      expect(result.branches.last.totals.totalCents, BigInt.from(-50));
+      expect(
+        result.positiveBranchNet + result.negativeBranchNet,
+        result.selected.totalCents,
+      );
       expect(result.selected.negativeReceipts, 1);
       expect(result.comparisonPrevious.totalCents, BigInt.from(1000));
       expect(result.changeTenthsPercent, BigInt.from(5950));
@@ -68,6 +75,7 @@ void main() {
       );
       expect(selected.selected.receiptCount, 35);
       expect(selected.selected.totalCents, BigInt.from(7000));
+      expect(selected.branches.single.branch.id, branch.id);
       final year = await h.repository.spendingDashboard(
         SpendingDashboardQuery(
           unit: SpendingPeriodUnit.year,
@@ -113,6 +121,7 @@ void main() {
       var data = await h.repository.spendingDashboard(query());
       expect(data.selected.receiptCount, 0);
       expect(data.comparisonPrevious.totalCents, BigInt.from(-50));
+      expect(data.branches, isEmpty);
       final stored = (await h.repository.read(changed.id))!;
       await h.repository.deleteReceipt(
         ReceiptDeletionChecks(
@@ -125,6 +134,7 @@ void main() {
       await h.reopen();
       data = await h.repository.spendingDashboard(query());
       expect(data.periods.every((p) => p.totals.receiptCount == 0), isTrue);
+      expect(data.branches, isEmpty);
     },
   );
   test('corrupt selected projection fails the whole dashboard', () async {
@@ -137,4 +147,32 @@ void main() {
       throwsA(isA<StorageFailure>()),
     );
   });
+  test(
+    '129 selected branches fail without partial output, branch filter recovers',
+    () async {
+      for (var i = 0; i < 129; i++) {
+        await save(
+          i,
+          100,
+          '18.11.2026',
+          branch: ReceiptBranch(id: id(10000 + i), name: 'STORE $i'),
+        );
+      }
+      await expectLater(
+        h.repository.spendingDashboard(query()),
+        throwsA(
+          isA<StorageFailure>().having(
+            (e) => e.code,
+            'code',
+            'spendingGroupLimit',
+          ),
+        ),
+      );
+      final one = await h.repository.spendingDashboard(
+        query(branch: id(10000)),
+      );
+      expect(one.branches.single.totals.totalCents, BigInt.from(100));
+      expect(one.selected.receiptCount, 1);
+    },
+  );
 }

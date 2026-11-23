@@ -30,9 +30,16 @@ extension ReceiptSpending on ReceiptRepository {
         if (batch.isEmpty) break;
         for (final row in batch) {
           cursor = row['id']! as String;
-          builder.add(
-            (await _read(DurableId.parse(cursor)))!.document.snapshot,
-          );
+          final receipt = (await _read(DurableId.parse(cursor)))!
+              .document
+              .snapshot;
+          try {
+            builder.add(receipt);
+          } on ReceiptDataException catch (error) {
+            if (error.code == 'groupLimit')
+              throw const StorageFailure('spendingGroupLimit');
+            rethrow;
+          }
         }
       }
       return builder.build();

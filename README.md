@@ -29,6 +29,8 @@ The default [Seuranta dashboard](docs/spending-dashboard.md) supports week, mont
 year and custom ranges, with selected-range charts, matched-day comparisons,
 receipt averages, branch filtering and receipt drill-down. A separate Kuitit tab
 contains receipt entry, history, products and backups.
+[Store comparisons](docs/store-comparisons.md) add signed net bars, positive-net
+spending shares and per-branch statistics with receipt links.
 [Migration/recovery rehearsals](docs/migration-recovery.md) verify supported-schema
 upgrades, retained history and analytics through encrypted restore and reopen.
 A Windows development ZIP includes OCR assets and a synthetic clean-machine test.

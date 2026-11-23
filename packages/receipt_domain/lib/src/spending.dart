@@ -45,21 +45,39 @@ final class SpendingSummary {
 /// Exceeding a bound fails the entire result, never returning partial totals.
 final class SpendingSummaryBuilder {
   final _total = _SpendingFold();
-  final _branches = <DurableId, _SpendingFold>{};
-  final _labels =
-      <DurableId, ({ReceiptBranch branch, int day, String receiptId})>{};
+  final _branches = _BranchSpendingBuilder();
   final _months = <int, _SpendingFold>{};
 
   void add(ReceiptSnapshot receipt) {
-    final branch = receipt.branch.id;
     final month = receipt.date.year * 100 + receipt.date.month;
     _require(
-      _branches.containsKey(branch) || _branches.length < 128,
+      _months.containsKey(month) || _months.length < 1560,
       'spending',
       'groupLimit',
     );
+    _branches.add(receipt);
+    _total.add(receipt);
+    (_months[month] ??= _SpendingFold()).add(receipt);
+  }
+
+  SpendingSummary build() {
+    final months = _months.keys.toList()..sort((a, b) => b.compareTo(a));
+    return SpendingSummary(_total.build(), _branches.build(), [
+      for (final key in months)
+        MonthlySpending(key ~/ 100, key % 100, _months[key]!.build()),
+    ]);
+  }
+}
+
+/// Shared selected-receipt branch fold. Labels never come from comparison data.
+final class _BranchSpendingBuilder {
+  final _folds = <DurableId, _SpendingFold>{};
+  final _labels =
+      <DurableId, ({ReceiptBranch branch, int day, String receiptId})>{};
+  void add(ReceiptSnapshot receipt) {
+    final branch = receipt.branch.id;
     _require(
-      _months.containsKey(month) || _months.length < 1560,
+      _folds.containsKey(branch) || _folds.length < 128,
       'spending',
       'groupLimit',
     );
@@ -75,31 +93,21 @@ final class SpendingSummaryBuilder {
         receiptId: receipt.id.value,
       );
     }
-    _total.add(receipt);
-    (_branches[branch] ??= _SpendingFold()).add(receipt);
-    (_months[month] ??= _SpendingFold()).add(receipt);
+    (_folds[branch] ??= _SpendingFold()).add(receipt);
   }
 
-  SpendingSummary build() {
-    final branches = _branches.keys.toList()
+  List<BranchSpending> build() {
+    final branches = _folds.keys.toList()
       ..sort((a, b) {
         final order = _labels[a]!.branch.name.compareTo(
           _labels[b]!.branch.name,
         );
         return order == 0 ? a.value.compareTo(b.value) : order;
       });
-    final months = _months.keys.toList()..sort((a, b) => b.compareTo(a));
-    return SpendingSummary(
-      _total.build(),
-      [
-        for (final id in branches)
-          BranchSpending(_labels[id]!.branch, _branches[id]!.build()),
-      ],
-      [
-        for (final key in months)
-          MonthlySpending(key ~/ 100, key % 100, _months[key]!.build()),
-      ],
-    );
+    return [
+      for (final id in branches)
+        BranchSpending(_labels[id]!.branch, _folds[id]!.build()),
+    ];
   }
 }
 

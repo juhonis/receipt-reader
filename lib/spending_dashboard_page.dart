@@ -12,6 +12,7 @@ import 'local_store.dart';
 import 'receipt_format.dart';
 import 'spending_service.dart';
 import 'dashboard_range_dialog.dart';
+import 'store_spending_view.dart';
 
 class SpendingDashboardPage extends StatefulWidget {
   const SpendingDashboardPage({
@@ -162,18 +163,22 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
     _reload();
   }
 
-  Future<void> _receipts(SpendingPeriod period) async {
+  Future<void> _receipts(
+    SpendingPeriod period, {
+    ReceiptBranch? forBranch,
+  }) async {
+    final selectedBranch = forBranch ?? _branch;
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => HistoryPage(
           store: widget.store,
           initialSelection: HistoryFilterSelection(
             HistoryFilter(
-              branchId: _branch?.id,
+              branchId: selectedBranch?.id,
               fromDate: purchaseCalendarDate(period.firstDay),
               throughDate: purchaseCalendarDate(period.lastDay),
             ),
-            _branch?.name,
+            selectedBranch?.name,
           ),
         ),
       ),
@@ -284,7 +289,13 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
                     if (snapshot.hasError) {
                       return Column(
                         children: [
-                          Text(s.spendingFailed),
+                          Text(
+                            snapshot.error is StorageFailure &&
+                                    (snapshot.error! as StorageFailure).code ==
+                                        'spendingGroupLimit'
+                                ? s.spendingLimit
+                                : s.spendingFailed,
+                          ),
                           TextButton(
                             key: const Key('dashboard-retry'),
                             onPressed: _reload,
@@ -393,6 +404,12 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
                         Text(s.dashboardChartNotice),
                         const SizedBox(height: 12),
                         _SpendingChart(data: data, onPeriod: _receipts),
+                        const Divider(),
+                        StoreSpendingView(
+                          data: data,
+                          onBranch: (branch) =>
+                              _receipts(period, forBranch: branch),
+                        ),
                         const Divider(),
                         Text(
                           s.dashboardComparison,

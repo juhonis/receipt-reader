@@ -6,6 +6,7 @@ import 'package:receipt_domain/receipt_domain.dart';
 import 'package:receipt_parser/receipt_parser.dart';
 import 'package:receipt_reader/app.dart';
 import 'package:receipt_reader/spending_service.dart';
+import 'package:receipt_reader/spending_dashboard_page.dart';
 import 'package:receipt_storage/receipt_storage.dart';
 
 import 'support/fake_store.dart';
@@ -76,6 +77,17 @@ Future<void> openDashboard(
 
 Future<void> revealDashboard(WidgetTester t, String key) async {
   final finder = find.byKey(ValueKey(key));
+  if (finder.evaluate().isEmpty) {
+    final scroll = find
+        .descendant(
+          of: find.byType(SpendingDashboardPage),
+          matching: find.byWidgetPredicate(
+            (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+          ),
+        )
+        .first;
+    await t.scrollUntilVisible(finder, -300, scrollable: scroll);
+  }
   await t.ensureVisible(finder);
   await t.pumpAndSettle();
 }

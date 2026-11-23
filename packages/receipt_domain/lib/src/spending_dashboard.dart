@@ -151,11 +151,26 @@ final class SpendingDashboard {
     this.comparisonCurrent,
     this.comparisonPrevious,
     this.selected,
-  ) : periods = List.unmodifiable(periods);
+    Iterable<BranchSpending> branches,
+  ) : periods = List.unmodifiable(periods),
+      branches = List.unmodifiable(branches);
   final SpendingDashboardQuery query;
   final List<PeriodSpending> periods;
   final SpendingTotals comparisonCurrent, comparisonPrevious;
   final SpendingTotals selected;
+
+  /// Selected range only, sorted by descending signed net, then label and ID.
+  final List<BranchSpending> branches;
+  BigInt get positiveBranchNet => branches.fold(
+    BigInt.zero,
+    (sum, b) =>
+        b.totals.totalCents > BigInt.zero ? sum + b.totals.totalCents : sum,
+  );
+  BigInt get negativeBranchNet => branches.fold(
+    BigInt.zero,
+    (sum, b) =>
+        b.totals.totalCents < BigInt.zero ? sum + b.totals.totalCents : sum,
+  );
   BigInt get changeCents =>
       comparisonCurrent.totalCents - comparisonPrevious.totalCents;
 
@@ -193,13 +208,17 @@ final class SpendingDashboardBuilder {
     : _folds = [for (final _ in query.periods) _SpendingFold()];
   final SpendingDashboardQuery query;
   final List<_SpendingFold> _folds;
+  final _branches = _BranchSpendingBuilder();
   final _current = _SpendingFold(),
       _previous = _SpendingFold(),
       _selected = _SpendingFold();
   void add(ReceiptSnapshot receipt) {
     if (query.branchId != null && query.branchId != receipt.branch.id) return;
     final day = purchaseCalendarDay(receipt.date);
-    if (query.selected.contains(day)) _selected.add(receipt);
+    if (query.selected.contains(day)) {
+      _branches.add(receipt);
+      _selected.add(receipt);
+    }
     for (var i = 0; i < query.periods.length; i++) {
       if (query.periods[i].contains(day)) {
         _folds[i].add(receipt);
@@ -211,14 +230,26 @@ final class SpendingDashboardBuilder {
       _previous.add(receipt);
   }
 
-  SpendingDashboard build() => SpendingDashboard(
-    query,
-    [
-      for (var i = 0; i < query.periods.length; i++)
-        PeriodSpending(query.periods[i], _folds[i].build()),
-    ],
-    _current.build(),
-    _previous.build(),
-    _selected.build(),
-  );
+  SpendingDashboard build() {
+    final branches = _branches.build()
+      ..sort((a, b) {
+        final amount = b.totals.totalCents.compareTo(a.totals.totalCents);
+        if (amount != 0) return amount;
+        final name = a.branch.name.compareTo(b.branch.name);
+        return name != 0
+            ? name
+            : a.branch.id.value.compareTo(b.branch.id.value);
+      });
+    return SpendingDashboard(
+      query,
+      [
+        for (var i = 0; i < query.periods.length; i++)
+          PeriodSpending(query.periods[i], _folds[i].build()),
+      ],
+      _current.build(),
+      _previous.build(),
+      _selected.build(),
+      branches,
+    );
+  }
 }

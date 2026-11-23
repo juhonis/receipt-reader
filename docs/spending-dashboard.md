@@ -39,6 +39,10 @@ harness retains receipt review, with analytics disabled.
 - Press a bar, exact-period entry or receipt button to open history with the
   matching inclusive day bounds and branch. History retains its pagination,
   detail, correction and deletion workflows. Returning reloads the dashboard.
+- [Store comparisons](store-comparisons.md) add signed net bars, a positive-net
+  share donut and per-store receipt counts/averages. Store chart links open that
+  store's receipts across the entire selected timeframe. Negative store nets are
+  separate from the donut's positive denominator.
 
 An em dash means that no receipts are stored for a period. A stored zero-total
 period has a receipt count and a displayed zero amount. Neither establishes
@@ -88,9 +92,10 @@ bounded relative chart coordinates use floating point after exact scaling.
 selects matching current receipts in keyset batches of 16, verifies their canonical
 documents/projections and folds all chart/comparison results inside one read
 transaction. There is no history-page limit, SQLite integer `SUM`, persisted
-aggregate or full-history receipt list. Memory is independent of branch count:
-there are at most 31 chart buckets,
-one selected-total fold and two comparison folds. The read covers the selection
+aggregate or full-history receipt list. There are at most 31 chart buckets,
+one selected-total fold, two comparison folds and 128 selected branch folds/labels.
+Exceeding the branch bound fails the entire result and asks for a narrower filter.
+The read covers the selection
 and its comparison, rather than an unrelated rolling history. Runtime grows with
 matching data; a long custom range can take longer.
 
@@ -139,6 +144,6 @@ Windows screenshots use only those synthetic values. Normal build entry points
 and the prior Android airplane setting are restored after native verification;
 the normal app is never uninstalled or cleared.
 
-Store-share charts, product categories, cross-store product matching and richer
-price comparisons remain separate analytics milestones. Release privacy/picker
+Product categories, cross-store product matching and richer price comparisons
+remain separate analytics milestones. Release privacy/picker
 checks and synchronization remain open.

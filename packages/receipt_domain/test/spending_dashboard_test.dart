@@ -277,4 +277,123 @@ void main() {
       throwsA(isA<ReceiptDataException>()),
     );
   });
+
+  test('store nets reconcile selected totals; shares exclude zero and negative store nets', () {
+    final a = ReceiptBranch(id: DurableId.generate(), name: 'A');
+    final b = ReceiptBranch(id: DurableId.generate(), name: 'B');
+    final c = ReceiptBranch(id: DurableId.generate(), name: 'C');
+    final d = ReceiptBranch(id: DurableId.generate(), name: 'D');
+    final result =
+        (SpendingDashboardBuilder(query('18.11.2026'))
+              ..add(receipt('18.11.2026', 1000, branch: a))
+              ..add(receipt('18.11.2026', -200, branch: a))
+              ..add(receipt('18.11.2026', 200, branch: b))
+              ..add(receipt('18.11.2026', -100, branch: c))
+              ..add(receipt('18.11.2026', 50, branch: d))
+              ..add(receipt('18.11.2026', -50, branch: d))
+              ..add(receipt('18.10.2026', 99999)))
+            .build();
+    expect(result.branches.map((b) => b.branch.name), ['A', 'B', 'D', 'C']);
+    expect(result.branches.map((b) => b.totals.totalCents), [
+      BigInt.from(800),
+      BigInt.from(200),
+      BigInt.zero,
+      BigInt.from(-100),
+    ]);
+    expect(result.branches.map((b) => b.totals.receiptCount), [2, 1, 2, 1]);
+    expect(result.branches.first.totals.negativeReceipts, 1);
+    expect(result.selected.totalCents, BigInt.from(900));
+    expect(result.positiveBranchNet, BigInt.from(1000));
+    expect(result.negativeBranchNet, BigInt.from(-100));
+    expect(
+      result.positiveBranchNet + result.negativeBranchNet,
+      result.selected.totalCents,
+    );
+    expect(
+      result.branches.fold(0, (sum, b) => sum + b.totals.receiptCount),
+      result.selected.receiptCount,
+    );
+    expect(() => result.branches.clear(), throwsUnsupportedError);
+  });
+  test('store identity, signed ranking and newest selected labels are deterministic', () {
+    final id = DurableId.generate();
+    ReceiptSnapshot named(int receiptId, String name, String date) {
+      final row = ReceiptItemSnapshot(
+        id: DurableId.generate(),
+        name: 'TEST',
+        kind: LineKind.product,
+        cents: BigInt.from(100),
+      );
+      return ReceiptSnapshot(
+        id: DurableId.parse(
+          '00000000-0000-4000-8000-${receiptId.toString().padLeft(12, '0')}',
+        ),
+        branch: ReceiptBranch(id: id, name: name),
+        date: day(date),
+        totalCents: row.cents,
+        items: [row],
+      );
+    }
+
+    final b = SpendingDashboardBuilder(query('18.11.2026'))
+      ..add(named(99, 'SELECTED', '18.11.2026'))
+      ..add(named(1, 'EARLIER TIE', '18.11.2026'))
+      ..add(named(100, 'OLD', '1.11.2026'))
+      ..add(named(101, 'FUTURE', '23.11.2026'))
+      ..add(named(102, 'COMPARISON', '18.10.2026'));
+    final before = b.build();
+    expect(before.branches.single.branch.name, 'SELECTED');
+    final other = ReceiptBranch(id: DurableId.generate(), name: 'SELECTED');
+    b.add(receipt('18.11.2026', 300, branch: other));
+    final after = b.build();
+    expect(after.branches, hasLength(2));
+    expect(
+      after.branches.map((b) => b.branch.id.value),
+      orderedEquals([id.value, other.id.value]..sort()),
+    );
+    expect(before.branches, hasLength(1));
+  });
+  test('store aggregation and share denominator remain exact beyond double precision', () {
+    final a = ReceiptBranch(id: DurableId.generate(), name: 'A');
+    final result =
+        (SpendingDashboardBuilder(query('18.11.2026'))
+              ..add(receipt('18.11.2026', 9007199254740993, branch: a))
+              ..add(receipt('18.11.2026', 9007199254740994, branch: a))
+              ..add(receipt('18.11.2026', -1)))
+            .build();
+    expect(result.positiveBranchNet, BigInt.parse('18014398509481987'));
+    expect(result.negativeBranchNet, -BigInt.one);
+    expect(result.branches.first.totals.totalCents, result.positiveBranchNet);
+    expect(
+      averageReceiptCents(result.branches.first.totals),
+      BigInt.parse('9007199254740994'),
+    );
+  });
+  test('only selected branches count toward the bound; a filtered store stays usable', () {
+    final b = SpendingDashboardBuilder(query('18.11.2026'));
+    for (var i = 0; i < 150; i++) {
+      b.add(receipt('18.10.2026', 1));
+    }
+    for (var i = 0; i < 128; i++) {
+      b.add(receipt('18.11.2026', 1));
+    }
+    expect(b.build().branches, hasLength(128));
+    expect(
+      () => b.add(receipt('18.11.2026', 1)),
+      throwsA(
+        isA<ReceiptDataException>().having((e) => e.code, 'code', 'groupLimit'),
+      ),
+    );
+    final a = ReceiptBranch(id: DurableId.generate(), name: 'A');
+    final selected = SpendingDashboardBuilder(
+      query('18.11.2026', branch: a.id),
+    );
+    for (var i = 0; i < 150; i++) {
+      selected.add(receipt('18.11.2026', 1));
+    }
+    selected.add(receipt('18.11.2026', -200, branch: a));
+    expect(selected.build().branches.single.branch.id, a.id);
+    expect(selected.build().positiveBranchNet, BigInt.zero);
+    expect(selected.build().negativeBranchNet, BigInt.from(-200));
+  });
 }

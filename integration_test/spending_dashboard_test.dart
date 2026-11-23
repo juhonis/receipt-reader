@@ -153,6 +153,45 @@ void main() {
         expect(find.text('2,89 €'), findsOneWidget);
         expect(await workspace.repository.exportBackup(), before);
         await shot('overview');
+        final shareBranch = ReceiptBranch(
+          id: DurableId.generate(),
+          name: 'SYNTHETIC SHARE MARKET',
+        );
+        final refundBranch = ReceiptBranch(
+          id: DurableId.generate(),
+          name: 'SYNTHETIC REFUND MARKET',
+        );
+        final sharedReceipt = receipt(200, '18.11.2026', selected: shareBranch);
+        // Offsetting fixtures preserve the earlier net assertions while adding
+        // a second positive share and another independently negative branch.
+        await active.saveManual(approve(sharedReceipt));
+        await active.saveManual(
+          approve(receipt(-200, '18.11.2026', selected: refundBranch)),
+        );
+        await tap('dashboard-refresh');
+        await waitFor(total('104,00 €'));
+        expect(
+          find.text('SYNTHETIC SHARE MARKET: 2,00 € · 1,9 %'),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(ValueKey('store-share-${refundBranch.id.value}')),
+          findsNothing,
+        );
+        await t.ensureVisible(find.byKey(const Key('dashboard-stores')));
+        await t.pumpAndSettle();
+        await shot('stores');
+        await t.ensureVisible(
+          find.byKey(ValueKey('store-bar-${branch.id.value}')),
+        );
+        await t.pumpAndSettle();
+        await shot('store-bars');
+        await tap('store-share-${shareBranch.id.value}');
+        await waitFor(
+          find.byKey(ValueKey('history-${sharedReceipt.id.value}')),
+        );
+        Navigator.of(t.element(find.byType(HistoryPage))).pop();
+        await t.pumpAndSettle();
         await tap('dashboard-branch');
         await tap('dashboard-branch-${branch.id.value}');
         await waitFor(total('105,00 €'));
@@ -245,7 +284,11 @@ void main() {
         final activation = active.activateBackup(candidate);
         final queued = active.spendingDashboard(q);
         await activation;
-        expect((await queued).selected.totalCents, BigInt.from(10400));
+        final recoveredDashboard = await queued;
+        expect(recoveredDashboard.selected.totalCents, BigInt.from(10400));
+        expect(recoveredDashboard.branches, hasLength(4));
+        expect(recoveredDashboard.positiveBranchNet, BigInt.from(10700));
+        expect(recoveredDashboard.negativeBranchNet, BigInt.from(-300));
         await tap('dashboard-refresh');
         await waitFor(total('105,00 €'));
         final restored = (await workspace.repository.read(first.id))!;
@@ -278,6 +321,10 @@ void main() {
         expect(
           (await reopened.spendingDashboard(q)).selected.totalCents,
           BigInt.from(11000),
+        );
+        expect(
+          (await reopened.spendingDashboard(q)).positiveBranchNet,
+          BigInt.from(11300),
         );
       } finally {
         await t.pumpWidget(const SizedBox());

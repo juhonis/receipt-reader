@@ -495,5 +495,17 @@
   "dashboardPreviousReceipts": "Edellisen vertailuvälin kuitit",
   "dashboardTrend": "Kulutuksen kehitys",
   "dashboardChartNotice": "Kuvio kattaa valitun aikavälin: päivät, vuoden kuukaudet tai pitkän oman aikavälin enintään 24 osaa. — tarkoittaa puuttuvia kuitteja, ei todettua nollakulutusta. Negatiiviset summat näkyvät nollaviivan alla. Vieritä sivusuunnassa tai avaa kuitit painamalla pylvästä.",
-  "dashboardExactPeriods": "Jaksojen tarkat summat ja kuitit"
+  "dashboardExactPeriods": "Jaksojen tarkat summat ja kuitit",
+  "storeComparisonTitle": "Toimipisteiden vertailu",
+  "storeScope": "Mukana ovat valitun aikavälin ja toimipisterajauksen kuitit. Samannimiset toimipisteet pysyvät erillisinä. Nimi ja osoite ovat toimipisteen viimeisimmältä valitulta kuittipäivältä.",
+  "storeEmpty": "Toimipistevertailuun ei löytynyt kuitteja.",
+  "storeSingle": "Rajauksessa on yksi toimipiste.",
+  "storeSharesTitle": "Kulutuksen jakautuminen",
+  "storeSharesNotice": "Osuudet lasketaan vain toimipisteiden positiivisista nettosummista. Nolla- ja negatiiviset toimipistenetot eivät kuulu rengaskuvioon. Palautukset, pantit ja alennukset sisältyvät jo nettoihin: tämä ei ole ostojen tai palautusten bruttosumma. Enintään kahdeksan suurinta positiivista nettoa näytetään erikseen; Muut avaa loput toimipisteet. Pyöristetyt prosentit voivat poiketa yhteensä sadasta.",
+  "storePositiveNet": "Positiiviset toimipistenetot yhteensä",
+  "storeNegativeNet": "Negatiiviset toimipistenetot yhteensä",
+  "storeNoPositive": "Rajauksessa ei ole positiivisia toimipistenettoja. Rengaskuviota ei muodosteta.",
+  "storeNetTitle": "Nettosummat ja kuittitilastot",
+  "storeBarNotice": "Kaikki toimipisteet näytetään nettosumman mukaisessa järjestyksessä. Positiiviset summat ovat nollaviivan oikealla ja negatiiviset vasemmalla puolella. Nollanettokin sisältää kuitteja. Paina toimipistettä avataksesi sen valitun aikavälin kuitit.",
+  "storeOthers": "Muut"
 }
