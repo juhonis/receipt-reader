@@ -81,8 +81,13 @@ extension ReceiptSpending on ReceiptRepository {
               .document
               .snapshot;
           try {
-            final products =
-                query.selected.contains(purchaseCalendarDay(receipt.date))
+            // Both comparison windows use current catalog classifications in
+            // this same transaction, including receipts outside the selection.
+            final day = purchaseCalendarDay(receipt.date);
+            final relevant =
+                query.selected.contains(day) ||
+                (query.comparisonPrevious?.contains(day) ?? false);
+            final products = relevant
                 ? await categoryLookup.productsForReceipt(receipt)
                 : const <DurableId, ProductSnapshot>{};
             builder.add(

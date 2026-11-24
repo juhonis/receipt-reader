@@ -32,6 +32,12 @@ and products without a category remain in **Luokittelematon**, including their
 amounts. Coverage counts product rows, including returns; it is not a percentage
 of monetary spending or proof that every purchase has been recorded.
 
+The dashboard also offers **Kulutuksen jakauma → Tuoteryhmät** for positive
+category shares and **Tuoteryhmien vertailu** for paired current/previous bars and
+the largest euro changes. Both comparison windows use current classifications;
+unclassified rows remain visible. See the [dashboard rules](spending-dashboard.md#category-shares-and-comparisons)
+for matched dates, missing observations and the different pie denominator.
+
 Every posted row contributes once:
 
 - Product purchases and returns follow the product's current category.

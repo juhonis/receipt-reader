@@ -33,8 +33,8 @@ harness retains receipt review, with analytics disabled.
   the average remains in the same compact card. The info button gives exact
   comparison windows, coverage rules and links to both comparison receipt lists.
 - **Kulutuksen jakauma** follows immediately. **Tuotteet** is the default;
-  **Toimipisteet** switches the same chart to stores. The choice survives filter
-  changes. Product slices use only positive linked product nets after item
+  **Toimipisteet** switches the same chart to stores and **Tuoteryhmät** to
+  product categories. The choice survives filter changes. Product slices use only positive linked product nets after item
   discounts: the five largest plus **Muut**. Negative nets and unlinked amounts
   stay separately visible; deposits, receipt-wide discounts and adjustments
   remain in the headline receipt total but do not enter product slices. The
@@ -42,7 +42,12 @@ harness retains receipt review, with analytics disabled.
   Store mode uses positive whole-receipt branch nets, with eight slices plus
   **Muut**. Slice/legend buttons open the scoped product history or branch receipts;
   Muut asks which member to open. Equal names never merge identities.
-- The spending trend and compact signed category bars follow the pie. Exact
+- **Kulutuksen kehitys / Tuoteryhmien vertailu** switches the area below the pie
+  between the selected-period timeline (with compact signed category totals) and
+  paired category comparison bars. The chart choice survives filter changes.
+  Category comparison shows the five largest nonzero euro changes by absolute
+  amount, with signed euros and percentages; **Kaikki tuoteryhmät** expands the
+  remaining groups. Exact
   store/product figures, period figures and coverage details are expandable.
   Calculation explanations are available through info buttons instead of long
   inline paragraphs. Zero/negative products remain available in the full list
@@ -132,6 +137,64 @@ Helsinki day/month rollover on refresh or resume.
 No database schema, saved receipt/event bytes, backup format, dependency or
 review-policy change is introduced. No private receipts or normal app databases
 are used by tests.
+
+## Category shares and comparisons
+
+The **Tuoteryhmät** pie uses positive product-category and uncategorized nets,
+after item discounts and returns. The eight largest appear separately; any
+remainder opens an explicit member selection. A real category named Muut retains
+its identity separately from the grouped remainder. Negative eligible category
+nets appear below the pie. Deposits, receipt-wide discounts and adjustments stay
+outside this pie, with exact amounts in its info dialog. Category slices open
+receipts for the full selected range and current branch filter.
+
+Category comparison uses the summary's exact matched comparison windows, not
+necessarily the full selection. It requires at least one receipt in each window;
+missing receipts do not establish zero spending. When both windows are observed,
+a category absent from one window has zero rows, receipts and net there. Zero or
+negative previous category nets have no percentage; a disappearing positive
+category can show −100%. Unchanged groups remain in the expandable list.
+
+Both windows use current catalog classifications from the same read transaction,
+so category edits regroup earlier purchases too. Deposits, receipt discounts and
+adjustments are separate typed comparison groups. All category deltas together
+reconcile exactly to the headline comparison delta. A category row opens a choice
+of current/previous receipts using exact comparison dates and the branch filter;
+a period without that category's receipts is disabled.
+
+All paired bars share one absolute scale and a common zero; negative values extend
+left. Amount labels reserve a common width, so different digit counts cannot
+distort bar lengths. Financial totals, ranking and percentage rounding stay in
+BigInt; only bounded drawing fractions use doubles. Each category fold allows 64
+groups, and the comparison retains their complete union (at most 128). A fold
+limit rejects the dashboard with a range/filter prompt rather than showing partial
+groups. There are no database, receipt or backup format changes.
+
+## Category comparison verification
+
+Verified on November 24, 2026: all 226 app, 130 domain and 233 storage tests
+passed. After the final shared-scale/layout refinement, all 19 focused dashboard
+widget tests passed, including six new category tests. Flutter analysis and the
+dependency notice audit (with four tooling tests) passed. Native Windows and
+offline Android rehearsals cover category shares, matched comparison bars/help,
+and unchanged backup bytes in guarded temporary workspaces. Screenshots were
+checked on both platforms. Normal apps are restored using an Android upgrade
+install, preserving the existing synthetic sample dataset. Windows and Android
+debug/release builds passed, along with release artifact notice/provenance audits
+and Android offline-permission checks.
+
+Coverage includes short-month truncation, exact large amounts, signed special
+groups, empty versus zero baselines, branch scope, 128-group union, category edits
+across reopen, scoped history, grouped Muut identity, equal bar scale despite
+label widths, and 320px layouts with doubled text.
+
+```powershell
+flutter test test/category_comparison_test.dart test/compact_dashboard_test.dart test/spending_dashboard_test.dart
+# From packages/receipt_domain:
+dart test test/category_comparison_test.dart test/spending_dashboard_test.dart
+# From packages/receipt_storage:
+dart test test/category_test.dart test/spending_dashboard_test.dart
+```
 
 ## Compact layout verification
 

@@ -154,6 +154,8 @@ final class SpendingDashboard {
     Iterable<BranchSpending> branches,
     this.categories,
     this.products,
+    this.categoryCurrent,
+    this.categoryPrevious,
   ) : periods = List.unmodifiable(periods),
       branches = List.unmodifiable(branches);
   final SpendingDashboardQuery query;
@@ -162,6 +164,36 @@ final class SpendingDashboard {
   final SpendingTotals selected;
   final CategorySpendingSummary categories;
   final ProductSpendingSummary products;
+  final CategorySpendingSummary categoryCurrent, categoryPrevious;
+  bool get comparisonAvailable =>
+      query.comparisonPrevious != null &&
+      comparisonCurrent.receiptCount > 0 &&
+      comparisonPrevious.receiptCount > 0;
+
+  /// Exact union of two bounded folds (at most 128 groups). Missing categories
+  /// mean zero only when both comparison periods contain observed receipts.
+  late final List<CategorySpendingChange> categoryChanges = _categoryChanges();
+  List<CategorySpendingChange> _categoryChanges() {
+    final current = {for (final g in categoryCurrent.groups) g.category: g};
+    final previous = {for (final g in categoryPrevious.groups) g.category: g};
+    final changes = [
+      for (final key in {...current.keys, ...previous.keys})
+        CategorySpendingChange(
+          current[key] ?? CategorySpending(key, BigInt.zero, 0, 0),
+          previous[key] ?? CategorySpending(key, BigInt.zero, 0, 0),
+          comparisonAvailable,
+        ),
+    ];
+    changes.sort((a, b) {
+      final delta = b.changeCents.abs().compareTo(a.changeCents.abs());
+      if (delta != 0) return delta;
+      final kind = a.category.kind.index.compareTo(b.category.kind.index);
+      return kind != 0
+          ? kind
+          : (a.category.name ?? '').compareTo(b.category.name ?? '');
+    });
+    return List.unmodifiable(changes);
+  }
 
   /// Selected range only, sorted by descending signed net, then label and ID.
   final List<BranchSpending> branches;
@@ -192,6 +224,21 @@ final class SpendingDashboard {
         );
 }
 
+final class CategorySpendingChange {
+  const CategorySpendingChange(this.current, this.previous, this.observed);
+  final CategorySpending current, previous;
+  final bool observed;
+  ReceiptCategory get category => current.category;
+  BigInt get changeCents => current.totalCents - previous.totalCents;
+  BigInt? get changeTenthsPercent =>
+      !observed || previous.totalCents <= BigInt.zero
+      ? null
+      : roundSpendingRatio(
+          changeCents * BigInt.from(1000),
+          previous.totalCents,
+        );
+}
+
 /// Display rounding only: nearest integer, halfway away from zero.
 BigInt roundSpendingRatio(BigInt numerator, BigInt denominator) {
   if (denominator <= BigInt.zero) throw ArgumentError.value(denominator);
@@ -215,6 +262,8 @@ final class SpendingDashboardBuilder {
   final _branches = _BranchSpendingBuilder();
   final _categories = CategorySpendingBuilder();
   final _products = ProductSpendingBuilder();
+  final _categoryCurrent = CategorySpendingBuilder(),
+      _categoryPrevious = CategorySpendingBuilder();
   final _current = _SpendingFold(),
       _previous = _SpendingFold(),
       _selected = _SpendingFold();
@@ -237,9 +286,14 @@ final class SpendingDashboardBuilder {
         break;
       }
     }
-    if (query.comparisonCurrent?.contains(day) ?? false) _current.add(receipt);
-    if (query.comparisonPrevious?.contains(day) ?? false)
+    if (query.comparisonCurrent?.contains(day) ?? false) {
+      _current.add(receipt);
+      _categoryCurrent.add(receipt, productCategories);
+    }
+    if (query.comparisonPrevious?.contains(day) ?? false) {
       _previous.add(receipt);
+      _categoryPrevious.add(receipt, productCategories);
+    }
   }
 
   SpendingDashboard build() {
@@ -264,6 +318,8 @@ final class SpendingDashboardBuilder {
       branches,
       _categories.build(),
       _products.build(),
+      _categoryCurrent.build(),
+      _categoryPrevious.build(),
     );
   }
 }

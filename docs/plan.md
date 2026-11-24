@@ -427,8 +427,12 @@ add quantity-weighted prices, first/latest-day comparisons and signed product
 spending intervals with date drill-down, without changing stored data or formats.
 [Product spending rankings](product-rankings.md) now show the top ten, exact
 remainder and full paginated list, with direct product history using the dashboard
-dates. Ranking overflow retains complete financial totals and coverage. The next
-comparison decision is explicit matching of equivalent products across branches;
+dates. Ranking overflow retains complete financial totals and coverage.
+The dashboard now includes a Tuoteryhmät pie and paired category comparison bars,
+with the largest signed euro/percentage changes, fair matched periods and scoped
+receipt links. Current classifications apply to both comparison windows; missing
+observations never imply zero spending. No persistence formats change.
+The next comparison decision is explicit matching of equivalent products across branches;
 package conversions also still need explicit rules. Neither is inferred from names.
 Privacy/permission auditing and native import/backup picker checks remain required
 before release or networking work.

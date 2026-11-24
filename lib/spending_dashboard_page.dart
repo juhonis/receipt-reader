@@ -14,6 +14,7 @@ import 'spending_service.dart';
 import 'dashboard_range_dialog.dart';
 import 'store_spending_view.dart';
 import 'category_spending_view.dart';
+import 'category_comparison_view.dart';
 import 'product_spending_view.dart';
 import 'product_rankings_page.dart';
 import 'spending_breakdown_view.dart';
@@ -47,6 +48,7 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
   StoredReceiptDate? _customFrom, _customThrough;
   late Future<SpendingDashboard> _result;
   late SpendingDashboardQuery _query;
+  bool _compareCategories = false;
   SpendingBreakdownMode _breakdown = SpendingBreakdownMode.product;
 
   StoredReceiptDate _today() {
@@ -460,6 +462,8 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
                                   canOpenRankedProduct(widget.store)
                               ? (product) => _product(product, data)
                               : null,
+                          onCategory: (category) =>
+                              _receipts(period, category: category),
                           onBranch: (branch) =>
                               _receipts(period, forBranch: branch),
                           onAllProducts: _openingProduct
@@ -467,29 +471,47 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
                               : () => _allProducts(data),
                         ),
                         const SizedBox(height: 8),
-                        Row(
+                        Wrap(
+                          spacing: 8,
                           children: [
-                            Expanded(
-                              child: Text(
-                                s.dashboardTrend,
-                                style: Theme.of(context).textTheme.titleLarge,
+                            ChoiceChip(
+                              key: const Key('dashboard-chart-trend'),
+                              selected: !_compareCategories,
+                              onSelected: (_) =>
+                                  setState(() => _compareCategories = false),
+                              label: Text(s.dashboardTrend),
+                            ),
+                            ChoiceChip(
+                              key: const Key('dashboard-chart-categories'),
+                              selected: _compareCategories,
+                              onSelected: (_) =>
+                                  setState(() => _compareCategories = true),
+                              label: Text(s.dashboardCategoryComparison),
+                            ),
+                            if (!_compareCategories)
+                              DashboardInfoButton(
+                                key: const Key('dashboard-trend-info'),
+                                title: s.dashboardTrend,
+                                paragraphs: [s.dashboardChartNotice],
                               ),
-                            ),
-                            DashboardInfoButton(
-                              key: const Key('dashboard-trend-info'),
-                              title: s.dashboardTrend,
-                              paragraphs: [s.dashboardChartNotice],
-                            ),
                           ],
                         ),
-                        _SpendingChart(data: data, onPeriod: _receipts),
-                        const SizedBox(height: 12),
-                        CategorySpendingView(
-                          summary: data.categories,
-                          onCategory: (category) =>
-                              _receipts(period, category: category),
-                          compact: true,
-                        ),
+                        if (_compareCategories)
+                          CategoryComparisonView(
+                            data: data,
+                            onCategory: (category, comparison) =>
+                                _receipts(comparison, category: category),
+                          )
+                        else ...[
+                          _SpendingChart(data: data, onPeriod: _receipts),
+                          const SizedBox(height: 12),
+                          CategorySpendingView(
+                            summary: data.categories,
+                            onCategory: (category) =>
+                                _receipts(period, category: category),
+                            compact: true,
+                          ),
+                        ],
                         const SizedBox(height: 8),
                         ExpansionTile(
                           key: const Key('dashboard-store-details'),

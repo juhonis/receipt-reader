@@ -140,6 +140,39 @@ void main() {
       '4',
     );
   });
+  test('dashboard compares previous receipts with current category after edit and reopen', () async {
+    final saved = await h.repository.saveProduct(
+      product(category: 'Before'),
+      mutationId: id(11),
+    );
+    final p = (await h.repository.products(branch.id)).single;
+    final prior = await saveLinked(1, p, date: '18.10.2026');
+    await saveLinked(2, p);
+    final bytes = ReceiptDocumentCodec.encode(prior.document);
+    await h.repository.saveProduct(
+      product(category: 'After', head: saved.revision),
+      mutationId: id(12),
+    );
+    await h.reopen();
+    final data = await h.repository.spendingDashboard(query());
+    final group = data.categoryChanges.singleWhere(
+      (g) => g.category.name == 'After',
+    );
+    expect(group.current.totalCents, BigInt.from(200));
+    expect(group.previous.totalCents, BigInt.from(200));
+    expect(group.previous.receiptCount, 1);
+    expect(group.changeTenthsPercent, BigInt.zero);
+    expect(
+      data.categoryChanges.any((g) => g.category.name == 'Before'),
+      isFalse,
+    );
+    expect(
+      ReceiptDocumentCodec.encode(
+        (await h.repository.read(prior.document.snapshot.id))!.document,
+      ),
+      bytes,
+    );
+  });
   test('category history filters before pagination across batches and date precision', () async {
     await h.repository.saveProduct(
       product(category: 'TEST'),

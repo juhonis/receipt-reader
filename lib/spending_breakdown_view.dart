@@ -5,9 +5,10 @@ import 'package:receipt_domain/receipt_domain.dart';
 import 'package:receipt_parser/receipt_parser.dart' show formatCents;
 
 import 'dashboard_help.dart';
+import 'category_labels.dart';
 import 'l10n/generated/app_localizations.dart';
 
-enum SpendingBreakdownMode { product, branch }
+enum SpendingBreakdownMode { product, branch, category }
 
 class SpendingBreakdownView extends StatelessWidget {
   const SpendingBreakdownView({
@@ -18,6 +19,7 @@ class SpendingBreakdownView extends StatelessWidget {
     this.onProduct,
     required this.onBranch,
     this.onAllProducts,
+    this.onCategory,
   });
   final SpendingDashboard data;
   final SpendingBreakdownMode mode;
@@ -25,11 +27,18 @@ class SpendingBreakdownView extends StatelessWidget {
   final ValueChanged<ProductSpending>? onProduct;
   final ValueChanged<ReceiptBranch> onBranch;
   final VoidCallback? onAllProducts;
+  final ValueChanged<ReceiptCategory>? onCategory;
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
     final colors = Theme.of(context).colorScheme;
     final byProduct = mode == SpendingBreakdownMode.product;
+    final byCategory = mode == SpendingBreakdownMode.category;
+    final prefix = byProduct
+        ? 'product'
+        : byCategory
+        ? 'category'
+        : 'store';
     final entries = <_Entry>[];
     var negative = BigInt.zero;
     if (byProduct) {
@@ -48,6 +57,24 @@ class SpendingBreakdownView extends StatelessWidget {
             p.branch.name,
             p.totalCents,
             onProduct == null ? null : () => onProduct!(p),
+          ),
+        );
+      }
+    } else if (byCategory) {
+      for (final g in data.categories.groups) {
+        if (g.category.kind != CategorySpendingKind.product &&
+            g.category.kind != CategorySpendingKind.uncategorized) {
+          continue;
+        }
+        if (g.totalCents < BigInt.zero) negative += g.totalCents;
+        if (g.totalCents <= BigInt.zero) continue;
+        entries.add(
+          _Entry(
+            'category-share-${g.category.kind.name}-${g.category.name ?? ''}',
+            categoryLabel(s, g.category),
+            null,
+            g.totalCents,
+            onCategory == null ? null : () => onCategory!(g.category),
           ),
         );
       }
@@ -86,7 +113,7 @@ class SpendingBreakdownView extends StatelessWidget {
           s.storeOthers,
           entries.sublist(limit),
           colors.outline,
-          byProduct ? 'breakdown-product-others' : 'store-share-others',
+          byProduct ? 'breakdown-product-others' : '$prefix-share-others',
           grouped: true,
         ),
     ];
@@ -117,8 +144,8 @@ class SpendingBreakdownView extends StatelessWidget {
                                 'breakdown-other-product-',
                               )
                             : entry.key.replaceFirst(
-                                'store-share-',
-                                'store-other-',
+                                '$prefix-share-',
+                                '$prefix-other-',
                               ),
                       ),
                       title: Text(entry.name),
@@ -148,6 +175,8 @@ class SpendingBreakdownView extends StatelessWidget {
 
     final caption = byProduct
         ? s.dashboardProductShares
+        : byCategory
+        ? s.dashboardCategoryShares
         : s.dashboardBranchShares;
     final limited = byProduct && data.products.limitExceeded;
     return Card(
@@ -172,7 +201,15 @@ class SpendingBreakdownView extends StatelessWidget {
                   paragraphs: [
                     byProduct
                         ? s.dashboardProductShareHelp
+                        : byCategory
+                        ? s.dashboardCategoryShareHelp
                         : s.dashboardBranchShareHelp,
+                    if (byCategory)
+                      for (final g in data.categories.groups)
+                        if (g.category.kind != CategorySpendingKind.product &&
+                            g.category.kind !=
+                                CategorySpendingKind.uncategorized)
+                          '${categoryLabel(s, g.category)}: ${formatCents(g.totalCents)} €',
                     if (byProduct)
                       '${s.productRankingCoverage}: ${data.products.linkedRows} / ${data.products.productRows}',
                     if (byProduct)
@@ -201,6 +238,8 @@ class SpendingBreakdownView extends StatelessWidget {
                     label: Text(
                       value == SpendingBreakdownMode.product
                           ? s.dashboardByProduct
+                          : value == SpendingBreakdownMode.category
+                          ? s.dashboardByCategory
                           : s.dashboardByBranch,
                     ),
                   ),
@@ -216,12 +255,10 @@ class SpendingBreakdownView extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Text(
-                  !byProduct && data.branches.isEmpty
+                  !byProduct && !byCategory && data.branches.isEmpty
                       ? s.storeEmpty
                       : s.dashboardSharesNoPositive,
-                  key: Key(
-                    byProduct ? 'product-no-positive' : 'store-no-positive',
-                  ),
+                  key: Key('$prefix-no-positive'),
                 ),
               )
             else
@@ -235,9 +272,7 @@ class SpendingBreakdownView extends StatelessWidget {
                         slices,
                         total,
                         open,
-                        key: Key(
-                          byProduct ? 'product-share-ring' : 'store-share-ring',
-                        ),
+                        key: Key('$prefix-share-ring'),
                       ),
                     ),
                   );
@@ -308,17 +343,13 @@ class SpendingBreakdownView extends StatelessWidget {
             if (!limited && total > BigInt.zero)
               Text(
                 '$caption: ${formatCents(total)} €',
-                key: Key(
-                  byProduct ? 'product-positive-total' : 'store-positive-total',
-                ),
+                key: Key('$prefix-positive-total'),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             if (negative < BigInt.zero)
               Text(
-                '${byProduct ? s.dashboardNegativeShares : s.storeNegativeNet}: ${formatCents(negative)} €',
-                key: Key(
-                  byProduct ? 'product-negative-total' : 'store-negative-total',
-                ),
+                '${byProduct || byCategory ? s.dashboardNegativeShares : s.storeNegativeNet}: ${formatCents(negative)} €',
+                key: Key('$prefix-negative-total'),
                 style: TextStyle(color: colors.error),
               ),
             if (byProduct && data.products.unlinkedCents != BigInt.zero)

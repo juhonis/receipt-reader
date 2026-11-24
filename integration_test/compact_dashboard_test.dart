@@ -133,6 +133,20 @@ void main() {
         Navigator.pop(t.element(find.byType(PurchaseHistoryPage)));
         await t.pumpAndSettle();
         await wait(find.byKey(const Key('dashboard-total')));
+        await tap('breakdown-category');
+        expect(find.byKey(const Key('category-share-ring')), findsOneWidget);
+        await shot('categories');
+        await tap('dashboard-chart-categories');
+        expect(find.byKey(const Key('category-comparison')), findsOneWidget);
+        expect(
+          find.byKey(const Key('category-comparison-missing')),
+          findsNothing,
+        );
+        await shot('comparison');
+        await tap('category-comparison-info');
+        expect(find.textContaining('16.11.2026'), findsWidgets);
+        Navigator.pop(t.element(find.byType(AlertDialog)));
+        await t.pumpAndSettle();
         await tap('dashboard-summary-info');
         expect(find.textContaining('17.11.2026'), findsWidgets);
         expect(await workspace.repository.exportBackup(), before);

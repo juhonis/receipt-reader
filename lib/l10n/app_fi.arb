@@ -585,5 +585,15 @@
   "dashboardUnlinkedShort": "Ei tuotelinkkiä",
   "dashboardSharesNoPositive": "Ei positiivisia nettosummia tällä aikavälillä.",
   "dashboardProductShareHelp": "Osuudet lasketaan positiivisista, tuotteisiin liitetyistä nettosummista rivialennusten jälkeen. Negatiiviset ja nollanettotuotteet eivät muodosta lohkoa. Liittämättömät rivit, pantit, kuittialennukset ja oikaisut jäävät tämän piirakan ulkopuolelle. Ne ovat silti mukana jakson nettokulutuksessa. Saman nimisiä tuotteita tai eri toimipisteiden tuotteita ei yhdistetä.",
-  "dashboardBranchShareHelp": "Osuudet lasketaan toimipisteiden positiivisista koko kuittien nettosummista. Negatiiviset ja nollanettoiset toimipisteet eivät muodosta lohkoa, mutta ne ovat mukana jakson nettokulutuksessa. Avaa lohko tai selite nähdäksesi toimipisteen kuitit."
+  "dashboardBranchShareHelp": "Osuudet lasketaan toimipisteiden positiivisista koko kuittien nettosummista. Negatiiviset ja nollanettoiset toimipisteet eivät muodosta lohkoa, mutta ne ovat mukana jakson nettokulutuksessa. Avaa lohko tai selite nähdäksesi toimipisteen kuitit.",
+  "dashboardByCategory": "Tuoteryhmät",
+  "dashboardCategoryShares": "Positiiviset tuoteryhmänetot",
+  "dashboardCategoryShareHelp": "Osuudet lasketaan tuoteryhmien positiivisista nettosummista rivialennusten jälkeen. Ryhmittelemättömät tuotteet ovat mukana omana lohkonaan. Negatiiviset ja nollanettoryhmät eivät muodosta lohkoa. Pantit, kuittialennukset ja oikaisut ovat mukana jakson nettokulutuksessa, mutta eivät tässä piirakassa; niiden summat näkyvät alla. Avaa lohko tai selite nähdäksesi ryhmän kuitit valitulta aikaväliltä.",
+  "dashboardCategoryComparison": "Tuoteryhmien vertailu",
+  "dashboardBiggestChanges": "Suurimmat muutokset",
+  "dashboardNoChanges": "Ei muutoksia tuoteryhmien nettosummissa.",
+  "dashboardCurrentShort": "Nykyinen",
+  "dashboardAllCategories": "Kaikki tuoteryhmät",
+  "dashboardCategoryComparisonHelp": "Pylväät vertaavat tuoteryhmien nettosummia. Keskeneräistä jaksoa verrataan yhtä moneen päivään edellisen jakson alusta, kuten nettokulutuksen vertailussa. Nykyiset tuoteryhmät koskevat myös aiempia ostoja. Pantit, kuittialennukset ja oikaisut ovat omina ryhminään, joten muutosten summa vastaa koko vertailun muutosta. Suurimmat muutokset järjestetään euromuutoksen itseisarvon mukaan. Prosenttia ei lasketa, jos edellinen nettosumma on nolla tai negatiivinen. Puuttuva ryhmä tarkoittaa nollaa vain, kun molemmilta jaksoilta on kuitteja.",
+  "dashboardCategoryComparisonMissing": "Vertailuun tarvitaan kuitteja molemmilta vertailujaksoilta."
 }
