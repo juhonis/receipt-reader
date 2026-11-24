@@ -14,6 +14,8 @@ import 'spending_service.dart';
 import 'dashboard_range_dialog.dart';
 import 'store_spending_view.dart';
 import 'category_spending_view.dart';
+import 'product_spending_view.dart';
+import 'product_rankings_page.dart';
 
 class SpendingDashboardPage extends StatefulWidget {
   const SpendingDashboardPage({
@@ -37,6 +39,7 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
   SpendingPeriodUnit _unit = SpendingPeriodUnit.month;
   late StoredReceiptDate _anchor;
   bool _followToday = true;
+  bool _openingProduct = false;
   ReceiptBranch? _branch;
   StoredReceiptDate? _customFrom, _customThrough;
   late Future<SpendingDashboard> _result;
@@ -187,6 +190,43 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
       ),
     );
     if (mounted) _reload();
+  }
+
+  Future<void> _product(ProductSpending product, SpendingDashboard data) async {
+    if (_openingProduct) return;
+    final request = _result;
+    setState(() => _openingProduct = true);
+    final opened = await openRankedProduct(
+      context,
+      widget.store,
+      product,
+      data.query.selected,
+      isCurrent: () => mounted && widget.active && _result == request,
+    );
+    if (mounted) {
+      setState(() => _openingProduct = false);
+      if (opened) _reload();
+    }
+  }
+
+  Future<void> _allProducts(SpendingDashboard data) async {
+    if (_openingProduct) return;
+    setState(() => _openingProduct = true);
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProductRankingsPage(
+          store: widget.store,
+          service: widget.service,
+          initialData: data,
+          branchName: _branch?.name,
+        ),
+      ),
+    );
+    if (mounted) {
+      setState(() => _openingProduct = false);
+      _reload();
+    }
   }
 
   @override
@@ -423,6 +463,18 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
                           summary: data.categories,
                           onCategory: (category) =>
                               _receipts(period, category: category),
+                        ),
+                        const Divider(),
+                        ProductSpendingView(
+                          summary: data.products,
+                          onProduct:
+                              !_openingProduct &&
+                                  canOpenRankedProduct(widget.store)
+                              ? (product) => _product(product, data)
+                              : null,
+                          onAll: _openingProduct
+                              ? null
+                              : () => _allProducts(data),
                         ),
                         const Divider(),
                         Text(

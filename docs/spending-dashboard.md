@@ -147,6 +147,8 @@ Windows screenshots use only those synthetic values. Normal build entry points
 and the prior Android airplane setting are restored after native verification;
 the normal app is never uninstalled or cleared.
 
-Product categories, cross-store product matching and richer price comparisons
-remain separate analytics milestones. Release privacy/picker
-checks and synchronization remain open.
+[Product categories](product-categories.md), [product trends](product-trends.md)
+and [product spending rankings](product-rankings.md) are now available. Rankings
+use the selected dashboard range and branch, and open product history with the
+same dates. Cross-store product matching still needs explicit comparison rules.
+Release privacy/picker checks and synchronization remain open.

@@ -269,6 +269,7 @@ Restore must assign a fresh local device identity and preserve imported event id
 - [x] Add linked product purchase history and page-scoped price charts with exact quantity arithmetic, unit/revision comparability, linked item discounts, deposit exclusion and explicit receipt-wide discount/adjustment warnings. See [purchase history](purchase-history.md).
 - [x] Extend product price trends to inclusive date-range summaries over every matching row, with exact counts/subtotals, bounded calendar min/max charts, exclusion counts and one consistent summary/detail snapshot. See [purchase history](purchase-history.md).
 - [x] Add full-range quantity-weighted product prices, first/latest-day price changes, average chart markers and signed product-spending intervals with date drill-down. Preserve unit/revision groups and read-only encrypted recovery. See [product trends](product-trends.md).
+- [x] Add selected-range product spending rankings with top ten/exact remainder, full paginated list, signed row attribution/coverage and direct branch/product history inheriting dashboard dates. See [product rankings](product-rankings.md).
 - [x] Add receipt-level spending summaries by branch and calendar month, using complete current receipt totals, exact signed cents, inclusive branch/date filters and explicit coverage notices. See [spending summaries](spending-summary.md).
 - [x] Add an offline weekly/monthly dashboard with up to 12 calendar bars, exact averages/deltas, matched-day comparisons for unfinished periods, branch filters and receipt drill-down. See [spending dashboard](spending-dashboard.md).
 - [x] Make Seuranta the default home tab and group receipt entry/management in Kuitit; add year/custom ranges and charts covering exactly the selected timeframe, with independent whole-range totals. See [dashboard navigation and ranges](spending-dashboard.md).
@@ -423,9 +424,11 @@ values or repeating image review. Schema 8 and inner backup 5 retain original
 approvals and validate exact predecessors. [Product trends](product-trends.md) now
 add quantity-weighted prices, first/latest-day comparisons and signed product
 spending intervals with date drill-down, without changing stored data or formats.
-Next analytics work is product spending rankings and easier product access from
-the dashboard. Cross-product/branch equivalence and package conversions still need
-explicit comparison rules.
+[Product spending rankings](product-rankings.md) now show the top ten, exact
+remainder and full paginated list, with direct product history using the dashboard
+dates. Ranking overflow retains complete financial totals and coverage. The next
+comparison decision is explicit matching of equivalent products across branches;
+package conversions also still need explicit rules. Neither is inferred from names.
 Privacy/permission auditing and native import/backup picker checks remain required
 before release or networking work.
 

@@ -6,6 +6,11 @@ product. Tapping the product name still opens its reviewed catalog editor.
 current, nondeleted receipts. Equal-name products remain independent identities.
 Aliases suggest links during receipt review; they never add historical links.
 
+[Product rankings](product-rankings.md) also open this view directly from Seuranta,
+using the chosen product/branch and the dashboard's exact inclusive dates. The full
+ranking list uses the same shortcut. Returning refreshes the originating ranking;
+changing or clearing the product-history range is an explicit local choice.
+
 Each page contains up to 30 product rows, including separate duplicate rows on the
 same receipt. Filtering happens in SQLite before pagination. Ordering uses the
 printed Helsinki civil date/time, receipt ID and original row position. A date-only

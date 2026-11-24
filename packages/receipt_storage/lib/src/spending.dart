@@ -81,12 +81,17 @@ extension ReceiptSpending on ReceiptRepository {
               .document
               .snapshot;
           try {
+            final products =
+                query.selected.contains(purchaseCalendarDay(receipt.date))
+                ? await categoryLookup.productsForReceipt(receipt)
+                : const <DurableId, ProductSnapshot>{};
             builder.add(
               receipt,
-              productCategories:
-                  query.selected.contains(purchaseCalendarDay(receipt.date))
-                  ? await categoryLookup.forReceipt(receipt)
-                  : const {},
+              products: products,
+              productCategories: {
+                for (final entry in products.entries)
+                  entry.key: entry.value.category,
+              },
             );
           } on ReceiptDataException catch (error) {
             if (error.code == 'groupLimit')
@@ -174,22 +179,26 @@ extension ReceiptSpending on ReceiptRepository {
 final class _CurrentProductCategories {
   _CurrentProductCategories(this.repository);
   final ReceiptRepository repository;
-  final _cache =
-      LinkedHashMap<DurableId, ({DurableId store, String? category})>();
-  Future<Map<DurableId, String?>> forReceipt(ReceiptSnapshot receipt) async {
-    final result = <DurableId, String?>{};
+  final _cache = LinkedHashMap<DurableId, ProductSnapshot>();
+  Future<Map<DurableId, String?>> forReceipt(ReceiptSnapshot receipt) async => {
+    for (final entry in (await productsForReceipt(receipt)).entries)
+      entry.key: entry.value.category,
+  };
+  Future<Map<DurableId, ProductSnapshot>> productsForReceipt(
+    ReceiptSnapshot receipt,
+  ) async {
+    final result = <DurableId, ProductSnapshot>{};
     for (final row in receipt.items) {
       final link = row.product;
       if (link == null || result.containsKey(link.id)) continue;
       var value = _cache.remove(link.id);
       if (value == null) {
-        final product = (await repository._product(link.id)).document.product;
-        value = (store: product.storeId, category: product.category);
+        value = (await repository._product(link.id)).document.product;
       }
-      _check(value.store == receipt.branch.id, 'crossStoreProduct');
+      _check(value.storeId == receipt.branch.id, 'crossStoreProduct');
       _cache[link.id] = value;
       if (_cache.length > 128) _cache.remove(_cache.keys.first);
-      result[link.id] = value.category;
+      result[link.id] = value;
     }
     return result;
   }

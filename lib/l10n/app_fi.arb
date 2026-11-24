@@ -550,5 +550,20 @@
   "purchaseSpendingDetails": "Jaksojen ostomenot ja ostorivit",
   "purchasePeriodRows": "Ostorivejä",
   "purchasePeriodReturns": "Palautusrivejä",
-  "purchasePeriodEmpty": "Ei liitettyjä ostorivejä"
+  "purchasePeriodEmpty": "Ei liitettyjä ostorivejä",
+  "productRankingTitle": "Mihin tuotteisiin rahaa kuluu?",
+  "productRankingScope": "Tuotteet järjestetään valitun aikavälin nettosumman mukaan. Mukana ovat liitetyt tuoterivit, rivialennukset ja palautukset. Sama nimi ei yhdistä tuotteita tai toimipisteitä. Avaa tuote nähdäksesi sen ostot ja hinnat tältä aikaväliltä.",
+  "productRankingAll": "Näytä kaikki tuotteet",
+  "productRankingLinked": "Liitettyihin tuotteisiin kohdistettu summa",
+  "productRankingUnlinked": "Liittämättömien tuoterivien summa",
+  "productRankingCoverage": "Liitettyjä tuoterivejä",
+  "productRankingEmpty": "Valitulla aikavälillä ei ole tuotteisiin liitettyjä ostorivejä. Liitä tallennettujen kuittien rivejä tuotteisiin, jotta ne näkyvät tässä.",
+  "productRankingOthers": "Muut liitetyt tuotteet",
+  "productRankingCounts": "Tuoterivejä / kuitteja / palautusrivejä",
+  "productRankingReturnNet": "Palautusrivien nettosumma",
+  "productRankingLimit": "Aikavälillä on yli 2048 eri tuotetta. Rajaa toimipiste tai lyhyempi aikaväli nähdäksesi järjestyksen. Koko aikavälin summat ja liitoskattavuus ovat edelleen täydelliset; osittaista tuotelistaa ei näytetä.",
+  "productRankingOpenFailed": "Tuotteen ostohistorian avaaminen epäonnistui. Päivitä ja yritä uudelleen.",
+  "productRankingRows": "Tuotteet",
+  "productRankingAttribution": "Pantit, kuittialennukset ja oikaisut eivät sisälly tuotteiden nettosummiin. Ne ovat mukana seurannan koko summassa ja näkyvät alla erikseen.",
+  "productRankingListTitle": "Tuotteiden nettosummat"
 }

@@ -153,6 +153,7 @@ final class SpendingDashboard {
     this.selected,
     Iterable<BranchSpending> branches,
     this.categories,
+    this.products,
   ) : periods = List.unmodifiable(periods),
       branches = List.unmodifiable(branches);
   final SpendingDashboardQuery query;
@@ -160,6 +161,7 @@ final class SpendingDashboard {
   final SpendingTotals comparisonCurrent, comparisonPrevious;
   final SpendingTotals selected;
   final CategorySpendingSummary categories;
+  final ProductSpendingSummary products;
 
   /// Selected range only, sorted by descending signed net, then label and ID.
   final List<BranchSpending> branches;
@@ -212,12 +214,14 @@ final class SpendingDashboardBuilder {
   final List<_SpendingFold> _folds;
   final _branches = _BranchSpendingBuilder();
   final _categories = CategorySpendingBuilder();
+  final _products = ProductSpendingBuilder();
   final _current = _SpendingFold(),
       _previous = _SpendingFold(),
       _selected = _SpendingFold();
   void add(
     ReceiptSnapshot receipt, {
     Map<DurableId, String?> productCategories = const {},
+    Map<DurableId, ProductSnapshot> products = const {},
   }) {
     if (query.branchId != null && query.branchId != receipt.branch.id) return;
     final day = purchaseCalendarDay(receipt.date);
@@ -225,6 +229,7 @@ final class SpendingDashboardBuilder {
       _branches.add(receipt);
       _selected.add(receipt);
       _categories.add(receipt, productCategories);
+      _products.add(receipt, products);
     }
     for (var i = 0; i < query.periods.length; i++) {
       if (query.periods[i].contains(day)) {
@@ -258,6 +263,7 @@ final class SpendingDashboardBuilder {
       _selected.build(),
       branches,
       _categories.build(),
+      _products.build(),
     );
   }
 }

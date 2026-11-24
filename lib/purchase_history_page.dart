@@ -28,11 +28,13 @@ class PurchaseHistoryPage extends StatefulWidget {
     required this.service,
     required this.product,
     required this.branchName,
+    this.initialRange,
   });
   final LocalStore store;
   final PurchaseHistoryService service;
   final StoredProduct product;
   final String branchName;
+  final PurchaseDateRange? initialRange;
   @override
   State<PurchaseHistoryPage> createState() => _PurchaseHistoryPageState();
 }
@@ -40,7 +42,7 @@ class PurchaseHistoryPage extends StatefulWidget {
 class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
   final _scroll = ScrollController();
   int _offset = 0;
-  PurchaseDateRange _range = PurchaseDateRange();
+  late PurchaseDateRange _range = widget.initialRange ?? PurchaseDateRange();
   late Future<PurchaseHistoryResult> _items = _load();
   Future<PurchaseHistoryResult> _load() => widget.service.purchaseHistory(
     widget.product.document.product.storeId,
