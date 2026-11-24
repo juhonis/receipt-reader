@@ -25,8 +25,28 @@ harness retains receipt review, with analytics disabled.
   current selection. The date button reopens the custom-range editor.
 - Filter by one branch or all branches. Branches retain their durable identities;
   equally named branches do not merge.
-- The selected range and branch come first, followed by a full-width net total,
-  receipt count, average receipt value, charts and comparisons.
+- The period tabs stay at the top. Branch and date navigation share a compact
+  row on desktop, or two rows on phones. Click the date itself to edit it;
+  the today and refresh icons have tooltips.
+- **Jakson nettokulutus** comes first, with the signed euro/percentage change
+  and previous comparison total immediately below. Receipt count opens history;
+  the average remains in the same compact card. The info button gives exact
+  comparison windows, coverage rules and links to both comparison receipt lists.
+- **Kulutuksen jakauma** follows immediately. **Tuotteet** is the default;
+  **Toimipisteet** switches the same chart to stores. The choice survives filter
+  changes. Product slices use only positive linked product nets after item
+  discounts: the five largest plus **Muut**. Negative nets and unlinked amounts
+  stay separately visible; deposits, receipt-wide discounts and adjustments
+  remain in the headline receipt total but do not enter product slices. The
+  denominator is labelled, and the info button explains the difference.
+  Store mode uses positive whole-receipt branch nets, with eight slices plus
+  **Muut**. Slice/legend buttons open the scoped product history or branch receipts;
+  Muut asks which member to open. Equal names never merge identities.
+- The spending trend and compact signed category bars follow the pie. Exact
+  store/product figures, period figures and coverage details are expandable.
+  Calculation explanations are available through info buttons instead of long
+  inline paragraphs. Zero/negative products remain available in the full list
+  and expanded product details even though they cannot form pie slices.
 - Charts cover exactly the selected timeframe: one bar per day for weeks/months,
   one per elapsed month for years, and up to 24 consecutive groups of calendar
   days for custom ranges. Group lengths differ by at most one day. No days outside
@@ -53,11 +73,11 @@ complete coverage of actual spending. Missing periods are not interpolated.
 
 ## Fair comparisons
 
-The current week/month/year is marked **Keskeneräinen jakso**, including its last day.
+The current week/month/year has a partial-period icon and tooltip, including its last day.
 Only receipts through today's printed Helsinki calendar day are included; there
 is no extrapolation. The comparison uses equally many days from the beginnings
 of the selected and previous periods. Both exact comparison ranges and totals
-are shown, with separate receipt links.
+are available from the summary info button, with separate receipt links.
 
 For example, November 1–18 compares with October 1–18. On March 31, if February
 had 28 days, the comparison is March 1–28 versus February 1–28; the selected
@@ -113,7 +133,26 @@ No database schema, saved receipt/event bytes, backup format, dependency or
 review-policy change is introduced. No private receipts or normal app databases
 are used by tests.
 
-## Verification
+## Compact layout verification
+
+The November 24, 2026 layout adds no persistence or financial calculation changes.
+Focused widget checks cover primary chart order, product/store switching across
+period changes, exact positive-only shares, grouped-product choices, ring taps,
+scoped navigation, comparison help links and 320px layouts with doubled text.
+The native compact-dashboard rehearsal loads invented receipts in a temporary
+workspace and verifies unchanged export bytes after chart navigation.
+Validation passed: all 221 app tests, clean Flutter analysis, compact-dashboard
+rehearsals on Windows and offline Android, and Windows product-ranking and
+dashboard/recovery regressions. Dependency notices and their four tooling tests
+also passed. Normal apps are restored with upgrade installs to retain sample data.
+
+```powershell
+flutter test test/compact_dashboard_test.dart test/spending_dashboard_test.dart test/store_spending_test.dart test/product_rankings_test.dart
+flutter test integration_test/compact_dashboard_test.dart -d windows
+flutter test integration_test/compact_dashboard_test.dart -d emulator-5554 --no-uninstall
+```
+
+## Earlier verification
 
 Verified on November 22, 2026: all 123 parser, 82 domain, 199 storage and 167 app
 tests passed, with clean analysis. Native Windows and offline Android rehearsals

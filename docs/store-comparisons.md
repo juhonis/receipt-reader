@@ -1,5 +1,9 @@
 # Store spending comparisons
 
+Choose **Kulutuksen jakauma → Toimipisteet** for the primary share donut. Signed
+bars and exact statistics are under **Toimipisteiden tarkat luvut**. Both follow
+the [compact dashboard](spending-dashboard.md) filters.
+
 The **Toimipisteiden vertailu** section in **Seuranta** follows the dashboard's
 selected week, month, year or custom range and its branch filter. It uses complete
 current reviewed receipt totals, including unlinked products, deposits, discounts,

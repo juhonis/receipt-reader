@@ -170,6 +170,7 @@ void main() {
         );
         await tap('dashboard-refresh');
         await waitFor(total('104,00 €'));
+        await tap('breakdown-branch');
         expect(
           find.text('SYNTHETIC SHARE MARKET: 2,00 € · 1,9 %'),
           findsOneWidget,
@@ -178,9 +179,10 @@ void main() {
           find.byKey(ValueKey('store-share-${refundBranch.id.value}')),
           findsNothing,
         );
-        await t.ensureVisible(find.byKey(const Key('dashboard-stores')));
+        await t.ensureVisible(find.byKey(const Key('dashboard-breakdown')));
         await t.pumpAndSettle();
         await shot('stores');
+        await tap('dashboard-store-details');
         await t.ensureVisible(
           find.byKey(ValueKey('store-bar-${branch.id.value}')),
         );

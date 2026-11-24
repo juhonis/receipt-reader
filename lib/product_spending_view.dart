@@ -17,10 +17,12 @@ class ProductSpendingView extends StatelessWidget {
     required this.summary,
     this.onProduct,
     this.onAll,
+    this.showAllLink = true,
   });
   final ProductSpendingSummary summary;
   final ValueChanged<ProductSpending>? onProduct;
   final VoidCallback? onAll;
+  final bool showAllLink;
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
@@ -56,11 +58,12 @@ class ProductSpendingView extends StatelessWidget {
               '${formatCents(others.fold(BigInt.zero, (sum, p) => sum + p.totalCents))} €',
               key: const Key('product-ranking-others'),
             ),
-          TextButton(
-            key: const Key('product-ranking-all'),
-            onPressed: onAll,
-            child: Text(s.productRankingAll),
-          ),
+          if (showAllLink)
+            TextButton(
+              key: const Key('product-ranking-all'),
+              onPressed: onAll,
+              child: Text(s.productRankingAll),
+            ),
         ],
       ],
     );

@@ -5,7 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:receipt_domain/receipt_domain.dart';
 import 'package:receipt_reader/app.dart';
 import 'package:receipt_reader/product_rankings_page.dart';
-import 'package:receipt_reader/product_spending_view.dart';
+import 'package:receipt_reader/spending_breakdown_view.dart';
 import 'package:receipt_reader/purchase_history_page.dart';
 import 'package:receipt_reader/purchase_summary_view.dart';
 import 'package:receipt_reader/software_info_page.dart';
@@ -73,12 +73,13 @@ void main() {
         }
         final query = store.queries.last;
         final ranking = t
-            .widget<ProductSpendingView>(find.byType(ProductSpendingView))
-            .summary;
+            .widget<SpendingBreakdownView>(find.byType(SpendingBreakdownView))
+            .data
+            .products;
         final amount = ranking.groups
             .singleWhere((g) => g.productId == p.link.id)
             .totalCents;
-        await tap(t, 'dashboard-product-${p.link.id.value}');
+        await tap(t, 'breakdown-product-${p.link.id.value}');
         expect(find.byType(PurchaseHistoryPage), findsOneWidget);
         final scope = store.scopes.last;
         expect(scope.branch, store.branch.id);
@@ -114,13 +115,14 @@ void main() {
         for (var i = 0; i < 35; i++) (products[i], (i + 1) * 100),
       ]);
       await open(t, store);
+      await tap(t, 'dashboard-product-details');
       expect(
         find.text('Muut liitetyt tuotteet (25): 325,00 €'),
         findsOneWidget,
       );
       expect(
         find.byKey(
-          ValueKey('dashboard-product-${products.first.link.id.value}'),
+          ValueKey('breakdown-product-${products.first.link.id.value}'),
         ),
         findsNothing,
       );
@@ -146,7 +148,7 @@ void main() {
       await store.seed([(p, 200)]);
       await open(t, store);
       store.failProduct = true;
-      await tap(t, 'dashboard-product-${p.link.id.value}');
+      await tap(t, 'breakdown-product-${p.link.id.value}');
       expect(find.byType(PurchaseHistoryPage), findsNothing);
       expect(
         find.text(
@@ -155,7 +157,7 @@ void main() {
         findsOneWidget,
       );
       store.failProduct = false;
-      await tap(t, 'dashboard-product-${p.link.id.value}');
+      await tap(t, 'breakdown-product-${p.link.id.value}');
       expect(find.byType(PurchaseHistoryPage), findsOneWidget);
     },
   );
@@ -167,7 +169,7 @@ void main() {
       await store.seed([(p, 200)]);
       await open(t, store);
       store.productOverride = other;
-      await tap(t, 'dashboard-product-${p.link.id.value}');
+      await tap(t, 'breakdown-product-${p.link.id.value}');
       expect(find.byType(PurchaseHistoryPage), findsNothing);
       expect(store.scopes, isEmpty);
       expect(
@@ -184,13 +186,13 @@ void main() {
       await store.seed([(p, 200)]);
       await open(t, store);
       store.productGate = Completer<void>();
-      await tap(t, 'dashboard-product-${p.link.id.value}');
+      await tap(t, 'breakdown-product-${p.link.id.value}');
       await tap(t, 'dashboard-week');
       store.productGate!.complete();
       await t.pumpAndSettle();
       expect(find.byType(PurchaseHistoryPage), findsNothing);
       expect(store.queries.last.unit, SpendingPeriodUnit.week);
-      await tap(t, 'dashboard-product-${p.link.id.value}');
+      await tap(t, 'breakdown-product-${p.link.id.value}');
       expect(store.scopes.last.range!.fromDate!.day, 16);
     },
   );
@@ -202,14 +204,14 @@ void main() {
     await store.seed([(p, 200)]);
     await open(t, store);
     store.productGate = Completer<void>();
-    await tap(t, 'dashboard-product-${p.link.id.value}');
+    await tap(t, 'breakdown-product-${p.link.id.value}');
     await tap(t, 'home-tab-receipts');
     store.productGate!.complete();
     await t.pumpAndSettle();
     expect(find.byType(PurchaseHistoryPage), findsNothing);
     expect(store.scopes, isEmpty);
     await tap(t, 'home-tab-dashboard');
-    await tap(t, 'dashboard-product-${p.link.id.value}');
+    await tap(t, 'breakdown-product-${p.link.id.value}');
     expect(find.byType(PurchaseHistoryPage), findsOneWidget);
   });
   testWidgets(
@@ -220,7 +222,7 @@ void main() {
       await store.seed([(p, 200)]);
       await open(t, store);
       store.productGate = Completer<void>();
-      await tap(t, 'dashboard-product-${p.link.id.value}');
+      await tap(t, 'breakdown-product-${p.link.id.value}');
       await tap(t, 'open-software-info');
       store.productGate!.complete();
       await t.pumpAndSettle();
@@ -236,7 +238,7 @@ void main() {
     final p = store.product();
     final saved = await store.seed([(p, 200)]);
     await open(t, store);
-    await tap(t, 'dashboard-product-${p.link.id.value}');
+    await tap(t, 'breakdown-product-${p.link.id.value}');
     await store.saveManual(
       ReviewedReceipt.productLinks(
         confirmation:
@@ -253,8 +255,9 @@ void main() {
     );
     await back(t, PurchaseHistoryPage);
     final summary = t
-        .widget<ProductSpendingView>(find.byType(ProductSpendingView))
-        .summary;
+        .widget<SpendingBreakdownView>(find.byType(SpendingBreakdownView))
+        .data
+        .products;
     expect(summary.groups, isEmpty);
     expect(summary.unlinkedCents, BigInt.from(200));
     expect(summary.receiptTotalCents, BigInt.from(200));
@@ -305,8 +308,9 @@ void main() {
       await open(t, store);
       expect(
         t
-            .widget<ProductSpendingView>(find.byType(ProductSpendingView))
-            .summary
+            .widget<SpendingBreakdownView>(find.byType(SpendingBreakdownView))
+            .data
+            .products
             .groups
             .length,
         2,
@@ -314,10 +318,11 @@ void main() {
       await tap(t, 'dashboard-branch');
       await tap(t, 'dashboard-branch-${other.id.value}');
       final summary = t
-          .widget<ProductSpendingView>(find.byType(ProductSpendingView))
-          .summary;
+          .widget<SpendingBreakdownView>(find.byType(SpendingBreakdownView))
+          .data
+          .products;
       expect(summary.groups.single.productId, b.link.id);
-      await tap(t, 'dashboard-product-${b.link.id.value}');
+      await tap(t, 'breakdown-product-${b.link.id.value}');
       expect(store.scopes.last.branch, other.id);
       expect(store.scopes.last.product, b.link.id);
     },
@@ -333,8 +338,9 @@ void main() {
       await store.seed([for (final p in products) (p, 1)]);
       await open(t, store);
       final summary = t
-          .widget<ProductSpendingView>(find.byType(ProductSpendingView))
-          .summary;
+          .widget<SpendingBreakdownView>(find.byType(SpendingBreakdownView))
+          .data
+          .products;
       expect(summary.limitExceeded, isTrue);
       expect(summary.groups, isEmpty);
       expect(summary.linkedRows, 2049);

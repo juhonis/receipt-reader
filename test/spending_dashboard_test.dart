@@ -117,8 +117,8 @@ void main() {
       );
       expect(find.text('3,00 €'), findsOneWidget);
       expect(find.text('1.11.2026–18.11.2026'), findsOneWidget);
-      expect(find.text('Muutos euroina: -6,00 €'), findsOneWidget);
-      expect(find.text('Muutos prosentteina: -50,0 %'), findsOneWidget);
+      expect(find.text('-6,00 €'), findsOneWidget);
+      expect(find.text('-50,0 %'), findsOneWidget);
       await tapKey(t, 'dashboard-receipts');
       expect(store.historyFilters.last!.fromDate!.day, 1);
       expect(store.historyFilters.last!.throughDate!.day, 18);
@@ -166,6 +166,7 @@ void main() {
         t.widget<Text>(find.byKey(const Key('dashboard-total'))).data,
         '-1,00 €',
       );
+      await tapKey(t, 'dashboard-summary-info');
       expect(
         find.textContaining('Prosenttimuutosta ei lasketa'),
         findsOneWidget,

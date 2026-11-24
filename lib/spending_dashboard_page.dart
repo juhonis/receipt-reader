@@ -16,6 +16,9 @@ import 'store_spending_view.dart';
 import 'category_spending_view.dart';
 import 'product_spending_view.dart';
 import 'product_rankings_page.dart';
+import 'spending_breakdown_view.dart';
+import 'dashboard_summary_card.dart';
+import 'dashboard_help.dart';
 
 class SpendingDashboardPage extends StatefulWidget {
   const SpendingDashboardPage({
@@ -43,6 +46,8 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
   ReceiptBranch? _branch;
   StoredReceiptDate? _customFrom, _customThrough;
   late Future<SpendingDashboard> _result;
+  late SpendingDashboardQuery _query;
+  SpendingBreakdownMode _breakdown = SpendingBreakdownMode.product;
 
   StoredReceiptDate _today() {
     final day = helsinkiCalendarDate(widget.clock());
@@ -80,16 +85,15 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
         purchaseCalendarDay(_anchor) > purchaseCalendarDay(today)) {
       _anchor = today;
     }
-    return widget.service.spendingDashboard(
-      SpendingDashboardQuery(
-        unit: _unit,
-        anchor: _anchor,
-        today: today,
-        branchId: _branch?.id,
-        customFrom: _customFrom,
-        customThrough: _customThrough,
-      ),
+    _query = SpendingDashboardQuery(
+      unit: _unit,
+      anchor: _anchor,
+      today: today,
+      branchId: _branch?.id,
+      customFrom: _customFrom,
+      customThrough: _customThrough,
     );
+    return widget.service.spendingDashboard(_query);
   }
 
   void _reload() => setState(() {
@@ -154,8 +158,8 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
     _reload();
   }
 
-  void _move(SpendingDashboard dashboard, int direction) {
-    final start = purchaseCalendarDate(dashboard.query.selected.firstDay);
+  void _move(SpendingDashboardQuery dashboard, int direction) {
+    final start = purchaseCalendarDate(dashboard.selected.firstDay);
     var date = _unit == SpendingPeriodUnit.week
         ? DateTime.utc(start.year, start.month, start.day + direction * 7)
         : _unit == SpendingPeriodUnit.year
@@ -229,6 +233,121 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
     }
   }
 
+  Widget _periodControls(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
+    final period = _query.selected;
+    final first = purchaseCalendarDate(period.firstDay);
+    final earliest = _unit == SpendingPeriodUnit.week
+        ? period.firstDay == 0
+        : _unit == SpendingPeriodUnit.year
+        ? first.year == 1970
+        : first.year == 1970 && first.month == 1;
+    final next = period.lastDay < purchaseCalendarDay(_query.today);
+    final branch = Row(
+      children: [
+        Expanded(
+          child: TextButton.icon(
+            key: const Key('dashboard-branch'),
+            onPressed: _pickBranch,
+            icon: const Icon(Icons.store_outlined, size: 18),
+            style: TextButton.styleFrom(
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+            ),
+            label: Tooltip(
+              message: _branch?.name ?? s.historyAllBranches,
+              child: Text(
+                _branch?.name ?? s.historyAllBranches,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        ),
+        IconButton(
+          key: const Key('dashboard-today'),
+          tooltip: s.dashboardCurrent,
+          icon: const Icon(Icons.today_outlined, size: 20),
+          onPressed: () {
+            if (_unit == SpendingPeriodUnit.custom) {
+              _unit = SpendingPeriodUnit.month;
+            }
+            _followToday = true;
+            _reload();
+          },
+        ),
+        if (widget.embedded)
+          IconButton(
+            key: const Key('dashboard-refresh'),
+            tooltip: s.refreshHistory,
+            onPressed: _reload,
+            icon: const Icon(Icons.refresh, size: 20),
+          ),
+      ],
+    );
+    final dates = Row(
+      children: [
+        if (_unit != SpendingPeriodUnit.custom)
+          IconButton(
+            key: const Key('dashboard-previous'),
+            tooltip: s.dashboardPrevious,
+            onPressed: earliest ? null : () => _move(_query, -1),
+            icon: const Icon(Icons.chevron_left),
+          ),
+        Expanded(
+          child: TextButton(
+            key: const Key('dashboard-date'),
+            onPressed: _pickDate,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.calendar_today_outlined, size: 16),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    _range(period),
+                    key: const Key('dashboard-range'),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                if (period.inProgress)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: Tooltip(
+                      message: s.dashboardPartialNotice,
+                      child: const Icon(Icons.timelapse, size: 14),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        if (_unit != SpendingPeriodUnit.custom)
+          IconButton(
+            key: const Key('dashboard-next'),
+            tooltip: s.dashboardNext,
+            onPressed: next ? () => _move(_query, 1) : null,
+            icon: const Icon(Icons.chevron_right),
+          ),
+      ],
+    );
+    return LayoutBuilder(
+      builder: (context, size) => size.maxWidth >= 700
+          ? Row(
+              children: [
+                SizedBox(width: 320, child: branch),
+                Expanded(child: dates),
+              ],
+            )
+          : Column(children: [branch, dates]),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
@@ -251,15 +370,16 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1100),
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 20),
               children: [
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: 4,
+                  runSpacing: 4,
                   children: [
                     for (final unit in SpendingPeriodUnit.values)
                       ChoiceChip(
                         key: Key('dashboard-${unit.name}'),
+                        labelPadding: const EdgeInsets.symmetric(horizontal: 6),
                         label: Text(switch (unit) {
                           SpendingPeriodUnit.week => s.dashboardWeekly,
                           SpendingPeriodUnit.month => s.dashboardMonthly,
@@ -276,51 +396,16 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
                           }
                         },
                       ),
-                    if (widget.embedded)
-                      IconButton(
-                        key: const Key('dashboard-refresh'),
-                        onPressed: _reload,
-                        tooltip: s.refreshHistory,
-                        icon: const Icon(Icons.refresh),
-                      ),
                   ],
                 ),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    TextButton.icon(
-                      key: const Key('dashboard-branch'),
-                      onPressed: _pickBranch,
-                      icon: const Icon(Icons.store_outlined),
-                      label: Text(_branch?.name ?? s.historyAllBranches),
-                    ),
-                    TextButton.icon(
-                      key: const Key('dashboard-date'),
-                      onPressed: _pickDate,
-                      icon: const Icon(Icons.calendar_today_outlined),
-                      label: Text(s.dashboardChoosePeriod),
-                    ),
-                    TextButton(
-                      key: const Key('dashboard-today'),
-                      onPressed: () {
-                        if (_unit == SpendingPeriodUnit.custom) {
-                          _unit = SpendingPeriodUnit.month;
-                        }
-                        _followToday = true;
-                        _reload();
-                      },
-                      child: Text(s.dashboardCurrent),
-                    ),
-                  ],
-                ),
+                _periodControls(context),
                 FutureBuilder<SpendingDashboard>(
                   future: _result,
                   key: ObjectKey(_result),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState != ConnectionState.done) {
                       return Padding(
-                        padding: const EdgeInsets.all(32),
+                        padding: const EdgeInsets.all(24),
                         child: Column(
                           children: [
                             const LinearProgressIndicator(),
@@ -352,194 +437,86 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
                         ],
                       );
                     }
-                    final data = snapshot.requireData;
-                    final period = data.query.selected;
-                    final first = purchaseCalendarDate(period.firstDay);
-                    final earliest = _unit == SpendingPeriodUnit.week
-                        ? period.firstDay == 0
-                        : _unit == SpendingPeriodUnit.year
-                        ? first.year == 1970
-                        : first.year == 1970 && first.month == 1;
-                    final canNext =
-                        period.lastDay < purchaseCalendarDay(data.query.today);
-                    final totals = data.selected;
-                    final average = averageReceiptCents(totals);
+                    final data = snapshot.requireData,
+                        period = data.query.selected,
+                        totals = data.selected;
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const SizedBox(height: 16),
-                        Wrap(
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 8,
-                          children: [
-                            if (_unit != SpendingPeriodUnit.custom)
-                              IconButton(
-                                key: const Key('dashboard-previous'),
-                                tooltip: s.dashboardPrevious,
-                                onPressed: earliest
-                                    ? null
-                                    : () => _move(data, -1),
-                                icon: const Icon(Icons.chevron_left),
-                              ),
-                            Text(
-                              _range(period),
-                              key: const Key('dashboard-range'),
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            if (_unit != SpendingPeriodUnit.custom)
-                              IconButton(
-                                key: const Key('dashboard-next'),
-                                tooltip: s.dashboardNext,
-                                onPressed: canNext
-                                    ? () => _move(data, 1)
-                                    : null,
-                                icon: const Icon(Icons.chevron_right),
-                              ),
-                            if (period.inProgress)
-                              Chip(label: Text(s.dashboardInProgress)),
-                          ],
-                        ),
-                        if (period.inProgress) Text(s.dashboardPartialNotice),
-                        const SizedBox(height: 12),
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            final width = constraints.maxWidth >= 500
-                                ? (constraints.maxWidth - 12) / 2
-                                : constraints.maxWidth;
-                            return Wrap(
-                              spacing: 12,
-                              runSpacing: 12,
-                              children: [
-                                _metric(
-                                  s.dashboardNet,
-                                  '${formatCents(totals.totalCents)} €',
-                                  'dashboard-total',
-                                  constraints.maxWidth,
-                                ),
-                                _metric(
-                                  s.spendingCount,
-                                  '${totals.receiptCount}',
-                                  'dashboard-count',
-                                  width,
-                                ),
-                                _metric(
-                                  s.dashboardAverage,
-                                  average == null
-                                      ? '—'
-                                      : '${formatCents(average)} €',
-                                  'dashboard-average',
-                                  width,
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                        if (totals.receiptCount == 0) Text(s.spendingEmpty),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: TextButton.icon(
-                            key: const Key('dashboard-receipts'),
-                            onPressed: () => _receipts(period),
-                            icon: const Icon(Icons.receipt_long_outlined),
-                            label: Text(s.dashboardReceipts),
-                          ),
-                        ),
-                        const Divider(),
-                        Text(
-                          s.dashboardTrend,
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        Text(s.dashboardChartNotice),
-                        const SizedBox(height: 12),
-                        _SpendingChart(data: data, onPeriod: _receipts),
-                        const Divider(),
-                        StoreSpendingView(
+                        DashboardSummaryCard(
                           data: data,
-                          onBranch: (branch) =>
-                              _receipts(period, forBranch: branch),
+                          onReceipts: () => _receipts(period),
+                          onCurrentComparison: () =>
+                              _receipts(data.query.comparisonCurrent!),
+                          onPreviousComparison: () =>
+                              _receipts(data.query.comparisonPrevious!),
                         ),
-                        const Divider(),
-                        CategorySpendingView(
-                          summary: data.categories,
-                          onCategory: (category) =>
-                              _receipts(period, category: category),
-                        ),
-                        const Divider(),
-                        ProductSpendingView(
-                          summary: data.products,
+                        SpendingBreakdownView(
+                          data: data,
+                          mode: _breakdown,
+                          onMode: (value) => setState(() => _breakdown = value),
                           onProduct:
                               !_openingProduct &&
                                   canOpenRankedProduct(widget.store)
                               ? (product) => _product(product, data)
                               : null,
-                          onAll: _openingProduct
+                          onBranch: (branch) =>
+                              _receipts(period, forBranch: branch),
+                          onAllProducts: _openingProduct
                               ? null
                               : () => _allProducts(data),
                         ),
-                        const Divider(),
-                        Text(
-                          s.dashboardComparison,
-                          style: Theme.of(context).textTheme.titleMedium,
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                s.dashboardTrend,
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                            ),
+                            DashboardInfoButton(
+                              key: const Key('dashboard-trend-info'),
+                              title: s.dashboardTrend,
+                              paragraphs: [s.dashboardChartNotice],
+                            ),
+                          ],
                         ),
-                        if (data.query.comparisonPrevious == null)
-                          Text(s.dashboardNoComparison)
-                        else ...[
-                          Text(
-                            s.dashboardComparisonDates(
-                              _range(data.query.comparisonCurrent!),
-                              _range(data.query.comparisonPrevious!),
+                        _SpendingChart(data: data, onPeriod: _receipts),
+                        const SizedBox(height: 12),
+                        CategorySpendingView(
+                          summary: data.categories,
+                          onCategory: (category) =>
+                              _receipts(period, category: category),
+                          compact: true,
+                        ),
+                        const SizedBox(height: 8),
+                        ExpansionTile(
+                          key: const Key('dashboard-store-details'),
+                          title: Text(s.dashboardStoreDetails),
+                          children: [
+                            StoreSpendingView(
+                              data: data,
+                              onBranch: (branch) =>
+                                  _receipts(period, forBranch: branch),
                             ),
-                          ),
-                          Text(
-                            _unit == SpendingPeriodUnit.custom
-                                ? s.dashboardCustomComparison
-                                : period.inProgress
-                                ? s.dashboardMatchedDays
-                                : s.dashboardFullPeriods,
-                          ),
-                          Text(
-                            '${s.dashboardComparisonCurrent}: ${formatCents(data.comparisonCurrent.totalCents)} € · ${s.spendingCount}: ${data.comparisonCurrent.receiptCount}',
-                          ),
-                          Text(
-                            '${s.dashboardComparisonPrevious}: ${formatCents(data.comparisonPrevious.totalCents)} € · ${s.spendingCount}: ${data.comparisonPrevious.receiptCount}',
-                          ),
-                          if (data.comparisonCurrent.receiptCount > 0 &&
-                              data.comparisonPrevious.receiptCount > 0) ...[
-                            Text(
-                              '${s.dashboardChange}: ${_signedMoney(data.changeCents)} €',
-                              key: const Key('dashboard-change'),
+                          ],
+                        ),
+                        ExpansionTile(
+                          key: const Key('dashboard-product-details'),
+                          title: Text(s.dashboardProductDetails),
+                          children: [
+                            ProductSpendingView(
+                              summary: data.products,
+                              showAllLink: false,
+                              onProduct:
+                                  !_openingProduct &&
+                                      canOpenRankedProduct(widget.store)
+                                  ? (product) => _product(product, data)
+                                  : null,
                             ),
-                            Text(
-                              data.changeTenthsPercent == null
-                                  ? s.dashboardNoPercentage
-                                  : '${s.dashboardChangePercent}: ${_percentage(data.changeTenthsPercent!)}',
-                              key: const Key('dashboard-percent'),
-                            ),
-                          ] else
-                            Text(s.dashboardNoComparison),
-                          Wrap(
-                            spacing: 8,
-                            children: [
-                              TextButton(
-                                key: const Key(
-                                  'dashboard-current-comparison-receipts',
-                                ),
-                                onPressed: () =>
-                                    _receipts(data.query.comparisonCurrent!),
-                                child: Text(s.dashboardCurrentReceipts),
-                              ),
-                              TextButton(
-                                key: const Key(
-                                  'dashboard-previous-comparison-receipts',
-                                ),
-                                onPressed: () =>
-                                    _receipts(data.query.comparisonPrevious!),
-                                child: Text(s.dashboardPreviousReceipts),
-                              ),
-                            ],
-                          ),
-                        ],
-                        const Divider(),
+                          ],
+                        ),
                         ExpansionTile(
                           key: const Key('dashboard-period-details'),
                           title: Text(s.dashboardExactPeriods),
@@ -558,17 +535,32 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
                               ),
                           ],
                         ),
-                        const Divider(),
-                        Text(s.dashboardAverageNotice),
-                        Text(s.spendingScope),
-                        Text(
-                          '${s.spendingNegative}: ${totals.negativeReceipts}',
-                        ),
-                        Text(
-                          '${s.spendingAdjusted}: ${totals.adjustedReceipts}',
-                        ),
-                        Text(
-                          '${s.spendingUnlinked}: ${totals.unlinkedReceipts}',
+                        ExpansionTile(
+                          key: const Key('dashboard-coverage-details'),
+                          title: Text(s.dashboardMoreDetails),
+                          children: [
+                            ListTile(
+                              title: Text(
+                                '${s.spendingNegative}: ${totals.negativeReceipts}',
+                              ),
+                            ),
+                            ListTile(
+                              title: Text(
+                                '${s.spendingAdjusted}: ${totals.adjustedReceipts}',
+                              ),
+                            ),
+                            ListTile(
+                              title: Text(
+                                '${s.spendingUnlinked}: ${totals.unlinkedReceipts}',
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Text(
+                                '${s.dashboardAverageNotice}\n\n${s.spendingScope}',
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     );
@@ -581,41 +573,10 @@ class _SpendingDashboardPageState extends State<SpendingDashboardPage>
       ),
     );
   }
-
-  Widget _metric(String label, String value, String key, double width) =>
-      SizedBox(
-        width: width,
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label),
-                Text(
-                  value,
-                  key: Key(key),
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
 }
 
 String _range(SpendingPeriod period) =>
     '${receiptDateText(purchaseCalendarDate(period.firstDay))}–${receiptDateText(purchaseCalendarDate(period.lastDay))}';
-String _signedMoney(BigInt cents) =>
-    '${cents > BigInt.zero ? '+' : ''}${formatCents(cents)}';
-String _percentage(BigInt tenths) {
-  final value = tenths.abs().toString().padLeft(2, '0');
-  return '${tenths.isNegative
-      ? '-'
-      : tenths > BigInt.zero
-      ? '+'
-      : ''}${value.substring(0, value.length - 1)},${value.substring(value.length - 1)} %';
-}
 
 class _SpendingChart extends StatelessWidget {
   const _SpendingChart({required this.data, required this.onPeriod});

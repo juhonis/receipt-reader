@@ -3,6 +3,7 @@ import 'package:receipt_domain/receipt_domain.dart';
 import 'package:receipt_parser/receipt_parser.dart';
 
 import 'category_labels.dart';
+import 'dashboard_help.dart';
 import 'l10n/generated/app_localizations.dart';
 
 class CategorySpendingView extends StatelessWidget {
@@ -10,9 +11,11 @@ class CategorySpendingView extends StatelessWidget {
     super.key,
     required this.summary,
     required this.onCategory,
+    this.compact = false,
   });
   final CategorySpendingSummary summary;
   final void Function(ReceiptCategory) onCategory;
+  final bool compact;
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
@@ -24,11 +27,26 @@ class CategorySpendingView extends StatelessWidget {
       key: const Key('dashboard-categories'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          s.categorySpendingTitle,
-          style: Theme.of(context).textTheme.titleLarge,
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                s.categorySpendingTitle,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
+            if (compact)
+              DashboardInfoButton(
+                key: const Key('dashboard-category-info'),
+                title: s.categorySpendingTitle,
+                paragraphs: [
+                  s.categorySpendingNotice,
+                  s.categoryUnclassifiedHint,
+                ],
+              ),
+          ],
         ),
-        Text(s.categorySpendingNotice),
+        if (!compact) Text(s.categorySpendingNotice),
         Text(
           s.categoryCoverage(
             summary.categorizedProductRows,
@@ -36,7 +54,7 @@ class CategorySpendingView extends StatelessWidget {
           ),
           key: const Key('category-coverage'),
         ),
-        if (summary.uncategorizedProductRows > 0)
+        if (!compact && summary.uncategorizedProductRows > 0)
           Text(s.categoryUnclassifiedHint),
         if (summary.groups.isEmpty) Text(s.spendingEmpty),
         for (final group in summary.groups)
@@ -47,7 +65,7 @@ class CategorySpendingView extends StatelessWidget {
               ),
               onTap: () => onCategory(group.category),
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(compact ? 8 : 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -62,9 +80,10 @@ class CategorySpendingView extends StatelessWidget {
                         Text('${formatCents(group.totalCents)} €'),
                       ],
                     ),
-                    Text(
-                      '${s.spendingCount}: ${group.receiptCount} · ${s.categoryRows}: ${group.rowCount}',
-                    ),
+                    if (!compact)
+                      Text(
+                        '${s.spendingCount}: ${group.receiptCount} · ${s.categoryRows}: ${group.rowCount}',
+                      ),
                     const SizedBox(height: 8),
                     ExcludeSemantics(
                       child: LayoutBuilder(

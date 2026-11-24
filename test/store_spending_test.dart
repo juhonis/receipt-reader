@@ -44,6 +44,9 @@ void main() {
         ),
       );
       await openDashboard(t, store);
+      if (find.byKey(const Key('breakdown-branch')).evaluate().isNotEmpty) {
+        await tapKey(t, 'breakdown-branch');
+      }
       expect(
         t.widget<Text>(find.byKey(const Key('dashboard-total'))).data,
         '9,00 €',
@@ -58,6 +61,7 @@ void main() {
         find.byKey(ValueKey('store-share-${zero.id.value}')),
         findsNothing,
       );
+      await tapKey(t, 'dashboard-store-details');
       expect(
         find.byKey(ValueKey('store-bar-${zero.id.value}')),
         findsOneWidget,
@@ -82,6 +86,9 @@ void main() {
       await store.seed('18.11.2026', 800);
       await store.seed('18.11.2026', 200, selected: b);
       await openDashboard(t, store);
+      if (find.byKey(const Key('breakdown-branch')).evaluate().isNotEmpty) {
+        await tapKey(t, 'breakdown-branch');
+      }
       await revealDashboard(t, 'store-share-ring');
       final center = t.getCenter(find.byKey(const Key('store-share-ring')));
       // The final 20% slice occupies the upper-left arc of this known fixture.
@@ -104,6 +111,9 @@ void main() {
         await store.seed('18.11.2026', (10 - i) * 100, selected: branches[i]);
       }
       await openDashboard(t, store);
+      if (find.byKey(const Key('breakdown-branch')).evaluate().isNotEmpty) {
+        await tapKey(t, 'breakdown-branch');
+      }
       expect(find.text('Muut: 3,00 € · 5,5 %'), findsOneWidget);
       await tapKey(t, 'store-share-others');
       expect(
@@ -127,8 +137,12 @@ void main() {
       selected: ReceiptBranch(id: DurableId.generate(), name: 'ZERO'),
     );
     await openDashboard(t, store);
+    if (find.byKey(const Key('breakdown-branch')).evaluate().isNotEmpty) {
+      await tapKey(t, 'breakdown-branch');
+    }
     expect(find.byKey(const Key('store-share-ring')), findsNothing);
     expect(find.byKey(const Key('store-no-positive')), findsOneWidget);
+    await tapKey(t, 'dashboard-store-details');
     expect(
       find.byKey(ValueKey('store-bar-${store.branch.id.value}')),
       findsOneWidget,
@@ -153,6 +167,9 @@ void main() {
         await store.seed('18.11.2026', 100, selected: branch);
       }
       await openDashboard(t, store);
+      if (find.byKey(const Key('breakdown-branch')).evaluate().isNotEmpty) {
+        await tapKey(t, 'breakdown-branch');
+      }
       await tapKey(t, 'store-share-others');
       expect(store.historyFilters, isEmpty);
       await tapKey(t, 'store-other-${branches.last.id.value}');
@@ -166,11 +183,15 @@ void main() {
       final store = _LimitedStore();
       await store.seed('18.11.2026', 100);
       await openDashboard(t, store);
+      if (find.byKey(const Key('breakdown-branch')).evaluate().isNotEmpty) {
+        await tapKey(t, 'breakdown-branch');
+      }
       expect(find.textContaining('yli 128 toimipistettä'), findsOneWidget);
       expect(find.byKey(const Key('dashboard-total')), findsNothing);
       expect(find.byKey(const Key('store-share-ring')), findsNothing);
       await tapKey(t, 'dashboard-branch');
       await tapKey(t, 'dashboard-branch-${store.branch.id.value}');
+      await tapKey(t, 'breakdown-branch');
       expect(find.byKey(const Key('store-share-ring')), findsOneWidget);
       expect(
         find.text('${store.branch.name}: 1,00 € · 100,0 %'),
@@ -199,8 +220,12 @@ void main() {
       ),
     );
     await openDashboard(t, store);
+    if (find.byKey(const Key('breakdown-branch')).evaluate().isNotEmpty) {
+      await tapKey(t, 'breakdown-branch');
+    }
     await revealDashboard(t, 'store-share-ring');
     expect(t.takeException(), isNull);
+    await tapKey(t, 'dashboard-store-details');
     await tapKey(t, 'store-bar-${store.branch.id.value}');
     expect(store.historyFilters.last!.branchId, store.branch.id);
     expect(t.takeException(), isNull);

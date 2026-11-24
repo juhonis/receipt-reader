@@ -4,7 +4,12 @@ Implemented November 24, 2026 for offline Windows and Android use.
 
 ## Find products from Seuranta
 
-The **Mihin tuotteisiin rahaa kuluu?** section uses the dashboard's week, month,
+The primary **Kulutuksen jakauma → Tuotteet** pie shows the five largest positive
+linked product nets plus **Muut**; the denominator and excluded negative/unlinked
+amounts remain explicit. **Näytä kaikki tuotteet** opens the full signed list.
+See the [compact dashboard](spending-dashboard.md) for share and navigation rules.
+
+The expandable **Tuotteiden tarkat luvut → Mihin tuotteisiin rahaa kuluu?** section uses the dashboard's week, month,
 year or custom range and selected branch. It shows up to ten products by descending
 signed net euros, followed by the exact net remainder for all other linked products.
 Choose **Näytä kaikki tuotteet** for the full list in pages of 30. Pagination only

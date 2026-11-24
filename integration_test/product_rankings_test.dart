@@ -11,7 +11,7 @@ import 'package:receipt_parser/receipt_parser.dart';
 import 'package:receipt_storage/receipt_storage.dart';
 import 'package:receipt_reader/app.dart';
 import 'package:receipt_reader/local_store.dart';
-import 'package:receipt_reader/product_spending_view.dart';
+import 'package:receipt_reader/spending_breakdown_view.dart';
 import 'package:receipt_reader/product_rankings_page.dart';
 import 'package:receipt_reader/purchase_history_page.dart';
 
@@ -230,18 +230,19 @@ void main() {
           }
         }
 
-        await wait(find.byType(ProductSpendingView));
+        await wait(find.byType(SpendingBreakdownView));
         var summary = t
-            .widget<ProductSpendingView>(find.byType(ProductSpendingView))
-            .summary;
+            .widget<SpendingBreakdownView>(find.byType(SpendingBreakdownView))
+            .data
+            .products;
         expect(summary.groups.length, 33);
         expect(summary.linkedRows, 35);
         expect(summary.productRows, 36);
         expect(summary.linkedCents, BigInt.from(53175));
         expect(summary.receiptTotalCents, BigInt.from(53500));
-        await shot('summary', find.byKey(const Key('dashboard-products')));
+        await shot('summary', find.byKey(const Key('dashboard-breakdown')));
         final top = summary.groups.first;
-        await tap('dashboard-product-${top.productId.value}');
+        await tap('breakdown-product-${top.productId.value}');
         await wait(find.byType(PurchaseHistoryPage));
         expect(
           t
@@ -261,7 +262,7 @@ void main() {
         expect(data.summary.effectiveCents, top.totalCents);
         expect(data.summary.totalRows, top.rowCount);
         await back(PurchaseHistoryPage);
-        await wait(find.byType(ProductSpendingView));
+        await wait(find.byType(SpendingBreakdownView));
         await tap('product-ranking-all');
         await wait(find.byType(ProductRankingsPage));
         expect(find.text('Tuotteet: 1–30 / 33'), findsOneWidget);
@@ -304,10 +305,11 @@ void main() {
         await back(PurchaseHistoryPage);
         await wait(find.text('Tuotteet: 1–30 / 32'));
         await back(ProductRankingsPage);
-        await wait(find.byType(ProductSpendingView));
+        await wait(find.byType(SpendingBreakdownView));
         summary = t
-            .widget<ProductSpendingView>(find.byType(ProductSpendingView))
-            .summary;
+            .widget<SpendingBreakdownView>(find.byType(SpendingBreakdownView))
+            .data
+            .products;
         expect(summary.groups.length, 32);
         expect(summary.unlinkedCents, BigInt.from(475));
         expect(summary.receiptTotalCents, BigInt.from(53500));
@@ -317,11 +319,12 @@ void main() {
         );
         await store.activateBackup(preview);
         await tap('dashboard-refresh');
-        await wait(find.byType(ProductSpendingView));
+        await wait(find.byType(SpendingBreakdownView));
         expect(
           t
-              .widget<ProductSpendingView>(find.byType(ProductSpendingView))
-              .summary
+              .widget<SpendingBreakdownView>(find.byType(SpendingBreakdownView))
+              .data
+              .products
               .groups
               .length,
           33,
@@ -329,13 +332,14 @@ void main() {
         expect(await store.workspace.repository.exportBackup(), before);
         await tap('dashboard-branch');
         await tap('dashboard-branch-${second.id.value}');
-        await wait(find.byType(ProductSpendingView));
+        await wait(find.byType(SpendingBreakdownView));
         summary = t
-            .widget<ProductSpendingView>(find.byType(ProductSpendingView))
-            .summary;
+            .widget<SpendingBreakdownView>(find.byType(SpendingBreakdownView))
+            .data
+            .products;
         expect(summary.groups.single.productId, other.link.id);
         expect(summary.linkedCents, BigInt.from(500));
-        await tap('dashboard-product-${other.link.id.value}');
+        await tap('breakdown-product-${other.link.id.value}');
         await wait(find.byType(PurchaseHistoryPage));
         expect(
           t
@@ -346,7 +350,7 @@ void main() {
           second.id,
         );
         await back(PurchaseHistoryPage);
-        await wait(find.byType(ProductSpendingView));
+        await wait(find.byType(SpendingBreakdownView));
         await tap('dashboard-branch');
         await tap('dashboard-all-branches');
         await tap('dashboard-custom');
@@ -361,11 +365,13 @@ void main() {
         FocusManager.instance.primaryFocus?.unfocus();
         await t.pumpAndSettle();
         await tap('dashboard-custom-apply');
-        await wait(find.byType(ProductSpendingView));
+        await wait(find.byType(SpendingBreakdownView));
         summary = t
-            .widget<ProductSpendingView>(find.byType(ProductSpendingView))
-            .summary;
+            .widget<SpendingBreakdownView>(find.byType(SpendingBreakdownView))
+            .data
+            .products;
         expect(summary.groups.single.totalCents, BigInt.from(-200));
+        await tap('dashboard-product-details');
         await tap('dashboard-product-${products.last.link.id.value}');
         await wait(find.byType(PurchaseHistoryPage));
         final initial = t
