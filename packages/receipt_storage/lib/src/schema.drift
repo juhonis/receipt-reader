@@ -12,7 +12,7 @@ CREATE TABLE change_log (
   dataset_id TEXT NOT NULL REFERENCES dataset_state(dataset_id),
   entity_kind TEXT NOT NULL CHECK (entity_kind IN ('store', 'receipt', 'product', 'alias')),
   entity_id TEXT NOT NULL CHECK (length(entity_id) = 36 AND entity_id GLOB '????????-????-4???-[89ab]???-????????????' AND length("replace"(entity_id, '-', '')) = 32 AND "replace"(entity_id, '-', '') NOT GLOB '*[^0-9a-f]*'),
-  payload_version INTEGER NOT NULL CHECK (payload_version = 1 OR (payload_version = 2 AND entity_kind = 'product')),
+  payload_version INTEGER NOT NULL CHECK (payload_version = 1 OR (payload_version IN (2, 3) AND entity_kind = 'product')),
   operation TEXT NOT NULL CHECK (operation IN ('snapshot', 'tombstone') AND (operation <> 'tombstone' OR entity_kind = 'receipt')),
   payload TEXT NOT NULL CHECK (json_valid(payload)),
   canonical_event TEXT NOT NULL CHECK (json_valid(canonical_event)),

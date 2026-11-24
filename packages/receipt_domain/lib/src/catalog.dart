@@ -10,8 +10,12 @@ final class ProductSnapshot {
     this.packageScale,
     this.packageUnit,
     String? category,
+    String? comparisonKey,
   }) : canonicalName = _text(canonicalName, 'product.name'),
-       category = category == null ? null : _categoryLabel(category) {
+       category = category == null ? null : _categoryLabel(category),
+       comparisonKey = comparisonKey == null
+           ? null
+           : _categoryLabel(comparisonKey) {
     final absent =
         packageValue == null && packageScale == null && packageUnit == null;
     _require(
@@ -37,6 +41,10 @@ final class ProductSnapshot {
 
   /// Current reviewed classification; historical receipts retain their bytes.
   final String? category;
+
+  /// Explicit reviewed same-product group across branches. Exact, case-sensitive
+  /// labels only; product names never establish equivalence.
+  final String? comparisonKey;
   final BigInt? packageValue;
   final int? packageScale;
   final QuantityUnit? packageUnit;
@@ -145,7 +153,11 @@ Map<String, Object?> _readCatalogReview(Object? value) => _object(value, [
 
 final class ProductDocumentCodec {
   static String encode(ProductDocument document) => _encode({
-    'payload_version': document.product.category == null ? '1' : '2',
+    'payload_version': document.product.comparisonKey != null
+        ? '3'
+        : document.product.category == null
+        ? '1'
+        : '2',
     'product': {
       'id': document.product.id.value,
       'store_id': document.product.storeId.value,
@@ -157,8 +169,11 @@ final class ProductDocumentCodec {
               'scale': document.product.packageScale.toString(),
               'unit': document.product.packageUnit!.name,
             },
-      if (document.product.category != null)
+      if (document.product.category != null ||
+          document.product.comparisonKey != null)
         'category': document.product.category,
+      if (document.product.comparisonKey != null)
+        'comparison_key': document.product.comparisonKey,
     },
     'review': _catalogReview(
       document.storeRevision,
@@ -170,13 +185,18 @@ final class ProductDocumentCodec {
   static ProductDocument decode(String json) => _canonicalDecode(json, (value) {
     final root = _object(value, ['payload_version', 'product', 'review']);
     final version = root['payload_version'];
-    _require(version == '1' || version == '2', 'payloadVersion', 'unsupported');
+    _require(
+      version == '1' || version == '2' || version == '3',
+      'payloadVersion',
+      'unsupported',
+    );
     final p = _object(root['product'], [
       'id',
       'store_id',
       'canonical_name',
       'package',
-      if (version == '2') 'category',
+      if (version != '1') 'category',
+      if (version == '3') 'comparison_key',
     ]);
     final q = p['package'] == null
         ? null
@@ -187,7 +207,10 @@ final class ProductDocumentCodec {
         id: _id(p['id']),
         storeId: _id(p['store_id']),
         canonicalName: _string(p['canonical_name']),
-        category: version == '2' ? _string(p['category']) : null,
+        category: version == '1' || (version == '3' && p['category'] == null)
+            ? null
+            : _string(p['category']),
+        comparisonKey: version == '3' ? _string(p['comparison_key']) : null,
         packageValue: q == null ? null : _integer(q['value']),
         packageScale: q == null ? null : _smallInteger(q['scale']),
         packageUnit: q == null

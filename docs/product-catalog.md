@@ -217,5 +217,14 @@ Neither test opens or clears the normal database.
 with full date-range summaries and bounded calendar price-range charts, exact
 quantities, linked item discounts, deposit exclusion and separate unit/revision
 groups. [Receipt spending](spending-summary.md) separately uses complete receipt
-totals, including unlinked products. Further package conversions remain open.
+totals, including unlinked products. Explicit cross-store package normalization is
+now available in the separate comparison described below.
 Windows OCR packaging and sync transport/conflict workflows remain separate work.
+
+## Explicit cross-store comparisons
+
+Products can now have a reviewed **Sama tuote · vertailuryhmä** label. Assign the
+same exact label to identical products across branches, including different pack
+sizes with equivalent contents. The new comparison screen uses historical package
+revisions to normalize verified pack counts. See [cross-store prices](cross-store-prices.md)
+for usage, exclusions and schema 9/backup 6 compatibility.

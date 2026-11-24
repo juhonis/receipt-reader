@@ -27,7 +27,7 @@ class ReceiptDatabase extends _$ReceiptDatabase {
   }
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   Future<void> createInitialSchema(Migrator migrator) => migrator.createAll();
 
@@ -85,10 +85,10 @@ class ReceiptDatabase extends _$ReceiptDatabase {
       await createInitialSchema(m);
       // Keep schema and version atomic, including a crash before Drift's own
       // redundant version assignment after this callback returns.
-      await customStatement('PRAGMA user_version = 8');
+      await customStatement('PRAGMA user_version = 9');
     }),
     onUpgrade: (m, from, to) async {
-      if ((from < 1 || from > 7) || to != 8) {
+      if ((from < 1 || from > 8) || to != 9) {
         throw StateError('unsupported_schema');
       }
       await customStatement('PRAGMA foreign_keys = OFF');
@@ -98,13 +98,13 @@ class ReceiptDatabase extends _$ReceiptDatabase {
           if (from < 4) await upgradeCatalog(m);
           if (from < 5) await upgradeProductLinks(m);
           await upgradeReviewPolicy(m);
-          if (from < 7) await upgradeProductCategories(m);
+          if (from < 9) await upgradeProductCategories(m);
           if ((await customSelect(
             'PRAGMA foreign_key_check',
           ).get()).isNotEmpty) {
             throw StateError('migration_foreign_keys');
           }
-          await customStatement('PRAGMA user_version = 8');
+          await customStatement('PRAGMA user_version = 9');
         });
       } finally {
         await customStatement('PRAGMA foreign_keys = ON');
@@ -126,7 +126,7 @@ class ReceiptDatabase extends _$ReceiptDatabase {
 void configureSqlite(sqlite.Database database) {
   // Reject future databases before Drift can run any version migration.
   if ((database.select('PRAGMA user_version').single['user_version'] as int) >
-      8) {
+      9) {
     throw StateError('unsupported_schema');
   }
   database.execute('PRAGMA foreign_keys = ON');

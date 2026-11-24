@@ -25,3 +25,5 @@ part 'src/category_spending.dart';
 part 'src/product_link_review.dart';
 
 part 'src/product_spending.dart';
+
+part 'src/product_comparison.dart';

@@ -4,6 +4,9 @@ import 'package:receipt_parser/receipt_parser.dart';
 import 'package:receipt_storage/receipt_storage.dart';
 
 import 'history_page.dart';
+import 'catalog_service.dart';
+import 'product_comparison_service.dart';
+import 'product_comparison_page.dart';
 import 'local_store.dart';
 import 'product_picker.dart';
 import 'purchase_history_service.dart';
@@ -132,6 +135,31 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
                     Wrap(
                       spacing: 8,
                       children: [
+                        if (widget.store is ProductComparisonService &&
+                            widget.store is CatalogService)
+                          TextButton.icon(
+                            key: const Key('purchases-compare'),
+                            icon: const Icon(Icons.compare_arrows),
+                            label: Text(s.comparisonTitle),
+                            onPressed: () async {
+                              await Navigator.push<void>(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ProductComparisonPage(
+                                    store: widget.store,
+                                    catalog: widget.store as CatalogService,
+                                    service:
+                                        widget.store
+                                            as ProductComparisonService,
+                                    productId:
+                                        widget.product.document.product.id,
+                                    initialRange: _range,
+                                  ),
+                                ),
+                              );
+                              if (mounted) _reload();
+                            },
+                          ),
                         TextButton.icon(
                           key: const Key('purchases-range'),
                           onPressed: _selectRange,

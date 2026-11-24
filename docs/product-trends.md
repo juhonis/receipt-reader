@@ -20,8 +20,9 @@ excluded, with existing warnings retained.
 
 Pieces, kilograms and litres remain separate. Piece prices additionally retain
 the product revision explicitly recorded on each receipt. Equal names do not
-merge products, and no cross-branch equivalence or package conversion is inferred.
-See [purchase-history price policy](purchase-history.md#price-policy).
+merge products. The separate [cross-store comparison](cross-store-prices.md) uses
+explicit same-product groups and historical reviewed package sizes; it does not
+change these single-product price groups. See [purchase-history price policy](purchase-history.md#price-policy).
 
 The first and latest **purchase days** each combine all that day's comparable
 purchases with the same quantity weighting. Arrival order, duplicate rows,

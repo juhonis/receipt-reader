@@ -432,8 +432,11 @@ The dashboard now includes a Tuoteryhmät pie and paired category comparison bar
 with the largest signed euro/percentage changes, fair matched periods and scoped
 receipt links. Current classifications apply to both comparison windows; missing
 observations never imply zero spending. No persistence formats change.
-The next comparison decision is explicit matching of equivalent products across branches;
-package conversions also still need explicit rules. Neither is inferred from names.
+[Cross-store price comparisons](cross-store-prices.md) now use explicitly reviewed
+same-product groups and historical package sizes, with weighted unit-price bars,
+shared price trends and source histories. Schema 9/product payload 3/inner backup 6
+preserve receipt amounts and existing event bytes. Grouping different brands or
+substitutes remains a future product decision; equivalence is never inferred from names.
 Privacy/permission auditing and native import/backup picker checks remain required
 before release or networking work.
 

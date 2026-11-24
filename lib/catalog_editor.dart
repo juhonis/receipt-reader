@@ -35,7 +35,8 @@ class CatalogEditor extends StatefulWidget {
 
 class _CatalogEditorState extends State<CatalogEditor> {
   final _name = TextEditingController(), _package = TextEditingController();
-  final _category = TextEditingController();
+  final _category = TextEditingController(),
+      _comparison = TextEditingController();
   final _id = DurableId.generate(), _mutation = DurableId.generate();
   QuantityUnit? _unit;
   ReceiptProductLink? _target;
@@ -52,6 +53,7 @@ class _CatalogEditorState extends State<CatalogEditor> {
     _name.text =
         p?.canonicalName ?? a?.alias.normalizedName ?? widget.initialName ?? '';
     _category.text = p?.category ?? '';
+    _comparison.text = p?.comparisonKey ?? '';
     if (p?.packageValue != null) {
       _package.text = formatFixed(p!.packageValue!, p.packageScale!);
       _unit = p.packageUnit;
@@ -138,6 +140,9 @@ class _CatalogEditorState extends State<CatalogEditor> {
               category: _category.text.trim().isEmpty
                   ? null
                   : normalizeProductCategory(_category.text),
+              comparisonKey: _comparison.text.trim().isEmpty
+                  ? null
+                  : normalizeProductCategory(_comparison.text),
               packageValue: quantity,
               packageScale: empty ? null : scale,
               packageUnit: _unit,
@@ -201,6 +206,7 @@ class _CatalogEditorState extends State<CatalogEditor> {
     _name.dispose();
     _package.dispose();
     _category.dispose();
+    _comparison.dispose();
     super.dispose();
   }
 
@@ -302,6 +308,17 @@ class _CatalogEditorState extends State<CatalogEditor> {
                       child: Text(s.categoryUncategorized),
                     ),
                   ],
+                ),
+                TextField(
+                  key: const Key('catalog-comparison'),
+                  controller: _comparison,
+                  enabled: !locked,
+                  decoration: InputDecoration(
+                    labelText: s.comparisonKeyLabel,
+                    helperText: s.comparisonKeyHint,
+                    helperMaxLines: 5,
+                  ),
+                  onChanged: _edit,
                 ),
                 TextField(
                   key: const Key('catalog-package'),

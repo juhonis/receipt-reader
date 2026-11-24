@@ -595,5 +595,20 @@
   "dashboardCurrentShort": "Nykyinen",
   "dashboardAllCategories": "Kaikki tuoteryhmät",
   "dashboardCategoryComparisonHelp": "Pylväät vertaavat tuoteryhmien nettosummia. Keskeneräistä jaksoa verrataan yhtä moneen päivään edellisen jakson alusta, kuten nettokulutuksen vertailussa. Nykyiset tuoteryhmät koskevat myös aiempia ostoja. Pantit, kuittialennukset ja oikaisut ovat omina ryhminään, joten muutosten summa vastaa koko vertailun muutosta. Suurimmat muutokset järjestetään euromuutoksen itseisarvon mukaan. Prosenttia ei lasketa, jos edellinen nettosumma on nolla tai negatiivinen. Puuttuva ryhmä tarkoittaa nollaa vain, kun molemmilta jaksoilta on kuitteja.",
-  "dashboardCategoryComparisonMissing": "Vertailuun tarvitaan kuitteja molemmilta vertailujaksoilta."
+  "dashboardCategoryComparisonMissing": "Vertailuun tarvitaan kuitteja molemmilta vertailujaksoilta.",
+  "comparisonKeyLabel": "Sama tuote · vertailuryhmä (valinnainen)",
+  "comparisonKeyHint": "Anna täsmälleen sama ryhmänimi saman tuotteen eri toimipisteiden tuotteille. Eri pakkauskoot sopivat samaan ryhmään, kun sisältö on sama. Tyhjä kenttä poistaa tuotteen vertailusta.",
+  "comparisonTitle": "Hintavertailu toimipisteittäin",
+  "comparisonNoGroup": "Tuotteella ei ole vertailuryhmää",
+  "comparisonEdit": "Muokkaa vertailuryhmää",
+  "comparisonWeightedPrices": "Ostomäärillä painotetut keskihinnat",
+  "comparisonTrend": "Hintojen kehitys",
+  "comparisonProducts": "Ryhmän tuotteet",
+  "comparisonMissingPackage": "Puuttuva vertailukelpoinen pakkauskoko",
+  "comparisonLimit": "Vertailuryhmä on liian suuri (enintään 64 tuotetta ja 64 toimipisteen yksikköryhmää). Rajaa ryhmää tai aikaväliä ja päivitä.",
+  "comparisonPolicy": "Vertailuryhmä on oma vahvistuksesi samasta tuotteesta eri toimipisteissä. Nykyinen ryhmä koskee myös aiempia ostoja. Saman nimisiä tuotteita ei yhdistetä automaattisesti. Kg, l ja kpl näytetään erikseen. Ryhmänimen muuttaminen tai tyhjentäminen koskee vain tätä tuotetta.",
+  "comparisonPackagePolicy": "Keskihinta = rivialennusten jälkeinen ostosumma / tarkistettu ostomäärä. Kappaleina ostettujen pakkausten määrä muunnetaan kg-, l- tai kpl-määräksi kuitille tallennetun tuoteversion pakkauskoon avulla. Nykyinen pakkauskoko ei muuta aiempia ostoja eikä korvaa puuttuvaa ostomäärää. Palautukset, puuttuvat määrät/pakkauskoot ja negatiiviset nettohinnat jäävät hintavertailusta pois. Pantit, kuittialennukset ja oikaisut eivät sisälly hintoihin.",
+  "comparisonObservationPolicy": "Hinnat perustuvat omiin kirjattuihin ostoihisi, eivät toimipisteiden tämänhetkisiin hintatarjouksiin. Eri toimipisteiden ostot voivat olla eri päiviltä. Pisteet näyttävät enintään 24 yhteisen kalenterijakson keskihinnat; tyhjien jaksojen yli ei piirretä viivaa. Napauta kaaviota nähdäksesi jakson luvut tai toimipistettä avataksesi sen tuotteiden ostohistorian.",
+  "comparisonScale": "Asteikko",
+  "comparisonNextInterval": "Seuraava aikajakso"
 }

@@ -12,6 +12,7 @@ import '../generated/schema_v4.dart' as v4;
 import '../generated/schema_v5.dart' as v5;
 import '../generated/schema_v6.dart' as v6;
 import '../generated/schema_v7.dart' as v7;
+import '../generated/schema_v8.dart' as v8;
 
 /// Only synthetic fixture databases may be passed to these test helpers.
 Map<String, List<Map<String, Object?>>> captureReleasedTables(
@@ -54,7 +55,7 @@ Map<String, List<Map<String, Object?>>> captureReleasedTables(
 /// Source must contain only features representable by the requested version.
 Future<void> copyToReleasedSchema(File source, File target, int version) async {
   if (version < 1 ||
-      version > 7 ||
+      version > 8 ||
       await target.exists() ||
       source.parent.absolute.path != target.parent.absolute.path) {
     throw StateError('unsafe_released_fixture_target');
@@ -73,7 +74,8 @@ Future<void> copyToReleasedSchema(File source, File target, int version) async {
     4 => v4.DatabaseAtV4(NativeDatabase(target, setup: configureSqlite)),
     5 => v5.DatabaseAtV5(NativeDatabase(target, setup: configureSqlite)),
     6 => v6.DatabaseAtV6(NativeDatabase(target, setup: configureSqlite)),
-    _ => v7.DatabaseAtV7(NativeDatabase(target, setup: configureSqlite)),
+    7 => v7.DatabaseAtV7(NativeDatabase(target, setup: configureSqlite)),
+    _ => v8.DatabaseAtV8(NativeDatabase(target, setup: configureSqlite)),
   };
   try {
     await old.customSelect('SELECT 1').get();

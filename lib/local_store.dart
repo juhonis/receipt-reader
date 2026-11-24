@@ -7,6 +7,7 @@ import 'package:receipt_storage/receipt_storage.dart';
 import 'backup_service.dart';
 import 'catalog_service.dart';
 import 'purchase_history_service.dart';
+import 'product_comparison_service.dart';
 import 'spending_service.dart';
 
 /// App-facing seam: widget tests never open the user's real database.
@@ -28,10 +29,17 @@ final class RepositoryStore
         LocalStore,
         CatalogService,
         PurchaseHistoryService,
+        ProductComparisonService,
         SpendingService,
         SpendingDashboardService {
   RepositoryStore(this.repository);
   final ReceiptRepository repository;
+  @override
+  Future<ProductComparisonResult> productComparison(
+    DurableId productId, {
+    PurchaseDateRange? range,
+  }) => repository.productComparison(productId, range: range);
+
   @override
   Future<SpendingDashboard> spendingDashboard(SpendingDashboardQuery query) =>
       repository.spendingDashboard(query);
@@ -132,10 +140,19 @@ final class WorkspaceStore
         BackupService,
         CatalogService,
         PurchaseHistoryService,
+        ProductComparisonService,
         SpendingService,
         SpendingDashboardService {
   WorkspaceStore(this.workspace);
   final ReceiptWorkspace workspace;
+  @override
+  Future<ProductComparisonResult> productComparison(
+    DurableId productId, {
+    PurchaseDateRange? range,
+  }) => _run(
+    () => workspace.repository.productComparison(productId, range: range),
+  );
+
   @override
   Future<SpendingDashboard> spendingDashboard(SpendingDashboardQuery query) =>
       _run(() => workspace.repository.spendingDashboard(query));

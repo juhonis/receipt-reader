@@ -15,6 +15,7 @@ part 'integrity.dart';
 part 'backup.dart';
 part 'catalog.dart';
 part 'purchases.dart';
+part 'product_comparison.dart';
 part 'spending.dart';
 
 final class StorageFailure implements Exception {
@@ -884,9 +885,8 @@ String _eventJson(
   });
 }
 
-int _eventPayloadVersion(String kind, String payload) =>
-    kind == 'product' && (jsonDecode(payload) as Map)['payload_version'] == '2'
-    ? 2
+int _eventPayloadVersion(String kind, String payload) => kind == 'product'
+    ? int.parse((jsonDecode(payload) as Map)['payload_version'] as String)
     : 1;
 
 Map<String, Object?> _receiptFields(

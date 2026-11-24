@@ -390,7 +390,7 @@ class ChangeLog extends Table with TableInfo<ChangeLog, ChangeLogData> {
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL CHECK (payload_version = 1 OR(payload_version = 2 AND entity_kind = \'product\'))',
+    $customConstraints: 'NOT NULL CHECK (payload_version = 1 OR(payload_version IN (2, 3) AND entity_kind = \'product\'))',
   );
   static const VerificationMeta _operationMeta = const VerificationMeta(
     'operation',
