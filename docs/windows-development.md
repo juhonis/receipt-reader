@@ -395,3 +395,13 @@ The focused native regression uses only a guarded `saved-links-smoke-*` dataset:
 Run the Android check offline and restore its prior airplane setting. Rebuild
 normal application entry points after integration tests and upgrade-install the
 normal Android APK with `adb install -r`; never clear the app's data.
+
+
+## Explore the charts with invented receipts
+
+[The synthetic sample set](sample-receipts.md) contains ten clearly labelled DEMO
+receipts across three branches and several months. Its explicitly opted-in loader
+adds to normal Windows/emulator data and refuses to overwrite existing records.
+It is skipped by ordinary integration runs. Rebuild and launch normal app entry
+points afterward; the default month view shows seven samples and the year view
+shows all ten for the November 24, 2026 anchor.
