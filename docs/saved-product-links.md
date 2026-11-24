@@ -88,7 +88,7 @@ images are not read or cleared by these tests.
 flutter analyze
 flutter test
 flutter test integration_test/receipt_product_links_test.dart -d windows
-flutter test integration_test/receipt_product_links_test.dart -d emulator-5554
+flutter test integration_test/receipt_product_links_test.dart -d emulator-5554 --no-uninstall
 ```
 
 Run Android native tests offline and restore its prior airplane setting. Rebuild

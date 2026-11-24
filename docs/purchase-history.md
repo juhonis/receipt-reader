@@ -126,7 +126,7 @@ dart analyze
 dart test
 Pop-Location
 flutter test integration_test/purchase_history_test.dart -d windows
-flutter test integration_test/purchase_history_test.dart -d emulator-5554
+flutter test integration_test/purchase_history_test.dart -d emulator-5554 --no-uninstall
 ```
 
 If another Windows Debug build is running, use a temporary Flutter build directory

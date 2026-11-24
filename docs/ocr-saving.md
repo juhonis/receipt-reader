@@ -76,9 +76,9 @@ Private receipt files are not used. Reproduction commands:
 ```powershell
 $ocrFixture = (Resolve-Path test/fixtures/synthetic_receipt.png).Path
 flutter test integration_test/ocr_first_install_test.dart -d windows --dart-define="OCR_SMOKE_FIXTURE=$ocrFixture"
-flutter test integration_test/receipt_ocr_engine_test.dart -d emulator-5554
+flutter test integration_test/receipt_ocr_engine_test.dart -d emulator-5554 --no-uninstall
 flutter test integration_test/migration_recovery_test.dart -d windows
-flutter test integration_test/migration_recovery_test.dart -d emulator-5554
+flutter test integration_test/migration_recovery_test.dart -d emulator-5554 --no-uninstall
 ```
 
 Keep Android native OCR tests offline, restore the previous airplane setting, and

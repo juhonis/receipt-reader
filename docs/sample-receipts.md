@@ -45,7 +45,7 @@ intentionally adding these samples; it is not an isolated smoke test.
 
 ```powershell
 flutter test integration_test/load_demo_receipts_test.dart -d windows --dart-define=RECEIPT_READER_LOAD_DEMO_DATA=true --dart-define=RECEIPT_READER_DEMO_ANCHOR=24.11.2026
-flutter test integration_test/load_demo_receipts_test.dart -d emulator-5554 --dart-define=RECEIPT_READER_LOAD_DEMO_DATA=true --dart-define=RECEIPT_READER_DEMO_ANCHOR=24.11.2026
+flutter test integration_test/load_demo_receipts_test.dart -d emulator-5554 --no-uninstall --dart-define=RECEIPT_READER_LOAD_DEMO_DATA=true --dart-define=RECEIPT_READER_DEMO_ANCHOR=24.11.2026
 ```
 
 Reserved fixture identities make the same import repeatable without duplicate

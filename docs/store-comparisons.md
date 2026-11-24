@@ -68,7 +68,7 @@ Run the normal app/package suites and analysis, then:
 ```powershell
 flutter test test/store_spending_test.dart
 flutter test integration_test/spending_dashboard_test.dart -d windows
-flutter test integration_test/spending_dashboard_test.dart -d emulator-5554
+flutter test integration_test/spending_dashboard_test.dart -d emulator-5554 --no-uninstall
 ```
 
 Synthetic domain/storage tests cover selected-range reconciliation, netting,

@@ -73,7 +73,7 @@ an exact minimum signed amount. Existing new-manual/OCR/history tests pass too.
 The app analyzer is clean.
 
 ```powershell
-flutter test integration_test/manual_correction_test.dart -d emulator-5554
+flutter test integration_test/manual_correction_test.dart -d emulator-5554 --no-uninstall
 flutter test integration_test/manual_correction_test.dart -d windows
 ```
 

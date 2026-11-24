@@ -77,7 +77,7 @@ receipt images are not read, cleared or modified by this test.
 flutter analyze
 flutter test
 flutter test integration_test/inline_catalog_test.dart -d windows
-flutter test integration_test/inline_catalog_test.dart -d emulator-5554
+flutter test integration_test/inline_catalog_test.dart -d emulator-5554 --no-uninstall
 ```
 
 Run Android native tests offline, restore its prior network setting and rebuild

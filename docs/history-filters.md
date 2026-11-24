@@ -75,7 +75,7 @@ release check; an amount-only query has no dedicated amount index today.
 Run the native checks with:
 
 ```powershell
-flutter test integration_test/history_filter_test.dart -d emulator-5554
+flutter test integration_test/history_filter_test.dart -d emulator-5554 --no-uninstall
 flutter test integration_test/history_filter_test.dart -d windows
 ```
 

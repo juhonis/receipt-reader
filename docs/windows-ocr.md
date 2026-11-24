@@ -113,7 +113,7 @@ retry/manual entry available. Ordinary review screens expose no engine settings.
     flutter analyze
     flutter test
     flutter test integration_test/receipt_ocr_engine_test.dart -d windows
-    flutter test integration_test/receipt_ocr_engine_test.dart -d emulator-5554
+    flutter test integration_test/receipt_ocr_engine_test.dart -d emulator-5554 --no-uninstall
 
 Native verification uses generated synthetic pixels and guarded ocr-ui-smoke-*
 app-support directories. It invokes the real engine, explicitly sets boundaries,

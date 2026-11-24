@@ -79,7 +79,7 @@ Run from the repository root, using the Windows Flutter toolchain:
     flutter analyze
     flutter test
     flutter test integration_test/spending_test.dart -d windows
-    flutter test integration_test/spending_test.dart -d emulator-5554
+    flutter test integration_test/spending_test.dart -d emulator-5554 --no-uninstall
 
 Run dart test and dart analyze separately in packages/receipt_domain and
 packages/receipt_storage. When normal Windows Debug apps are already running,

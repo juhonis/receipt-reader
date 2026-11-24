@@ -75,7 +75,7 @@ migration and committed commands after reopening.
 Run the native synthetic smoke with:
 
 ```powershell
-flutter test integration_test/receipt_deletion_test.dart -d emulator-5554
+flutter test integration_test/receipt_deletion_test.dart -d emulator-5554 --no-uninstall
 flutter test integration_test/receipt_deletion_test.dart -d windows
 ```
 

@@ -93,7 +93,7 @@ visually checked. Normal user data and private receipt images are not test input
 flutter analyze
 flutter test
 flutter test integration_test/product_rankings_test.dart -d windows
-flutter test integration_test/product_rankings_test.dart -d emulator-5554
+flutter test integration_test/product_rankings_test.dart -d emulator-5554 --no-uninstall
 ```
 
 Run Android native checks offline and restore its prior airplane setting. Rebuild

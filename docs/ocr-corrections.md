@@ -81,7 +81,7 @@ has 50 tests including correction history, retained/new rows, retired-ID rejecti
 stale heads, reopening and historical-command replay.
 
 ```powershell
-flutter test integration_test/ocr_correction_test.dart -d emulator-5554
+flutter test integration_test/ocr_correction_test.dart -d emulator-5554 --no-uninstall
 flutter test integration_test/ocr_correction_test.dart -d windows
 ```
 

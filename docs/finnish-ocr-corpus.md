@@ -102,7 +102,7 @@ Pop-Location
 flutter analyze
 flutter test
 flutter test integration_test/finnish_ocr_corpus_test.dart -d windows
-flutter test integration_test/finnish_ocr_corpus_test.dart -d emulator-5554
+flutter test integration_test/finnish_ocr_corpus_test.dart -d emulator-5554 --no-uninstall
 # Restore normal entry points after integration builds:
 flutter build windows --debug
 flutter build windows --release

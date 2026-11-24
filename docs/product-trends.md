@@ -97,7 +97,7 @@ tests pass. Private receipt images and normal user datasets are not test inputs.
 flutter analyze
 flutter test
 flutter test integration_test/product_trends_test.dart -d windows
-flutter test integration_test/product_trends_test.dart -d emulator-5554
+flutter test integration_test/product_trends_test.dart -d emulator-5554 --no-uninstall
 ```
 
 Run Android native tests offline and restore its prior airplane setting. Rebuild

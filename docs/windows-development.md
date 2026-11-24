@@ -168,7 +168,7 @@ See [history filters](history-filters.md) for supported bounds, pagination/retry
 behavior and current verification results. Run its synthetic native smoke with:
 
 ```powershell
-flutter test integration_test/history_filter_test.dart -d emulator-5554
+flutter test integration_test/history_filter_test.dart -d emulator-5554 --no-uninstall
 flutter test integration_test/history_filter_test.dart -d windows
 ```
 
@@ -183,7 +183,7 @@ toolchain and existing SQLite schema. Run the synthetic correction/reopen and
 stale-write smoke with:
 
 ```powershell
-flutter test integration_test/manual_correction_test.dart -d emulator-5554
+flutter test integration_test/manual_correction_test.dart -d emulator-5554 --no-uninstall
 flutter test integration_test/manual_correction_test.dart -d windows
 ```
 
@@ -197,7 +197,7 @@ and OCR provenance using the existing schema. The synthetic native correction,
 reopen and concurrent stale-write test runs on both platforms:
 
 ```powershell
-flutter test integration_test/ocr_correction_test.dart -d emulator-5554
+flutter test integration_test/ocr_correction_test.dart -d emulator-5554 --no-uninstall
 flutter test integration_test/ocr_correction_test.dart -d windows
 ```
 
@@ -212,7 +212,7 @@ migration from schemas 1 and 2. Run the synthetic deletion/reopen/retry and
 stale-screen smoke with:
 
 ```powershell
-flutter test integration_test/receipt_deletion_test.dart -d emulator-5554
+flutter test integration_test/receipt_deletion_test.dart -d emulator-5554 --no-uninstall
 flutter test integration_test/receipt_deletion_test.dart -d windows
 ```
 
@@ -241,7 +241,7 @@ toolchain and schema 3. Run its private synthetic export/file-read/restore/reope
 smoke with:
 
 ```powershell
-flutter test integration_test/backup_restore_test.dart -d emulator-5554
+flutter test integration_test/backup_restore_test.dart -d emulator-5554 --no-uninstall
 flutter test integration_test/backup_restore_test.dart -d windows
 ```
 
@@ -280,7 +280,7 @@ migrates schema 4. No additional setup is required. Run the native workflows wit
 
 ```powershell
 flutter test integration_test/product_catalog_test.dart -d windows
-flutter test integration_test/product_catalog_test.dart -d emulator-5554
+flutter test integration_test/product_catalog_test.dart -d emulator-5554 --no-uninstall
 ```
 
 This checks catalog writes, exact suggestions, encrypted activation, fresh-origin
@@ -299,7 +299,7 @@ toolchain without a schema migration or additional dependency. Run the isolated
 native workflow with:
 
     flutter test integration_test/spending_test.dart -d windows
-    flutter test integration_test/spending_test.dart -d emulator-5554
+    flutter test integration_test/spending_test.dart -d emulator-5554 --no-uninstall
 
 This covers complete mixed-row receipt totals, more than one history page,
 branch/day filtering, correction, encrypted activation while the page remains open,
@@ -317,7 +317,7 @@ transaction rollback/retry, exact retained history, catalog links, both analytic
 screens and repeated encrypted recovery. Run:
 
     flutter test integration_test/migration_recovery_test.dart -d windows
-    flutter test integration_test/migration_recovery_test.dart -d emulator-5554
+    flutter test integration_test/migration_recovery_test.dart -d emulator-5554 --no-uninstall
 
 The test uses generated historical schemas and guarded synthetic app-support
 directories. Keep normal Windows sessions running by choosing a temporary
@@ -331,7 +331,7 @@ product links through a schema-6→7 upgrade, reviewed classification, dashboard
 receipt links and encrypted backup recovery:
 
     flutter test integration_test/category_workflow_test.dart -d windows
-    flutter test integration_test/category_workflow_test.dart -d emulator-5554
+    flutter test integration_test/category_workflow_test.dart -d emulator-5554 --no-uninstall
 
 The same offline, isolated-data and normal-build restoration rules apply.
 
@@ -350,7 +350,7 @@ Build outputs stay under build/windows-ocr. The normal Windows app requires no
 installed Tesseract, Python or model download. Native recognition and saving use:
 
     flutter test integration_test/receipt_ocr_engine_test.dart -d windows
-    flutter test integration_test/receipt_ocr_engine_test.dart -d emulator-5554
+    flutter test integration_test/receipt_ocr_engine_test.dart -d emulator-5554 --no-uninstall
 
 The ZIP and checksum/evidence file are under build/distribution. The included
 synthetic_receipt.png and [clean-machine checklist](windows-ocr-clean-machine.md)
@@ -372,7 +372,7 @@ notice files to make a verification failure disappear.
 The native license-page check is independent of receipt storage:
 
     flutter test integration_test/software_licenses_test.dart -d windows
-    flutter test integration_test/software_licenses_test.dart -d emulator-5554
+    flutter test integration_test/software_licenses_test.dart -d emulator-5554 --no-uninstall
 
 Run Android offline, restore its previous airplane setting, and rebuild/install
 normal app entry points afterward. The test binding disables automatic license
@@ -390,7 +390,7 @@ password-protected envelope. Keep using the updated executable after migration.
 The focused native regression uses only a guarded `saved-links-smoke-*` dataset:
 
     flutter test integration_test/receipt_product_links_test.dart -d windows
-    flutter test integration_test/receipt_product_links_test.dart -d emulator-5554
+    flutter test integration_test/receipt_product_links_test.dart -d emulator-5554 --no-uninstall
 
 Run the Android check offline and restore its prior airplane setting. Rebuild
 normal application entry points after integration tests and upgrade-install the
@@ -405,3 +405,16 @@ adds to normal Windows/emulator data and refuses to overwrite existing records.
 It is skipped by ordinary integration runs. Rebuild and launch normal app entry
 points afterward; the default month view shows seven samples and the year view
 shows all ten for the November 24, 2026 anchor.
+
+
+## Preserve Android app data during native tests
+
+Use `--no-uninstall` for every Android integration test, including the demo loader.
+Flutter 3.50 defaults to uninstalling the integration-test app afterward, which
+also removes the emulator package's normal application data. Temporary test
+workspaces do not prevent that package cleanup. The commands above now explicitly
+keep the app installed. Never run these tests with Flutter's default cleanup.
+
+After tests, rebuild the normal APK and upgrade-install it with `adb install -r`,
+then launch the normal entry point. An install/signature failure is a reason to
+stop and investigate; do not uninstall or clear app data as a workaround.

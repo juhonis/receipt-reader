@@ -99,7 +99,7 @@ and private receipt images are untouched.
 ```powershell
 flutter test test/category_workflow_test.dart
 flutter test integration_test/category_workflow_test.dart -d windows
-flutter test integration_test/category_workflow_test.dart -d emulator-5554
+flutter test integration_test/category_workflow_test.dart -d emulator-5554 --no-uninstall
 ```
 
 Restore the prior emulator network setting and normal application build entry

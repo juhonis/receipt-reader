@@ -129,7 +129,7 @@ flutter analyze
 flutter test
 # Run dart analyze and dart test in each packages/receipt_* package as well.
 flutter test integration_test/spending_dashboard_test.dart -d windows
-flutter test integration_test/spending_dashboard_test.dart -d emulator-5554
+flutter test integration_test/spending_dashboard_test.dart -d emulator-5554 --no-uninstall
 ```
 
 The focused tests cover calendar/year/DST/leap boundaries, clipped 1970 dates,

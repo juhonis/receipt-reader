@@ -118,7 +118,7 @@ dart analyze
 dart test
 cd ../..
 flutter test integration_test/backup_restore_test.dart -d windows
-flutter test integration_test/backup_restore_test.dart -d emulator-5554
+flutter test integration_test/backup_restore_test.dart -d emulator-5554 --no-uninstall
 ```
 
 The native smoke writes a synthetic package to a private temporary file, restores

@@ -84,7 +84,7 @@ From the repository root, using Windows PowerShell and the documented Flutter SD
     flutter analyze
     flutter test
     flutter test integration_test/migration_recovery_test.dart -d windows
-    flutter test integration_test/migration_recovery_test.dart -d emulator-5554
+    flutter test integration_test/migration_recovery_test.dart -d emulator-5554 --no-uninstall
 
 Run the storage suite separately:
 

@@ -142,7 +142,7 @@ dart analyze
 dart test
 cd ../..
 flutter test integration_test/protected_backup_test.dart -d windows
-flutter test integration_test/protected_backup_test.dart -d emulator-5554
+flutter test integration_test/protected_backup_test.dart -d emulator-5554 --no-uninstall
 ```
 
 The synthetic native workflow exercises UI encryption/export, wrong passwords,
@@ -155,7 +155,7 @@ skipped by default so an unattended integration run cannot wait on a chooser:
 
 ```powershell
 flutter test integration_test/backup_picker_test.dart -d windows --dart-define=INTERACTIVE_BACKUP_PICKER=true
-flutter test integration_test/backup_picker_test.dart -d emulator-5554 --dart-define=INTERACTIVE_BACKUP_PICKER=true
+flutter test integration_test/backup_picker_test.dart -d emulator-5554 --no-uninstall --dart-define=INTERACTIVE_BACKUP_PICKER=true
 ```
 
 The Android save/open picker check passed in airplane mode. Windows native

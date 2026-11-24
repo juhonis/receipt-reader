@@ -138,8 +138,8 @@ flutter analyze
 flutter test
 flutter test integration_test/catalog_review_test.dart -d windows
 flutter test integration_test/product_catalog_test.dart -d windows
-flutter test integration_test/catalog_review_test.dart -d emulator-5554
-flutter test integration_test/product_catalog_test.dart -d emulator-5554
+flutter test integration_test/catalog_review_test.dart -d emulator-5554 --no-uninstall
+flutter test integration_test/product_catalog_test.dart -d emulator-5554 --no-uninstall
 ```
 
 Run `dart test` and `dart analyze` in both `packages/receipt_domain` and

@@ -116,7 +116,7 @@ The counts below describe the initial manual-saving baseline. See
 Run the shared UI smoke with:
 
 ```powershell
-flutter test integration_test/manual_save_test.dart -d emulator-5554
+flutter test integration_test/manual_save_test.dart -d emulator-5554 --no-uninstall
 flutter test integration_test/manual_save_test.dart -d windows
 ```
 
