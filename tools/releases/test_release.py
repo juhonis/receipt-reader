@@ -101,8 +101,10 @@ class VersionTests(unittest.TestCase):
                                    Path('aapt'), Path('signer'), {})
         self.assertTrue(inspect()['signatureV2Verified'])
         self.assertTrue(inspect(signature.replace('\n', ' \r\n'))['signatureV2Verified'])
+        # Build Tools 37 changed the label even for the same correctly signed APK.
+        # An unexpected tool format must not be reported as a different key.
         with self.assertRaisesRegex(ValueError, 'parsed 0'):
-            inspect('Unexpected apksigner certificate format\n')
+            inspect(signature.replace('Signer #1', 'V2 Signer:'))
         with self.assertRaisesRegex(ValueError, 'SHA-256 is ' + 'b' * 64 + '; expected ' + certificate):
             inspect(signature.replace(certificate, 'b' * 64))
         for sig, badge in [

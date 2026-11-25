@@ -10,6 +10,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tools/releases'))
 from android import tool_invocation
+from audit import ANDROID_BUILD_TOOLS_VERSION
 
 
 def run(arguments, env, **kwargs):
@@ -71,7 +72,7 @@ def prepare(existing=False):
         raise ValueError('Android SDK is not configured on this runner')
     env['ANDROID_HOME'] = env['ANDROID_SDK_ROOT'] = str(android)
     packages = ['platform-tools', 'platforms;android-35', 'platforms;android-36',
-                'build-tools;36.0.0', 'ndk;' + reviewed['androidNdk']['version']]
+                'build-tools;' + ANDROID_BUILD_TOOLS_VERSION, 'ndk;' + reviewed['androidNdk']['version']]
     required = [android / item.replace(';', '/') for item in packages]
     if not all(path.is_dir() for path in required):
         manager = android / 'cmdline-tools/latest/bin/sdkmanager.bat'

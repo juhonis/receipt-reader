@@ -19,6 +19,7 @@ THIRD = ROOT / 'third_party'
 SEPARATOR = '\n' + '-' * 80 + '\n'
 GOOGLE_TERMS = 'https://developers.google.com/ml-kit/terms'
 ANDROID_TERMS = 'https://developer.android.com/studio/terms.html'
+ANDROID_BUILD_TOOLS_VERSION = '36.0.0'
 
 
 def digest(data):
@@ -59,6 +60,16 @@ def android_sdk():
         if line.startswith('sdk.dir='):
             return Path(line[8:].replace('\\\\', '\\').replace('\\:', ':'))
     raise ValueError('Android SDK directory is not configured')
+
+
+def android_build_tools():
+    # Hosted runners may preinstall a newer apksigner with a different text format.
+    # Use the same explicit tools version that CI prepares and local builds verify.
+    tools = android_sdk() / 'build-tools' / ANDROID_BUILD_TOOLS_VERSION
+    if not all((tools / name).is_file() for name in ['aapt2.exe', 'apksigner.bat']):
+        raise ValueError('Install Android SDK build-tools;' + ANDROID_BUILD_TOOLS_VERSION +
+                         ' before verifying an APK; newer versions are not a fallback')
+    return tools
 
 
 def notice_family(name, notice, owned):
@@ -357,8 +368,7 @@ def verify_apk(path):
                 subprocess.run([str(strip), '--strip-unneeded', str(target)], check=True)
                 if file_digest(target) != digest(archive.read('lib/' + abi + '/libsqlite3.so')):
                     raise ValueError('Unexpected packaged SQLite binary for ' + abi)
-    tools = [p for p in (android_sdk() / 'build-tools').iterdir() if (p / 'aapt2.exe').is_file()]
-    aapt = max(tools, key=lambda p: tuple(map(int, re.findall(r'\d+', p.name)))) / 'aapt2.exe'
+    aapt = android_build_tools() / 'aapt2.exe'
     permissions = subprocess.check_output([str(aapt), 'dump', 'permissions', str(path)], encoding='utf-8')
     verify_permissions(permissions)
     return native, permissions

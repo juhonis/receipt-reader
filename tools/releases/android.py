@@ -99,15 +99,14 @@ def main():
         raise ValueError('Versioned artifact already exists; do not silently replace a distributed version')
     # Review inputs must be current before starting an expensive build.
     audit.load_review()
+    build_tools = audit.android_build_tools()
+    print('Android verification build-tools:', build_tools.name, flush=True)
     # Project arguments retain their case through Flutter on Windows. Environment
     # names are uppercased by Python/Dart and cannot carry kotlin.incremental.
     command, flutter_env = tool_invocation(
         [flutter, 'build', 'apk', '--release', '--android-project-arg=kotlin.incremental=false'], env)
     subprocess.run(command, cwd=ROOT, env=flutter_env, check=True)
     apk = ROOT / 'build/app/outputs/flutter-apk/app-release.apk'
-    sdk = audit.android_sdk()
-    candidates = [p for p in (sdk / 'build-tools').iterdir() if (p / 'apksigner.bat').is_file()]
-    build_tools = max(candidates, key=lambda p: tuple(map(int, re.findall(r'\d+', p.name))))
     metadata = inspect_apk(apk, version, certificate, build_tools / 'aapt2.exe', build_tools / 'apksigner.bat', env)
     native, permissions = audit.verify_apk(apk)
     dirty = verify_source_unchanged(commit, args.allow_dirty) or dirty

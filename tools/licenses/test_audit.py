@@ -11,6 +11,34 @@ import audit
 
 
 class NoticeTests(unittest.TestCase):
+    def test_verifiers_use_prepared_build_tools_even_with_newer_sdk_tools(self):
+        with tempfile.TemporaryDirectory() as directory:
+            sdk = Path(directory)
+            for version in [audit.ANDROID_BUILD_TOOLS_VERSION, '37.0.0']:
+                tools = sdk / 'build-tools' / version
+                tools.mkdir(parents=True)
+                for name in ['aapt2.exe', 'apksigner.bat']:
+                    (tools / name).touch()
+            with patch.object(audit, 'android_sdk', return_value=sdk):
+                self.assertEqual(audit.android_build_tools(),
+                                 sdk / 'build-tools' / audit.ANDROID_BUILD_TOOLS_VERSION)
+
+    def test_missing_or_incomplete_pinned_build_tools_never_fall_back(self):
+        with tempfile.TemporaryDirectory() as directory:
+            sdk = Path(directory)
+            newer = sdk / 'build-tools/37.0.0'
+            newer.mkdir(parents=True)
+            for name in ['aapt2.exe', 'apksigner.bat']:
+                (newer / name).touch()
+            with patch.object(audit, 'android_sdk', return_value=sdk):
+                with self.assertRaisesRegex(ValueError, 'Install Android SDK build-tools;'):
+                    audit.android_build_tools()
+                pinned = sdk / 'build-tools' / audit.ANDROID_BUILD_TOOLS_VERSION
+                pinned.mkdir()
+                (pinned / 'aapt2.exe').touch()
+                with self.assertRaisesRegex(ValueError, 'Install Android SDK build-tools;'):
+                    audit.android_build_tools()
+
     def test_release_permissions_reject_network_storage_and_other_unreviewed_access(self):
         expected = "uses-permission: name='fi.juhonis.receipt_reader.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'\n"
         audit.verify_permissions(expected)

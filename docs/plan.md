@@ -84,11 +84,12 @@ sync or update button yet.
 - [x] Owner configured the protected `release` environment, `v*` deployment tags,
   self-review approval and four signing secrets; hosted Checks passes.
 - [x] Confirm the Windows tagged build after disabling optional desktop JNI.
-- [ ] Complete the Android tagged build/draft pipeline. Alpha.4 passes the Kotlin
-  setting as a Flutter project argument, verifies the effective compiler task mode,
-  and adds a signing-secret-free Android compile to Checks. Hosted compilation now
-  passes; the APK certificate check fails. Local temporary-key signing matches the
-  pin; refresh/compare the protected keystore secret before retrying the same tag.
+- [ ] Complete the Android tagged build/draft pipeline. Alpha.4 compiles on CI;
+  its verifier incorrectly chooses Build Tools 37 and fails to parse its changed
+  signer label. Alpha.5 explicitly selects prepared Build Tools 36.0.0 and checks
+  the temporary keystore certificate before building. Local reproduction confirms
+  the same APK/key passes with 36 and hits the old parser error with 37. The signed
+  alpha.5 rehearsal passes; hosted confirmation remains pending.
 - [ ] Test the exact artifacts on the phone and second Windows PC, including an
   upgrade from the previous alpha, then explicitly publish the pre-release.
 

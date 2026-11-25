@@ -1,11 +1,12 @@
-# v0.2.0-alpha.4
+# v0.2.0-alpha.5
 
 First GitHub alpha candidate for Android and Windows, with a Finnish UI. The earlier
 local alpha build remains separate; this APK uses a greater Android build number.
 
-This candidate passes the Kotlin compilation setting directly through Flutter and
-adds an Android compile to signing-secret-free CI. Windows packaging now avoids an
-optional Java runtime dependency; its alpha.3 hosted build passed. Earlier attempts
+This candidate uses explicitly selected Android verification tools and checks the
+signing certificate before compilation. Earlier attempts built the APK but reported
+a false certificate mismatch after selecting a newer verifier with changed output.
+Kotlin compilation and Windows packaging fixes remain included; earlier attempts
 did not produce a complete draft release.
 
 - Offline JPEG/PNG receipt recognition, reviewed saving/corrections and history.
