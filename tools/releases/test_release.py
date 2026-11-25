@@ -1,0 +1,106 @@
+import os
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+from android import inspect_apk, tool_invocation, verify_source_unchanged
+import setup_signing
+from version import parse, sync
+
+
+class VersionTests(unittest.TestCase):
+    @unittest.skipUnless(os.name == 'nt', 'Windows batch invocation')
+    def test_batch_tools_preserve_literal_paths_and_arguments(self):
+        with tempfile.TemporaryDirectory(prefix='receipt-release-test-') as directory:
+            root = Path(directory) / 'space & (%literal%)'
+            root.mkdir()
+            batch = root / 'tool.cmd'
+            batch.write_text('@echo off\n@"%RECEIPT_TEST_PYTHON%" -c "import sys;print(sys.argv[1])" "%~1"\n')
+            argument = 'one & two (three) %literal% !kept! ^'
+            command, env = tool_invocation([batch, argument],
+                                          {**os.environ, 'RECEIPT_TEST_PYTHON': sys.executable})
+            actual = subprocess.check_output(command, env=env, encoding='utf-8').rstrip('\r\n')
+            self.assertEqual(actual, argument)
+
+    def test_distributable_cannot_claim_a_different_or_dirty_source_commit(self):
+        with patch('android.source_state', return_value=('reviewed', False)):
+            self.assertFalse(verify_source_unchanged('reviewed', allow_dirty=False))
+        for current, dirty, rehearsal in [
+            ('reviewed', True, False),
+            ('different', False, False),
+            ('different', True, True),
+        ]:
+            with self.subTest(current=current, dirty=dirty, rehearsal=rehearsal), \
+                    patch('android.source_state', return_value=(current, dirty)), \
+                    self.assertRaisesRegex(ValueError, 'Source changed'):
+                verify_source_unchanged('reviewed', allow_dirty=rehearsal)
+        with patch('android.source_state', return_value=('reviewed', True)):
+            self.assertTrue(verify_source_unchanged('reviewed', allow_dirty=True))
+
+    @unittest.skipUnless(os.name == 'nt', 'Signing bootstrap uses Windows file permissions')
+    def test_signing_bootstrap_never_replaces_an_existing_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'android').mkdir()
+            for name in ['key.properties', 'release-certificate.sha256']:
+                path = root / 'android' / name
+                path.write_text('existing identity')
+                with self.subTest(existing=name), patch.object(setup_signing, 'ROOT', root), \
+                        patch.dict('setup_signing.os.environ', {'LOCALAPPDATA': str(root / 'private')}), \
+                        patch('setup_signing.subprocess.run') as run, \
+                        self.assertRaisesRegex(ValueError, 'never replace'):
+                    setup_signing.main()
+                self.assertEqual(path.read_text(), 'existing identity')
+                run.assert_not_called()
+                path.unlink()
+
+    def test_rejects_invalid_or_uninstallable_versions(self):
+        for value in ['1.0.0', '1.0.0+0', '1.0.0+01', '01.0.0+1', '1.0.0-alpha.01+1',
+                      '1.0.0+2100000001', '1.0.0+1;echo bad', '1.0.0-+1']:
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                parse(value)
+        self.assertEqual(parse('0.2.0-alpha.1+2').build, 2)
+
+    def test_stale_metadata_and_wrong_tag_stop_a_release(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'lib').mkdir()
+            (root / 'pubspec.yaml').write_text('version: 0.2.0-alpha.1+2\n')
+            with self.assertRaisesRegex(ValueError, 'stale'):
+                sync(root, check=True)
+            sync(root)
+            self.assertEqual(sync(root, check=True, tag='v0.2.0-alpha.1').full, '0.2.0-alpha.1+2')
+            with self.assertRaisesRegex(ValueError, 'tag'):
+                sync(root, check=True, tag='v0.2.0-alpha.2')
+            (root / 'pubspec.yaml').write_text('version: 0.2.0-alpha.2+3\n')
+            with self.assertRaisesRegex(ValueError, 'stale'):
+                sync(root, check=True)
+
+    def test_apk_certificate_package_build_and_arm64_are_required(self):
+        certificate = 'a' * 64
+        signature = ('Signer #1 certificate SHA-256 digest: ' + certificate + '\n'
+                     'Verified using v2 scheme (APK Signature Scheme v2): true\n')
+        badging = ("package: name='fi.juhonis.receipt_reader' versionCode='2' versionName='0.2.0-alpha.1'\n"
+                   "native-code: 'arm64-v8a' 'x86_64'\n")
+        def inspect(sig=signature, badge=badging):
+            with patch('android.subprocess.check_output', side_effect=[sig, badge]):
+                return inspect_apk(Path('app.apk'), parse('0.2.0-alpha.1+2'), certificate,
+                                   Path('aapt'), Path('signer'), {})
+        self.assertTrue(inspect()['signatureV2Verified'])
+        for sig, badge in [
+            (signature.replace(certificate, 'b' * 64), badging),
+            (signature + 'Signer #2 certificate SHA-256 digest: ' + certificate + '\n', badging),
+            (signature.replace(': true', ': false'), badging),
+            (signature, badging.replace("versionCode='2'", "versionCode='1'")),
+            (signature, badging.replace('fi.juhonis.receipt_reader', 'another.package')),
+            (signature, badging.replace("'arm64-v8a'", "'armeabi-v7a'")),
+        ]:
+            with self.subTest(sig=sig, badge=badge), self.assertRaises(ValueError):
+                inspect(sig, badge)
+
+
+if __name__ == '__main__':
+    unittest.main()

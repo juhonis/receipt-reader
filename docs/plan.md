@@ -32,7 +32,8 @@ The [comparison contract](cross-store-prices.md) documents the latest format cha
 
 The Windows development ZIP has a successful reported offline laptop save/reopen/
 folder-move test. Broader photograph, privacy, native-picker and clean-machine checks
-remain open. Android release builds use debug signing. There is no camera capture,
+remain open. Android release builds require the permanent key, with local versioned
+APK verification tooling. There is no camera capture,
 sync, GitHub workflow or update button yet.
 
 ## Next milestone: repeatable phone testing and releases
@@ -53,11 +54,15 @@ sync, GitHub workflow or update button yet.
 
 ### 2. Stable Android installation and first phone test
 
-- [ ] Establish a permanent release signing key, independent backup of that key
-  and credentials, stable package ID and increasing Android build numbers.
-- [ ] Use one version source for displayed version, artifacts and release tags;
+- [x] Establish the permanent local release key and public certificate pin, stable
+  package ID and a release configuration that refuses debug-key fallback.
+- [ ] Keep an independent protected backup of that key and its credentials.
+- [x] Use one version source for displayed version, artifacts and release tags;
   remove the hand-maintained duplicate in `lib/app_version.dart`.
-- [ ] Build a signed alpha APK locally and verify its certificate and offline startup.
+- [x] Build and inspect a signed alpha APK locally: permanent certificate, package/
+  version, arm64, notices, SQLite provenance and offline release permissions.
+- [ ] Verify signed first-launch OCR offline on a test device; static permission/
+  dependency checks do not replace runtime acceptance.
 - [ ] Install on the phone and exercise the [phone checklist](phone-testing.md):
   actual receipt import/review/save, chart readability, correction and backup/recovery.
 - [ ] Prove a same-key APK upgrade preserves existing receipts and catalog data.

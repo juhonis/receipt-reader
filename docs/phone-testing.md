@@ -4,6 +4,10 @@ Start with a permanently signed alpha APK, then use successive GitHub pre-releas
 for everyday testing. This workflow is planned; there is no published signed alpha
 yet. See [release preparation](releases.md) for signing and distribution work.
 
+First target: OnePlus Nord 2T 5G, OxygenOS 14 / Android 14 (API 34). The universal
+APK must include arm64 support and support API 34. USB is optional for release
+installation; download the signed APK from GitHub Releases in the phone's browser.
+
 ## First installation
 
 1. Record phone model and Android version. A developer build can use USB debugging

@@ -15,7 +15,9 @@ flutter test
 In each affected package (`packages/receipt_domain`, `packages/receipt_parser`,
 `packages/receipt_storage`), run `dart pub get`, `dart analyze` and `dart test`.
 Run `python -m unittest discover -s tools/licenses -p 'test_*.py'` when changing
-license tooling. For artifact/notice checks, follow the
+license tooling. Release tooling uses
+`python -m unittest discover -s tools/releases -p 'test_*.py'` and
+`python tools/releases/version.py --check`. For artifact/notice checks, follow the
 [dependency audit](dependency-licenses.md#reproduce-and-update).
 
 ## Native integration workflows

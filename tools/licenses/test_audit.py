@@ -38,6 +38,8 @@ class NoticeTests(unittest.TestCase):
     def test_packaged_notices_must_include_native_and_full_dart_terms(self):
         with tempfile.TemporaryDirectory(prefix='receipt-notice-test-') as directory:
             root = Path(directory)
+            application = b'MIT License\nApplication copyright and complete terms\n'
+            root.joinpath('LICENSE').write_bytes(application)
             sdk = root / 'sdk'
             flutter = sdk / 'packages/flutter'
             flutter.mkdir(parents=True)
@@ -56,12 +58,14 @@ class NoticeTests(unittest.TestCase):
             third.joinpath('dependencies.json').write_text(json.dumps(manifest))
             with patch.object(audit, 'ROOT', root), patch.object(audit, 'THIRD', third), \
                     patch.object(audit, 'config_packages', return_value={'flutter': flutter}):
-                full = native + (flutter / 'LICENSE').read_bytes()
+                full = application + native + (flutter / 'LICENSE').read_bytes()
                 self.assertEqual(audit.verify_notices(gzip.compress(full)), full.decode())
+                with self.assertRaisesRegex(ValueError, 'omit application MIT license'):
+                    audit.verify_notices(gzip.compress(native + (flutter / 'LICENSE').read_bytes()))
                 with self.assertRaisesRegex(ValueError, 'omit Dart text'):
-                    audit.verify_notices(gzip.compress(native + b'Copyright stub only'))
+                    audit.verify_notices(gzip.compress(application + native + b'Copyright stub only'))
                 with self.assertRaisesRegex(ValueError, 'omit native notices'):
-                    audit.verify_notices(gzip.compress((flutter / 'LICENSE').read_bytes()))
+                    audit.verify_notices(gzip.compress(application + (flutter / 'LICENSE').read_bytes()))
                 third.joinpath('NOTICES.txt').write_bytes(b'Truncated terms')
                 with self.assertRaisesRegex(ValueError, 'Changed or missing native notices'):
                     audit.load_review()

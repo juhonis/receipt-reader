@@ -63,7 +63,7 @@ def android_sdk():
 
 def notice_family(name, notice, owned):
     if notice is None:
-        return 'project-owned; application licensing decision separate'
+        return 'project-owned; repository MIT license'
     text = notice.read_text(encoding='utf-8')
     if name == 'sky_engine':
         return 'upstream engine aggregate; preserve all terms and exceptions'
@@ -252,7 +252,7 @@ def collect():
         b'Open-source notices supplied inside the SDK artifacts are retained separately below.\n', GOOGLE_TERMS)
     notices = SEPARATOR.join('\n'.join(sorted(e['names'])) + '\n\n' + e['text']
                              for _, e in sorted(blocks.items())) + '\n'
-    manifest = {'schemaVersion': 1, 'reviewDate': '2026-11-21',
+    manifest = {'schemaVersion': 1, 'reviewDate': '2026-11-25',
         'scope': 'Conservative supported-target inventory; includes upstream aggregate notices',
         'inputs': inventory['inputs'],
         'flutter': {k: flutter[k] for k in ['frameworkVersion', 'frameworkRevision', 'engineRevision', 'dartSdkVersion']},
@@ -294,6 +294,8 @@ def load_review():
 def verify_notices(blob):
     review = load_review()
     text = gzip.decompress(blob).decode('utf-8')
+    if (ROOT / 'LICENSE').read_text(encoding='utf-8').strip() not in text:
+        raise ValueError('Packaged notices omit application MIT license')
     if (THIRD / 'NOTICES.txt').read_text(encoding='utf-8') not in text:
         raise ValueError('Packaged Flutter notices omit native notices')
     paths = config_packages()

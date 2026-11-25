@@ -1,7 +1,8 @@
 # Releases and updates
 
-Planned November 25, 2026. No GitHub Actions workflow, production signing or
-in-app updater is implemented yet. The [roadmap](plan.md) defines the order of work.
+Updated November 25, 2026. Permanent Android signing and local APK verification
+are implemented. GitHub Actions, published phone alphas and the in-app updater
+remain planned. The [roadmap](plan.md) defines the order of work.
 The first distribution channel will be personal-use alpha pre-releases in the
 public GitHub repository, with Android APK and Windows x64 ZIP assets.
 
@@ -34,22 +35,69 @@ Changing visibility remains an explicit owner action.
 
 ## Signing and version identity
 
-Android keeps `fi.juhonis.receipt_reader` as its application ID. Establish a
-permanent release keystore before retaining real phone data; the current Gradle
-release configuration uses the local debug key. Keep the keystore and credentials
-out of Git, back them up independently, and place only the required copies in
-protected CI secrets. Losing the key can prevent updates to the installed app.
+Android keeps `fi.juhonis.receipt_reader` as its application ID. Its release build
+requires the permanent signing configuration and never falls back to a debug key.
+The public certificate fingerprint is pinned in
+[`android/release-certificate.sha256`](../android/release-certificate.sha256).
+The existing private key lives in `%LOCALAPPDATA%/ReceiptReader/signing/`, outside
+the checkout. Keep that entire folder in an independent protected backup, including
+its credential configuration; the companion local copy is not an independent backup.
+Only the public fingerprint belongs in Git. Losing the key can prevent updates to
+the installed app.
+
+`android/key.properties` is ignored and access-restricted. CI can supply all four
+`RECEIPT_READER_STORE_FILE`, `RECEIPT_READER_STORE_PASSWORD`, `RECEIPT_READER_KEY_ALIAS`
+and `RECEIPT_READER_KEY_PASSWORD` environment variables from protected secrets.
+Partial environment credentials never mix with the local configuration.
+The private keystore, passwords and full configuration must not enter logs or assets.
+
+[`setup_signing.py`](../tools/releases/setup_signing.py) is a one-time Windows
+bootstrap for an installation with no existing identity. It refuses to replace an
+existing key/configuration/fingerprint. Do not rerun it for this repository's existing
+identity or on a CI runner: restore the original key and configure its path instead.
 
 Every upgrade needs the same signing identity and a greater Android versionCode.
 Different debug keys, CI-generated keys and a production key are not interchangeable.
 Keep the emulator's debug/test installation separate from the phone's release
 installation. Never solve a signature mismatch by clearing valuable application data.
 
-Use `pubspec.yaml` as the version source; derive the displayed version rather than
-manually maintaining `lib/app_version.dart`. For example, `0.2.0-alpha.1+2` could map
-to tag `v0.2.0-alpha.1` and Android build 2. Increase the build number for every
+`pubspec.yaml` is the version source. `tools/releases/version.py` generates the
+displayed `lib/app_version.dart`; its check rejects stale metadata or a wrong tag.
+The initial alpha is `0.2.0-alpha.1+2`, with expected tag `v0.2.0-alpha.1` and
+Android build 2. No tag/release is created by the local tooling. Increase the build number for every
 distributed APK; reject tag/version mismatches and asset replacement for published
 versions. Artifacts should identify platform, version and build unambiguously.
+
+## Local APK build
+
+After changing the pubspec version, regenerate and commit the Dart metadata:
+
+```powershell
+python tools/releases/version.py
+python tools/releases/version.py --check --tag v0.2.0-alpha.1
+python -m unittest discover -s tools/releases -p 'test_*.py'
+```
+
+Refresh the [notice inventory](dependency-licenses.md#reproduce-and-update) whenever
+its recorded build inputs change. From a clean, reviewed commit, build with:
+
+```powershell
+python tools/releases/android.py --tag v0.2.0-alpha.1
+```
+
+The wrapper checks current notice evidence, builds the signed universal APK and
+verifies its certificate, v2 signature, package/version, arm64 support, native
+SQLite provenance, packaged MIT/third-party notices and absence of network permissions.
+It rejects a changed commit or dirty source appearing during a distributable build.
+Outputs under `build/distribution/releases/` are a versioned APK, SHA-256 sidecar
+and sanitized JSON build evidence. Existing artifact names are never overwritten.
+The first local alpha includes arm64 and has minimum API 24, which supports the
+planned Android 14/API 34 phone. Actual phone acceptance remains outstanding.
+
+`--allow-dirty` is only a local rehearsal: output goes to `build/distribution/rehearsal/`
+and is marked development even if the source happens to be clean. Neither mode
+publishes, installs on a device, grants public-release approval or proves phone
+acceptance. Finish privacy/native-picker and offline/upgrade tests separately.
 
 Windows initially keeps the portable ZIP. Preserve existing notice/runtime audits
 and settle applicable distribution conditions. Assess Authenticode signing before

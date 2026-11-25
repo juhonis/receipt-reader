@@ -88,8 +88,11 @@ conditions and retained source-availability references, and choose
 signing/distribution credentials.
 These are separate from the verified notice coverage. Public-release readiness
 remains false; a development ZIP is not a signed public release.
-The Android release artifact currently uses the development debug signing
-configuration; no production signing credentials were added or used.
+The November 21 artifact used development debug signing. The November 25 local
+release configuration requires the permanent certificate; see
+[release signing and verification](releases.md#signing-and-version-identity).
+The inventory refresh records the MIT project-license decision and changed build
+inputs; pinned third-party versions and supplemental notice text are unchanged.
 
 ## Reproduce and update
 

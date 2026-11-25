@@ -75,8 +75,9 @@ python tools/windows_ocr/package.py
 The development ZIP and evidence are in `build/distribution/`; it includes the OCR
 worker/models and Microsoft runtime. It is not yet a signed public release. Follow
 [the OCR guide](windows-ocr.md) and [clean-machine checklist](windows-ocr-clean-machine.md).
-For Android, `flutter build apk --debug` builds the emulator APK; the current
-`--release` configuration still uses debug signing until the release milestone.
+For Android, `flutter build apk --debug` builds the emulator APK. Release builds
+require permanent signing; use the [verified APK wrapper](releases.md#local-apk-build)
+for versioned artifacts and certificate/notice checks.
 
 ## First-build troubleshooting
 

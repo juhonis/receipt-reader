@@ -12,7 +12,7 @@ the next milestone.
 - Password-protected backups and reviewed recovery.
 
 Android camera capture and device synchronization are not implemented. Windows
-has a development ZIP; Android release builds still use a debug signing key.
+has a development ZIP; Android release builds require the permanent release key.
 There is no in-app updater or automated release workflow yet.
 
 ## Start here

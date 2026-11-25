@@ -1,2 +1,2 @@
-// Keep aligned with pubspec.yaml when cutting a release.
-const receiptAppVersion = '0.1.0+1';
+// Generated from pubspec.yaml by tools/releases/version.py. Do not edit.
+const receiptAppVersion = '0.2.0-alpha.1+2';

@@ -1,7 +1,7 @@
 name: receipt_reader
 description: Offline receipt tracking for Android and Windows.
 publish_to: none
-version: 0.1.0+1
+version: 0.2.0-alpha.1+2
 
 environment:
   sdk: ^3.14.0
@@ -35,4 +35,5 @@ flutter:
   generate: true
   uses-material-design: true
   licenses:
+    - LICENSE
     - third_party/NOTICES.txt

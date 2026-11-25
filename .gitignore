@@ -15,3 +15,10 @@
 /localreceipts/
 /local_receipts/
 __pycache__/
+
+# Signing material and credentials, wherever local tooling creates them.
+**/key.properties
+**/*.keystore
+**/*.jks
+**/*.p12
+**/*.pfx

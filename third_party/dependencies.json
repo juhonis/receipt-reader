@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "reviewDate": "2026-11-21",
+  "reviewDate": "2026-11-25",
   "scope": "Conservative supported-target inventory; includes upstream aggregate notices",
   "inputs": {
-    "pubspec.yaml": "2eb89f3892d3cbf541711b336799abe8a17ae8074d2134399efce2f4db5d4ffe",
+    "pubspec.yaml": "b159d18e41a089d47cd9ace817fdb1bbb6650dd66267359eecd29c3790475456",
     "pubspec.lock": "579f113fd3b8aff48687353b96c3ef6d1b64f0aebe2f99d4190d4e6be7de2f0b",
-    "android/app/build.gradle.kts": "ff813fc64bf98e6425f92b2d2a7c6dbbed759a34c8893a3516a1bc57ec0fa0ae",
+    "android/app/build.gradle.kts": "175cb80de121944f89f2c12064a718c85bfaade4fc964f83f8d6ce19b72601f8",
     "android/settings.gradle.kts": "fd28aa10f4f4f4d8adb544e83b8c7c80b27fb4425044f951f6a5434d01d0b8bb",
     "android/build.gradle.kts": "6a26dba2cb8dfba1e74f540b0d17a89d96c1301d3c3bfda14348bed257fddcba",
     "android/gradle.properties": "0f82b18017fba6bb5ce3aa4b2d1a00c9382fc8aae7b1d9326e44b18abd66d80b",
@@ -490,7 +490,7 @@
       "name": "receipt_domain",
       "version": "0.1.0",
       "source": "path",
-      "noticeFamily": "project-owned; application licensing decision separate",
+      "noticeFamily": "project-owned; repository MIT license",
       "noticeFile": null,
       "noticeSha256": null,
       "handling": "project-owned"
@@ -499,7 +499,7 @@
       "name": "receipt_parser",
       "version": "0.1.0",
       "source": "path",
-      "noticeFamily": "project-owned; application licensing decision separate",
+      "noticeFamily": "project-owned; repository MIT license",
       "noticeFile": null,
       "noticeSha256": null,
       "handling": "project-owned"
@@ -508,7 +508,7 @@
       "name": "receipt_storage",
       "version": "0.1.0",
       "source": "path",
-      "noticeFamily": "project-owned; application licensing decision separate",
+      "noticeFamily": "project-owned; repository MIT license",
       "noticeFile": null,
       "noticeSha256": null,
       "handling": "project-owned"
