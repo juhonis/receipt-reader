@@ -55,6 +55,10 @@ add_subdirectory("runner")
 
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.
+# JNI comes from the Android path provider. Windows uses native paths/SQLite and
+# never starts a JVM; do not let an installed build JDK add a desktop jvm.dll
+# dependency through JNI's optional CMake discovery.
+set(CMAKE_DISABLE_FIND_PACKAGE_JNI TRUE)
 include(flutter/generated_plugins.cmake)
 
 

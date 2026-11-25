@@ -34,7 +34,8 @@ The Windows development ZIP has a successful reported offline laptop save/reopen
 folder-move test. Broader photograph, privacy, native-picker and clean-machine checks
 remain open. Native backup/image picker checks now pass on both platforms. Android
 release builds require the permanent key. Versioned APK/ZIP and CI/draft workflows
-are implemented locally; hosted activation is pending. There is no camera capture,
+are implemented. Hosted Checks passes and the release environment is configured;
+successful tagged native builds/draft upload remain pending. There is no camera capture,
 sync or update button yet.
 
 ## Next milestone: repeatable phone testing and releases
@@ -48,7 +49,7 @@ sync or update button yet.
 - [x] Choose the [MIT application license](../LICENSE), approved November 25, 2026.
 - [x] Scan reachable Git history with pinned Gitleaks and review tracked fixture/
   private paths; no leaks reported. See the scope in the release guide.
-- [ ] Make the repository public as a separate owner action, if desired.
+- [x] Owner made the repository public.
 - [x] Complete the scoped offline permission/retention/logging review and native
   import/cancel and backup save/read checks. Manufacturer transfer enforcement and
   signed first-install/phone acceptance remain outstanding. Networking needs a new review.
@@ -80,8 +81,11 @@ sync or update button yet.
   tag, permission, notice, provenance and dependency validation.
 - [x] Define protected builders and draft-only upload of versioned assets,
   checksums, commit/build metadata and release notes; reject existing releases.
-- [ ] Configure GitHub's protected release environment/secrets and execute hosted
-  Checks plus the tagged draft pipeline. Local validation does not establish host success.
+- [x] Owner configured the protected `release` environment, `v*` deployment tags,
+  self-review approval and four signing secrets; hosted Checks passes.
+- [ ] Complete the tagged native-build/draft pipeline. Alpha.2 exposed CI Kotlin
+  incremental-cache and optional Windows JNI-linkage failures; alpha.3 includes
+  locally verified fixes and needs a successful hosted run.
 - [ ] Test the exact artifacts on the phone and second Windows PC, including an
   upgrade from the previous alpha, then explicitly publish the pre-release.
 

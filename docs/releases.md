@@ -1,8 +1,9 @@
 # Releases and updates
 
 Updated November 25, 2026. Permanent Android signing and local APK verification
-and GitHub workflow definitions are implemented. Hosted execution, published phone
-alphas and the in-app updater remain pending. The [roadmap](plan.md) defines the order of work.
+and GitHub workflow definitions are implemented. Hosted Checks passes and owner
+setup is complete; successful tagged native builds, published phone alphas and
+the in-app updater remain pending. The [roadmap](plan.md) defines the order of work.
 The first distribution channel will be personal-use alpha pre-releases in the
 public GitHub repository, with Android APK and Windows x64 ZIP assets.
 
@@ -75,8 +76,8 @@ installation. Never solve a signature mismatch by clearing valuable application 
 
 `pubspec.yaml` is the version source. `tools/releases/version.py` generates the
 displayed `lib/app_version.dart`; its check rejects stale metadata or a wrong tag.
-The current candidate is `0.2.0-alpha.2+3`, with expected tag `v0.2.0-alpha.2` and
-Android build 3. The earlier local alpha is retained separately. Version checks
+The current candidate is `0.2.0-alpha.3+4`, with expected tag `v0.2.0-alpha.3` and
+Android build 4. Earlier candidates/tags are retained separately. Version checks
 reject tag mismatches and build numbers not greater than previous tagged builds.
 Local builders create no tag/release. Reject asset replacement for published
 versions. Artifacts should identify platform, version and build unambiguously.
@@ -87,7 +88,7 @@ After changing the pubspec version, regenerate and commit the Dart metadata:
 
 ```powershell
 python tools/releases/version.py
-python tools/releases/version.py --check --tag v0.2.0-alpha.2 --check-history
+python tools/releases/version.py --check --tag v0.2.0-alpha.3 --check-history
 python -m unittest discover -s tools/releases -p 'test_*.py'
 ```
 
@@ -95,7 +96,7 @@ Refresh the [notice inventory](dependency-licenses.md#reproduce-and-update) when
 its recorded build inputs change. From a clean, reviewed commit, build with:
 
 ```powershell
-python tools/releases/android.py --tag v0.2.0-alpha.2
+python tools/releases/android.py --tag v0.2.0-alpha.3
 ```
 
 The wrapper checks current notice evidence, builds the signed universal APK and
@@ -113,7 +114,7 @@ publishes, installs on a device, grants public-release approval or proves phone
 acceptance. Finish privacy/native-picker and offline/upgrade tests separately.
 
 Windows keeps the portable ZIP. Build it with `flutter build windows --release`,
-then `python tools/windows_ocr/package.py --tag v0.2.0-alpha.2`. Versioned mode
+then `python tools/windows_ocr/package.py --tag v0.2.0-alpha.3`. Versioned mode
 produces immutable ZIP/checksum/evidence files alongside the APK. The no-tag mode
 remains the legacy development ZIP. Preserve existing notice/runtime audits
 and settle applicable distribution conditions. Assess Authenticode signing before
@@ -132,6 +133,10 @@ for publisher signing. See [dependency terms and notices](dependency-licenses.md
    The [setup helper](../tools/ci/prepare.py) prepares clean-runner dependencies;
    `--existing` rehearses the same checks with installed SDKs. CI verifies existing
    notice evidence; it never automatically approves regenerated dependency notices.
+   Hosted runners disable Kotlin incremental compilation for their one-off builds,
+   avoiding cross-drive cache paths while keeping local incremental builds enabled.
+   Windows explicitly disables optional desktop JNI discovery, so installing the
+   Android build JDK cannot add a `jvm.dll` dependency to the ZIP.
 3. Validate packaged notices, native dependencies, final Android permissions and
    signing certificate. Use the [existing audit tools](dependency-licenses.md#reproduce-and-update).
    An intentional permission change must update the permission audit expectation.
@@ -153,9 +158,10 @@ become trusted merely because the repository is public.
 
 ## One-time GitHub activation
 
-The workflow definitions have local validation; hosted runs and repository settings
-have not been configured or verified. No source push, release tag or publication is
-performed by adding these files.
+The owner has completed this setup and made the repository public. Hosted Checks
+passes; the first tagged build failed before draft creation. The current alpha.3
+runner fixes have local build verification and still need hosted confirmation.
+The procedure below remains the reference for another repository/installation.
 
 1. Review source/terms, then change repository visibility separately if desired.
    Keep default workflow token permissions read-only; the draft job requests its
@@ -175,7 +181,7 @@ performed by adding these files.
 | `ANDROID_KEY_PASSWORD` | `keyPassword` from the private configuration |
 
 4. Push the reviewed main commit and let Checks pass. Then create/push its exact
-   version tag, for example `v0.2.0-alpha.2`. Tags whose commits are not on main,
+   version tag, for example `v0.2.0-alpha.3`. Tags whose commits are not on main,
    stale generated metadata and reused/lower Android build numbers are rejected.
 5. Approve the builders, inspect the draft/assets, and perform the phone/laptop
    checks before explicitly publishing. A failed upload can leave an incomplete

@@ -23,6 +23,11 @@ def prepare(existing=False):
     reviewed = json.loads((ROOT / 'third_party/dependencies.json').read_text(encoding='utf-8'))
     pin = reviewed['flutter']
     env = dict(os.environ)
+    if not existing:
+        # Fresh Windows runners can put pub sources on C: and the checkout on D:.
+        # Kotlin incremental caches cannot always relativize those paths. Each CI
+        # builder compiles once, so use a full Kotlin compile on hosted runners.
+        env['ORG_GRADLE_PROJECT_kotlin.incremental'] = 'false'
     if existing:
         env.setdefault('JAVA_HOME', 'C:/Program Files/Android/Android Studio/jbr')
         entry = shutil.which('flutter.bat')
@@ -79,6 +84,8 @@ def prepare(existing=False):
             output.write(str(sdk / 'bin') + '\n')
         with Path(env['GITHUB_ENV']).open('a', encoding='utf-8') as output:
             output.write(f'FLUTTER_ROOT={sdk}\nANDROID_HOME={android}\nANDROID_SDK_ROOT={android}\n')
+            if not existing:
+                output.write('ORG_GRADLE_PROJECT_kotlin.incremental=false\n')
 
 
 if __name__ == '__main__':
