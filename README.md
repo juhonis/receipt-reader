@@ -41,5 +41,8 @@ for package checks and native tests that preserve application data.
 
 Keep original receipts in ignored `localreceipts/`; commit only synthetic or
 explicitly anonymized fixtures. Keep commits focused with concise one-line messages.
-A public repository does not itself grant an open-source license; application
-licensing remains a decision before publication.
+
+## License
+
+[MIT](LICENSE). Third-party components retain their own licenses and terms; see
+[dependency notices](docs/dependency-licenses.md).

@@ -43,8 +43,9 @@ sync, GitHub workflow or update button yet.
   current guides and references, archive early prototypes and shorten setup docs.
 - [x] Record a preliminary tracked-content and historical-path scan in the
   [release guide](releases.md#before-making-the-repository-public).
-- [ ] Review reachable Git history for secrets/private data, choose an application
-  license, and make the repository public as a separate owner action.
+- [x] Choose the [MIT application license](../LICENSE), approved November 25, 2026.
+- [ ] Review reachable Git history for secrets/private data and make the repository
+  public as a separate owner action.
 - [ ] Finish the scoped privacy/permission audit and native import/backup picker
   checks before distributing builds or enabling in-app networking.
 - [ ] Resolve applicable dependency/vendor distribution conditions and Windows
@@ -105,8 +106,6 @@ devices, macOS/Linux. Assess Windows signing before broader distribution.
 
 ## Decisions requiring owner input
 
-- Application license before making source public; public visibility alone does
-  not grant reuse rights. MIT is a reasonable option if permissive reuse is wanted.
 - Custody and independent backup of Android signing credentials. Never commit them.
 - Confirm vendor/runtime redistribution conditions and Windows signing approach.
 

@@ -80,12 +80,12 @@ permits the specified unmodified runtime files subject to its license terms.
 This machine has VS 2022 Build Tools installed. Installation and copied files do
 not prove the owner's licensing entitlement. Before public distribution, confirm
 that entitlement under the [Microsoft licensing guidance](https://www.microsoft.com/licensing/guidance/Visual-Studio).
-The repository currently has no chosen application LICENSE. No MIT, Apache or
-proprietary application license has been selected on the owner's behalf.
+The owner selected the [MIT application license](../LICENSE) on November 25, 2026.
+It does not replace third-party component licenses or vendor terms.
 
-Before publishing, the owner still needs to decide the application's licensing
-and end-user terms, confirm applicable Google/Microsoft conditions and retained
-source-availability references, and choose signing/distribution credentials.
+Before publishing, the owner still needs to confirm applicable Google/Microsoft
+conditions and retained source-availability references, and choose
+signing/distribution credentials.
 These are separate from the verified notice coverage. Public-release readiness
 remains false; a development ZIP is not a signed public release.
 The Android release artifact currently uses the development debug signing

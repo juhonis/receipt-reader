@@ -7,10 +7,10 @@ public GitHub repository, with Android APK and Windows x64 ZIP assets.
 
 ## Before making the repository public
 
-Public source and published binaries are separate steps. Choose an application
-license before publication; none is selected yet. MIT is a possible permissive
-choice, not an approval already given. Personal use does not make public binaries
-private or restrict who can download them.
+Public source and published binaries are separate steps. The application uses the
+[MIT license](../LICENSE), approved November 25, 2026. Third-party components retain
+their own licenses and distribution terms. Personal use does not make public
+binaries private or restrict who can download them.
 
 Review tracked content and reachable Git history, not just the current checkout.
 Keep private receipts/OCR exports, databases/backups, passwords and signing material
