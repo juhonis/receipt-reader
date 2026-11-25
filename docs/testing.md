@@ -12,6 +12,11 @@ flutter analyze
 flutter test
 ```
 
+Root analysis excludes the historical standalone `tools/ocr_spike` package, whose
+experimental dependencies are not part of the app. When working on that harness,
+run `flutter pub get` and `flutter analyze` in its own directory. Main-app analysis
+must also pass without the harness's ignored `.dart_tool/package_config.json`.
+
 In each affected package (`packages/receipt_domain`, `packages/receipt_parser`,
 `packages/receipt_storage`), run `dart pub get`, `dart analyze` and `dart test`.
 Run `python -m unittest discover -s tools/licenses -p 'test_*.py'` when changing
