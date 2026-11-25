@@ -323,6 +323,13 @@ def verify_windows(directory):
     return text
 
 
+def verify_permissions(permissions):
+    requested = set(re.findall(r"^uses-permission(?:-sdk-\d+)?: name='([^']+)'", permissions, re.M))
+    allowed = {'fi.juhonis.receipt_reader.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'}
+    if requested != allowed:
+        raise ValueError('Standalone release requests unexpected permissions: ' + ', '.join(sorted(requested - allowed)))
+
+
 def verify_apk(path):
     review = load_review()
     ndk = android_sdk() / 'ndk' / review['androidNdk']['version']
@@ -353,8 +360,7 @@ def verify_apk(path):
     tools = [p for p in (android_sdk() / 'build-tools').iterdir() if (p / 'aapt2.exe').is_file()]
     aapt = max(tools, key=lambda p: tuple(map(int, re.findall(r'\d+', p.name)))) / 'aapt2.exe'
     permissions = subprocess.check_output([str(aapt), 'dump', 'permissions', str(path)], encoding='utf-8')
-    if any(p in permissions for p in ['android.permission.INTERNET', 'android.permission.ACCESS_NETWORK_STATE']):
-        raise ValueError('Standalone release unexpectedly requests network permissions')
+    verify_permissions(permissions)
     return native, permissions
 
 

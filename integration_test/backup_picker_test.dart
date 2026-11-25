@@ -6,8 +6,14 @@ import 'package:material_ui/material_ui.dart';
 import 'package:receipt_reader/backup_files.dart';
 
 void main() {
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   const runPicker = bool.fromEnvironment("INTERACTIVE_BACKUP_PICKER");
+  if (runPicker) {
+    // Native UI automation can enable the screen-reader bridge during a dialog.
+    // Establish that state before testWidgets records its owned semantics handles.
+    setUpAll(() => binding.platformDispatcher.semanticsEnabledTestValue = true);
+    tearDownAll(binding.platformDispatcher.clearSemanticsEnabledTestValue);
+  }
   testWidgets(
     'native save/open selectors preserve the encrypted synthetic file',
     (tester) async {

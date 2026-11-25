@@ -8,10 +8,20 @@ from unittest.mock import patch
 
 from android import inspect_apk, tool_invocation, verify_source_unchanged
 import setup_signing
-from version import parse, sync
+from version import check_history, parse, sync
 
 
 class VersionTests(unittest.TestCase):
+    def test_reusing_or_lowering_a_previously_tagged_android_build_is_rejected(self):
+        for previous, accepted in [('0.2.0-alpha.1+2', True), ('0.2.0-alpha.1+3', False), ('0.2.0-alpha.1+4', False)]:
+            with self.subTest(previous=previous), patch('version.subprocess.check_output', side_effect=[
+                    'v0.2.0-alpha.1\nv0.2.0-alpha.2\n', 'version: ' + previous + '\n']):
+                if accepted:
+                    check_history(parse('0.2.0-alpha.2+3'))
+                else:
+                    with self.assertRaisesRegex(ValueError, 'must exceed'):
+                        check_history(parse('0.2.0-alpha.2+3'))
+
     @unittest.skipUnless(os.name == 'nt', 'Windows batch invocation')
     def test_batch_tools_preserve_literal_paths_and_arguments(self):
         with tempfile.TemporaryDirectory(prefix='receipt-release-test-') as directory:

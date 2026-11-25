@@ -1,7 +1,7 @@
 name: receipt_reader
 description: Offline receipt tracking for Android and Windows.
 publish_to: none
-version: 0.2.0-alpha.1+2
+version: 0.2.0-alpha.2+3
 
 environment:
   sdk: ^3.14.0

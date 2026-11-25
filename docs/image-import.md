@@ -7,10 +7,10 @@ widths of 1000 logical pixels or more. Zoom/pan allows comparison with the
 receipt. Users must check that the complete receipt is visible; this iteration
 does not detect truncated or multi-page captures.
 
-This is image evidence for manual entry, **not OCR integration or saving**.
-OCR proposals still use the separate gated draft entry point. Camera capture,
-PDF, multiple selection, image-backed drafts, and persistent receipt history
-are not implemented.
+Imported evidence now supports the shared [OCR review/save workflow](ocr-saving.md)
+and [saved history](history-filters.md). The limits and original-file ownership below
+still apply. Camera capture, PDF, multiple selection and image-backed persisted
+drafts remain outside the current implementation.
 
 ## Limits and lifetime
 
@@ -67,4 +67,10 @@ debug build launched on the API 36 emulator; the native picker opened a generate
 synthetic PNG into the preview. Its source SHA-256 remained unchanged, and the
 app cache directory was empty during preview and after back navigation. Native
 picker cancellation returned to the home screen. The Windows debug build succeeds;
-desktop picker interaction has not yet been manually smoke-tested this iteration.
+desktop picker interaction was not manually smoke-tested at that milestone.
+
+On November 25, 2026, the opted-in native image-picker harness passed on Windows
+and the Android emulator: import the committed synthetic 1000×1000 receipt, dispose
+the preview and cancel a second import. Source SHA-256 remained unchanged. The
+native backup-picker round trip also passed on both platforms. Reproduction commands
+are in [testing](testing.md#restore-normal-entry-points-after-integration-tests).

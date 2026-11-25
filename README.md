@@ -1,8 +1,8 @@
 # Receipt Reader
 
 A local-first receipt and spending tracker for Android and Windows, with a Finnish
-UI. Personal testing is the current goal; automated releases and phone testing are
-the next milestone.
+UI. Personal testing is the current goal. CI and draft-release workflows are
+defined; GitHub activation and real-phone acceptance remain the next steps.
 
 ## What works
 
@@ -13,7 +13,8 @@ the next milestone.
 
 Android camera capture and device synchronization are not implemented. Windows
 has a development ZIP; Android release builds require the permanent release key.
-There is no in-app updater or automated release workflow yet.
+The release workflow prepares a draft alpha APK/ZIP; it never publishes automatically.
+There is no in-app updater yet.
 
 ## Start here
 

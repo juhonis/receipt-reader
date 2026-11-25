@@ -1,0 +1,60 @@
+name: Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  checks:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/prepare
+      - name: Validate workflow syntax and release version metadata
+        run: |
+          python tools/ci/dev_tools.py actionlint
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/releases/version.py --check
+      - name: Scan reachable Git history for credentials
+        run: python tools/ci/dev_tools.py gitleaks git --redact=100 --no-banner --log-opts=--all
+      - name: Check release and notice tooling
+        run: |
+          python -m unittest discover -s tools/releases -p 'test_*.py'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest discover -s tools/licenses -p 'test_*.py'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest discover -s tools/ci -p 'test_*.py'
+      - name: Analyze and test Flutter app
+        run: |
+          flutter analyze
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          flutter test --reporter expanded
+      - name: Analyze and test shared packages
+        run: |
+          foreach ($package in @('receipt_domain', 'receipt_parser', 'receipt_storage')) {
+            Push-Location "packages/$package"
+            try {
+              dart analyze
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+              dart test --reporter expanded
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            } finally { Pop-Location }
+          }
+      - name: Reject generated source drift
+        run: git diff --exit-code

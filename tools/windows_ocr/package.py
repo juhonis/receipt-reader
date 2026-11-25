@@ -1,4 +1,5 @@
 """Create a local development ZIP and rehearse relocation; no publishing."""
+import argparse
 import json
 import os
 from pathlib import Path
@@ -13,6 +14,9 @@ from setup import ROOT, LOCK, digest
 
 sys.path.insert(0, str(ROOT / 'tools/licenses'))
 import audit as license_audit
+sys.path.insert(0, str(ROOT / 'tools/releases'))
+from version import sync
+from android import source_state, verify_source_unchanged
 
 SYSTEM_DLLS = set('kernel32.dll ntdll.dll user32.dll gdi32.dll advapi32.dll shell32.dll ole32.dll oleaut32.dll ws2_32.dll combase.dll shlwapi.dll version.dll winmm.dll bcrypt.dll crypt32.dll imm32.dll msimg32.dll dwmapi.dll uxtheme.dll propsys.dll rpcrt4.dll setupapi.dll dxgi.dll d3d11.dll d3d9.dll dcomp.dll dwrite.dll d2d1.dll usp10.dll opengl32.dll winhttp.dll iphlpapi.dll secur32.dll netapi32.dll userenv.dll dbghelp.dll wintrust.dll psapi.dll oleacc.dll uiautomationcore.dll'.split())
 
@@ -87,16 +91,32 @@ def relocation(bundle):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--tag', help='Create an immutable versioned alpha candidate for this tag')
+    parser.add_argument('--allow-dirty', action='store_true', help='Versioned local rehearsal only')
+    args = parser.parse_args()
+    if args.allow_dirty and not args.tag:
+        raise ValueError('--allow-dirty is only needed with --tag')
+    version = sync(check=True, tag=args.tag)
+    commit, dirty = source_state()
+    candidate = args.tag is not None
+    if candidate and dirty and not args.allow_dirty:
+        raise ValueError('A versioned Windows candidate requires a clean reviewed commit')
     release = ROOT / 'build/windows/x64/runner/Release'
     if not (release / 'receipt_reader.exe').is_file():
         raise RuntimeError('Build the normal Windows release first')
     verify_bundle(release / 'ocr')
     install = visual_studio()
     distribution = ROOT / 'build/distribution'
+    if candidate:
+        distribution /= 'rehearsal' if args.allow_dirty else 'releases'
     distribution.mkdir(parents=True, exist_ok=True)
     # Only directories created here, under the verified build directory, are cleaned.
     if not distribution.resolve().is_relative_to(ROOT.resolve()):
         raise RuntimeError('Unexpected packaging root')
+    artifact = distribution / (version.windows_artifact if candidate else 'receipt-reader-windows-x64-dev.zip')
+    if candidate and any(path.exists() for path in [artifact, artifact.with_suffix('.json'), artifact.with_suffix('.zip.sha256')]):
+        raise ValueError('Versioned artifact already exists; do not replace a distributed version')
     work = Path(tempfile.mkdtemp(prefix='receipt-zip-', dir=distribution)).resolve()
     if not work.is_relative_to(distribution.resolve()):
         raise RuntimeError('Unexpected packaging directory')
@@ -113,19 +133,24 @@ def main():
         license_text = license_audit.verify_windows(stage)
         (stage / 'THIRD-PARTY-NOTICES.txt').write_text(license_text, encoding='utf-8')
         shutil.copy2(ROOT / 'third_party/dependencies.json', stage / 'THIRD-PARTY-COMPONENTS.json')
+        shutil.copy2(ROOT / 'LICENSE', stage / 'LICENSE.txt')
         shutil.copy2(ROOT / 'test/fixtures/synthetic_receipt.png', stage / 'synthetic_receipt.png')
         shutil.copy2(ROOT / 'docs/windows-ocr-clean-machine.md', stage / 'CLEAN-MACHINE-TEST.txt')
-        (stage / 'READ-ME.txt').write_text('Development test build, not a public release.\nExtract the entire folder, then run receipt_reader.exe.\nOCR works locally; no Tesseract/Python installation is required.\nReceipt data is stored in Windows application-support storage, not in this folder.\nKeep independent encrypted backups before replacing or deleting application data.\nSoftware notices: THIRD-PARTY-NOTICES.txt and the app information/license screen.\nExact component inventory: THIRD-PARTY-COMPONENTS.json. Original OCR notices: ocr/notices.\nSigning and public distribution acceptance remain release gates.\n', encoding='utf-8')
-        info = {'developmentBuild': True,
-            'commit': subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
-            'workingTreeDirty': bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True).strip()),
+        heading = 'Unsigned alpha candidate; acceptance remains pending.\n' if candidate else 'Development test build, not a public release.\n'
+        (stage / 'READ-ME.txt').write_text(heading + 'Extract the entire folder, then run receipt_reader.exe.\nOCR works locally; no Tesseract/Python installation is required.\nReceipt data is stored in Windows application-support storage, not in this folder.\nKeep independent encrypted backups before replacing or deleting application data.\nSoftware notices: THIRD-PARTY-NOTICES.txt and the app information/license screen.\nExact component inventory: THIRD-PARTY-COMPONENTS.json. Original OCR notices: ocr/notices.\nPublic distribution acceptance remains a separate owner step.\n', encoding='utf-8')
+        info = {'developmentBuild': not candidate or dirty or args.allow_dirty,
+            'version': version.full, 'tag': version.tag, 'applicationLicense': 'MIT',
+            'publicReleaseReady': False, 'executableSigned': False,
+            'commit': commit,
+            'workingTreeDirty': dirty,
             'ocr': verify_bundle(stage / 'ocr'), 'visualCppRuntime': redist.name,
             'visualCppRuntimeFiles': {p.name: digest(p) for p in sorted(crt.glob('*.dll'))},
             'nativeImports': imports, 'nativeNoticesVerified': True,
             'thirdPartyInventorySha256': digest(stage / 'THIRD-PARTY-COMPONENTS.json')}
         (stage / 'BUILD-INFO.json').write_text(json.dumps(info,indent=2)+'\n',encoding='utf-8')
-        artifact = distribution / 'receipt-reader-windows-x64-dev.zip'
-        with zipfile.ZipFile(artifact,'w',compression=zipfile.ZIP_DEFLATED) as archive:
+        if candidate:
+            verify_source_unchanged(commit, args.allow_dirty)
+        with zipfile.ZipFile(artifact,'x' if candidate else 'w',compression=zipfile.ZIP_DEFLATED) as archive:
             for file in sorted(stage.rglob('*')):
                 if file.is_file(): archive.write(file, Path('Receipt Reader') / file.relative_to(stage))
         relocated = work / 'Relocated Receipt Ä'
@@ -135,10 +160,17 @@ def main():
         verify_bundle(shipped / 'ocr')
         evidence = relocation(shipped / 'ocr')
         evidence.update({'zipSha256': digest(artifact), 'zipBytes': artifact.stat().st_size,
+            'version': version.full, 'tag': version.tag, 'applicationLicense': 'MIT',
+            'developmentBuild': info['developmentBuild'], 'executableSigned': False,
             'nativeNoticesVerified': True, 'thirdPartyInventorySha256': info['thirdPartyInventorySha256'],
             'uncompressedBytes': sum(p.stat().st_size for p in stage.rglob('*') if p.is_file()),
             'nativeImportAudit': True, 'commit': info['commit'], 'workingTreeDirty': info['workingTreeDirty']})
-        (distribution / 'windows-ocr-evidence.json').write_text(json.dumps(evidence,indent=2)+'\n',encoding='utf-8')
+        evidence_path = artifact.with_suffix('.json') if candidate else distribution / 'windows-ocr-evidence.json'
+        with evidence_path.open('x' if candidate else 'w', encoding='utf-8', newline='\n') as target:
+            target.write(json.dumps(evidence,indent=2)+'\n')
+        if candidate:
+            with artifact.with_suffix('.zip.sha256').open('x', encoding='ascii', newline='\n') as target:
+                target.write(evidence['zipSha256'] + '  ' + artifact.name + '\n')
         print(str(artifact.relative_to(ROOT)))
         print(json.dumps(evidence,indent=2))
     finally:

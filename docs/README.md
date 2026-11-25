@@ -8,6 +8,7 @@
 | [Windows setup](windows-development.md) | Toolchain, emulator and everyday build loop |
 | [Phone testing](phone-testing.md) | Safe installation, real receipts and update checks |
 | [Releases and updates](releases.md) | Public-repo preparation, signing, CI and planned update UX |
+| [Release notes](release-notes.md) | User-facing notes for the current alpha candidate |
 | [Testing](testing.md) | Shared checks, native workflows and application-data protection |
 | [Synthetic samples](sample-receipts.md) | Optional invented data for exploring charts |
 

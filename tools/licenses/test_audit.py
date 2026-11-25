@@ -11,6 +11,16 @@ import audit
 
 
 class NoticeTests(unittest.TestCase):
+    def test_release_permissions_reject_network_storage_and_other_unreviewed_access(self):
+        expected = "uses-permission: name='fi.juhonis.receipt_reader.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'\n"
+        audit.verify_permissions(expected)
+        for permission in ['android.permission.INTERNET', 'android.permission.READ_MEDIA_IMAGES',
+                           'android.permission.READ_CONTACTS']:
+            with self.subTest(permission=permission), self.assertRaisesRegex(ValueError, 'unexpected permissions'):
+                audit.verify_permissions(expected + f"uses-permission: name='{permission}'\n")
+        with self.assertRaises(ValueError):
+            audit.verify_permissions('')
+
     def test_upstream_ranges_are_utf8_byte_offsets(self):
         prefix = 'ä'.encode()
         expected = 'Copyright Ä; all terms retained.'.encode()

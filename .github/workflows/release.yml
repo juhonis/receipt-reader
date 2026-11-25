@@ -1,0 +1,119 @@
+name: Draft alpha release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: draft-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+
+  android:
+    needs: checks
+    runs-on: windows-2022
+    timeout-minutes: 45
+    environment: release
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require a version tag on main
+        run: |
+          git merge-base --is-ancestor HEAD origin/main
+          if ($LASTEXITCODE -ne 0) { throw 'Release commit must be on main' }
+          python tools/releases/version.py --check --tag $env:RELEASE_TAG --check-history
+      - uses: ./.github/actions/prepare
+      - name: Build and verify signed APK with temporary credentials
+        env:
+          RECEIPT_READER_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          RECEIPT_READER_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          RECEIPT_READER_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          RECEIPT_READER_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: python tools/releases/ci_signing.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: android-release
+          path: |
+            build/distribution/releases/*-android.apk
+            build/distribution/releases/*-android.apk.sha256
+            build/distribution/releases/*-android.json
+          if-no-files-found: error
+          retention-days: 7
+
+  windows:
+    needs: checks
+    runs-on: windows-2022
+    timeout-minutes: 45
+    environment: release
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require a version tag on main
+        run: |
+          git merge-base --is-ancestor HEAD origin/main
+          if ($LASTEXITCODE -ne 0) { throw 'Release commit must be on main' }
+          python tools/releases/version.py --check --tag $env:RELEASE_TAG --check-history
+      - uses: ./.github/actions/prepare
+      - name: Build and verify Windows candidate
+        run: |
+          flutter build windows --release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/windows_ocr/package.py --tag $env:RELEASE_TAG
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: windows-release
+          path: |
+            build/distribution/releases/*-windows-x64.zip
+            build/distribution/releases/*-windows-x64.zip.sha256
+            build/distribution/releases/*-windows-x64.json
+          if-no-files-found: error
+          retention-days: 7
+
+  draft:
+    needs: [android, windows]
+    runs-on: windows-2022
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: '*-release'
+          merge-multiple: true
+          path: build/release-assets
+      - name: Validate exact artifacts and create a new draft pre-release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python tools/releases/draft.py --tag $env:RELEASE_TAG

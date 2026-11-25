@@ -17,7 +17,9 @@ In each affected package (`packages/receipt_domain`, `packages/receipt_parser`,
 Run `python -m unittest discover -s tools/licenses -p 'test_*.py'` when changing
 license tooling. Release tooling uses
 `python -m unittest discover -s tools/releases -p 'test_*.py'` and
-`python tools/releases/version.py --check`. For artifact/notice checks, follow the
+`python tools/releases/version.py --check`. CI helpers use
+`python -m unittest discover -s tools/ci -p 'test_*.py'` and the checksum-pinned
+`python tools/ci/dev_tools.py actionlint`. For artifact/notice checks, follow the
 [dependency audit](dependency-licenses.md#reproduce-and-update).
 
 ## Native integration workflows
@@ -54,6 +56,22 @@ an isolated build directory and restore its configuration afterward.
 | Historical-schema migration/recovery | `migration_recovery_test.dart` |
 
 ## Restore normal entry points after integration tests
+
+Interactive native-picker checks are opt-in and require selecting synthetic
+fixtures in the system dialogs. The backup check saves/reads its synthetic encrypted
+bytes. The image check imports `test/fixtures/synthetic_receipt.png`, then cancels
+the second prompt. Verify the source hash separately before/after; use only local
+synthetic files. Both checks initialize accessibility before recording test handles.
+
+```powershell
+flutter test integration_test/backup_picker_test.dart -d windows --dart-define=INTERACTIVE_BACKUP_PICKER=true
+flutter test integration_test/image_picker_test.dart -d windows --dart-define=INTERACTIVE_IMAGE_PICKER=true
+flutter test integration_test/backup_picker_test.dart -d emulator-5554 --no-uninstall --dart-define=INTERACTIVE_BACKUP_PICKER=true
+flutter test integration_test/image_picker_test.dart -d emulator-5554 --no-uninstall --dart-define=INTERACTIVE_IMAGE_PICKER=true
+```
+
+Copy the committed synthetic image into the emulator's Downloads first if needed.
+These picker harnesses never open normal application databases.
 
 ```powershell
 flutter build windows --debug

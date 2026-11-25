@@ -1,8 +1,8 @@
 # Releases and updates
 
 Updated November 25, 2026. Permanent Android signing and local APK verification
-are implemented. GitHub Actions, published phone alphas and the in-app updater
-remain planned. The [roadmap](plan.md) defines the order of work.
+and GitHub workflow definitions are implemented. Hosted execution, published phone
+alphas and the in-app updater remain pending. The [roadmap](plan.md) defines the order of work.
 The first distribution channel will be personal-use alpha pre-releases in the
 public GitHub repository, with Android APK and Windows x64 ZIP assets.
 
@@ -29,9 +29,21 @@ Preliminary check on November 25, 2026, before this docs change:
 - Reported historical image paths were launcher icons and the three expected
   synthetic import/receipt fixtures. No private receipt directory was inspected.
 
-Finish a full history/content review before changing visibility. Check repository
-settings, workflow permissions and published artifacts as well as source files.
+The subsequent checksum-pinned Gitleaks 8.30.1 scan (`git --log-opts=--all`, full
+redaction) reported no leaks. Tracked fixture images/OCR exports are synthetic;
+private receipt paths and signing material remain ignored. This is scoped review
+evidence, not a guarantee that every kind of sensitive content can be detected.
+Check repository settings and published artifacts as well as source files.
 Changing visibility remains an explicit owner action.
+
+Native checks now cover backup save/read and image import/cancel on Windows and
+the emulator; synthetic image hashes stayed unchanged. Android uses bounded
+in-memory URI reads without persistent grants/cache images. Windows imports are
+read-only. The release permission audit now permits only the generated signature
+receiver permission, rejecting any unreviewed network/storage/other permission.
+OS cloud-backup/device-transfer exclusions are explicit; manufacturer enforcement
+and source-provider/cloud-storage behavior still require device-specific checks.
+SQLite is unencrypted locally, and receipt deletion retains historical events.
 
 ## Signing and version identity
 
@@ -63,9 +75,10 @@ installation. Never solve a signature mismatch by clearing valuable application 
 
 `pubspec.yaml` is the version source. `tools/releases/version.py` generates the
 displayed `lib/app_version.dart`; its check rejects stale metadata or a wrong tag.
-The initial alpha is `0.2.0-alpha.1+2`, with expected tag `v0.2.0-alpha.1` and
-Android build 2. No tag/release is created by the local tooling. Increase the build number for every
-distributed APK; reject tag/version mismatches and asset replacement for published
+The current candidate is `0.2.0-alpha.2+3`, with expected tag `v0.2.0-alpha.2` and
+Android build 3. The earlier local alpha is retained separately. Version checks
+reject tag mismatches and build numbers not greater than previous tagged builds.
+Local builders create no tag/release. Reject asset replacement for published
 versions. Artifacts should identify platform, version and build unambiguously.
 
 ## Local APK build
@@ -74,7 +87,7 @@ After changing the pubspec version, regenerate and commit the Dart metadata:
 
 ```powershell
 python tools/releases/version.py
-python tools/releases/version.py --check --tag v0.2.0-alpha.1
+python tools/releases/version.py --check --tag v0.2.0-alpha.2 --check-history
 python -m unittest discover -s tools/releases -p 'test_*.py'
 ```
 
@@ -82,7 +95,7 @@ Refresh the [notice inventory](dependency-licenses.md#reproduce-and-update) when
 its recorded build inputs change. From a clean, reviewed commit, build with:
 
 ```powershell
-python tools/releases/android.py --tag v0.2.0-alpha.1
+python tools/releases/android.py --tag v0.2.0-alpha.2
 ```
 
 The wrapper checks current notice evidence, builds the signed universal APK and
@@ -99,24 +112,36 @@ and is marked development even if the source happens to be clean. Neither mode
 publishes, installs on a device, grants public-release approval or proves phone
 acceptance. Finish privacy/native-picker and offline/upgrade tests separately.
 
-Windows initially keeps the portable ZIP. Preserve existing notice/runtime audits
+Windows keeps the portable ZIP. Build it with `flutter build windows --release`,
+then `python tools/windows_ocr/package.py --tag v0.2.0-alpha.2`. Versioned mode
+produces immutable ZIP/checksum/evidence files alongside the APK. The no-tag mode
+remains the legacy development ZIP. Preserve existing notice/runtime audits
 and settle applicable distribution conditions. Assess Authenticode signing before
 broader distribution. A release checksum detects corruption; it does not substitute
 for publisher signing. See [dependency terms and notices](dependency-licenses.md).
 
-## Proposed GitHub Actions pipeline
+## GitHub Actions pipeline
 
-1. Pull requests run analysis, app/shared-package tests and relevant tooling checks
-   without release credentials. Pin the Flutter SDK, dependencies and action revisions.
+1. [Checks](../.github/workflows/ci.yml) runs on main pushes, pull requests and release
+   calls: workflow lint, history scan, analysis, app/shared-package tests and tooling
+   checks without signing credentials. Actions and tools use checksum/commit pins;
+   Flutter/Dart/engine revisions must match the reviewed dependency inventory.
 2. An approved version tag runs the release checks, confirms a clean source/version
    identity, prepares the pinned Windows OCR bundle, and builds Windows ZIP and
-   release-signed Android APK. CI must not depend on this PC's local SDK/cache paths.
+   release-signed Android APK. Both builders use the protected `release` environment.
+   The [setup helper](../tools/ci/prepare.py) prepares clean-runner dependencies;
+   `--existing` rehearses the same checks with installed SDKs. CI verifies existing
+   notice evidence; it never automatically approves regenerated dependency notices.
 3. Validate packaged notices, native dependencies, final Android permissions and
    signing certificate. Use the [existing audit tools](dependency-licenses.md#reproduce-and-update).
    An intentional permission change must update the permission audit expectation.
 4. Produce versioned assets, SHA-256 checksums, sanitized commit/build provenance,
    and brief user-facing release notes with compatibility/known-issue information.
-   Upload to a **draft pre-release** with narrowly scoped release permissions.
+   [Draft release](../.github/workflows/release.yml) validates the exact six APK/ZIP,
+   checksum and metadata assets against the tag's version, commit and certificate.
+   Only its final job gets `contents: write`; it creates a **draft pre-release**.
+   Signing material is temporary, outside checkout/output paths, and removed after
+   the APK build. There are no signing caches. Existing releases/drafts are refused.
 5. Test those exact downloads on the phone and second Windows PC: offline startup,
    recognition/save/reopen, backup/recovery and a previous-alpha upgrade. Publish
    explicitly after acceptance. Ordinary commits do not automatically ship updates.
@@ -125,6 +150,41 @@ Protect signing and release jobs with trusted tags/branches and a protected
 environment as appropriate. Do not expose secrets to fork PRs or run untrusted
 contributor code in a privileged release context. External contributions do not
 become trusted merely because the repository is public.
+
+## One-time GitHub activation
+
+The workflow definitions have local validation; hosted runs and repository settings
+have not been configured or verified. No source push, release tag or publication is
+performed by adding these files.
+
+1. Review source/terms, then change repository visibility separately if desired.
+   Keep default workflow token permissions read-only; the draft job requests its
+   limited write permission explicitly.
+2. Create the `release` environment under repository Settings → Environments.
+   Restrict deployment tags to `v*`, require owner review before either builder,
+   and protect those tags against modification/deletion. For solo maintenance,
+   permit the owner to approve their own run.
+3. Configure these **environment secrets**, using the existing private signing
+   files and authenticated tooling. Do not generate another keystore on the runner.
+
+| Secret | Existing source |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | Base64 encoding of the permanent `.p12` file |
+| `ANDROID_STORE_PASSWORD` | `storePassword` from the private configuration |
+| `ANDROID_KEY_ALIAS` | `keyAlias` from the private configuration |
+| `ANDROID_KEY_PASSWORD` | `keyPassword` from the private configuration |
+
+4. Push the reviewed main commit and let Checks pass. Then create/push its exact
+   version tag, for example `v0.2.0-alpha.2`. Tags whose commits are not on main,
+   stale generated metadata and reused/lower Android build numbers are rejected.
+5. Approve the builders, inspect the draft/assets, and perform the phone/laptop
+   checks before explicitly publishing. A failed upload can leave an incomplete
+   draft; inspect it before manually removing/replacing any unpublished candidate.
+   Rerunning the publisher never silently replaces an existing release or draft.
+
+Draft downloads require repository write access; sign in as the owner on the phone
+for draft acceptance. Published pre-releases in a public repo are publicly downloadable.
+The workflow does not change repo visibility or publish the draft itself.
 
 ## Planned app update flow
 
