@@ -17,17 +17,25 @@ def run(arguments, env, **kwargs):
     return subprocess.run(command, cwd=ROOT, env=child_env, check=True, **kwargs)
 
 
+def install_kotlin_guard(gradle_home):
+    target = gradle_home / 'init.d/receipt-reader-release.gradle'
+    source = Path(__file__).with_name('kotlin-release-check.gradle').read_bytes()
+    if target.exists():
+        if target.read_bytes() != source:
+            raise ValueError('Refusing to replace an existing Gradle release check')
+        return target
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open('xb') as output:
+        output.write(source)
+    return target
+
+
 def prepare(existing=False):
     if os.name != 'nt':
         raise ValueError('The audited release toolchain currently targets Windows runners')
     reviewed = json.loads((ROOT / 'third_party/dependencies.json').read_text(encoding='utf-8'))
     pin = reviewed['flutter']
     env = dict(os.environ)
-    if not existing:
-        # Fresh Windows runners can put pub sources on C: and the checkout on D:.
-        # Kotlin incremental caches cannot always relativize those paths. Each CI
-        # builder compiles once, so use a full Kotlin compile on hosted runners.
-        env['ORG_GRADLE_PROJECT_kotlin.incremental'] = 'false'
     if existing:
         env.setdefault('JAVA_HOME', 'C:/Program Files/Android/Android Studio/jbr')
         entry = shutil.which('flutter.bat')
@@ -51,6 +59,12 @@ def prepare(existing=False):
     actual = json.loads(subprocess.check_output(command, env=child_env, encoding='utf-8'))
     if any(actual.get(key) != value for key, value in pin.items()):
         raise ValueError('Flutter/Dart/engine revisions differ from the reviewed toolchain')
+    if not existing:
+        # The APK wrapper passes the property through Flutter's -P support. Check
+        # the real task setting as well, instead of trusting environment names.
+        home = Path(env.get('GRADLE_USER_HOME') or str(Path.home() / '.gradle')).resolve()
+        install_kotlin_guard(home)
+        env['GRADLE_USER_HOME'] = str(home)
     android = Path(env.get('ANDROID_HOME') or env.get('ANDROID_SDK_ROOT') or
                    str(Path(env['LOCALAPPDATA']) / 'Android/Sdk')).resolve()
     if not android.is_dir():
@@ -85,7 +99,7 @@ def prepare(existing=False):
         with Path(env['GITHUB_ENV']).open('a', encoding='utf-8') as output:
             output.write(f'FLUTTER_ROOT={sdk}\nANDROID_HOME={android}\nANDROID_SDK_ROOT={android}\n')
             if not existing:
-                output.write('ORG_GRADLE_PROJECT_kotlin.incremental=false\n')
+                output.write(f"GRADLE_USER_HOME={env['GRADLE_USER_HOME']}\n")
 
 
 if __name__ == '__main__':

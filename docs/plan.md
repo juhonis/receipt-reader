@@ -83,9 +83,10 @@ sync or update button yet.
   checksums, commit/build metadata and release notes; reject existing releases.
 - [x] Owner configured the protected `release` environment, `v*` deployment tags,
   self-review approval and four signing secrets; hosted Checks passes.
-- [ ] Complete the tagged native-build/draft pipeline. Alpha.2 exposed CI Kotlin
-  incremental-cache and optional Windows JNI-linkage failures; alpha.3 includes
-  locally verified fixes and needs a successful hosted run.
+- [x] Confirm the Windows tagged build after disabling optional desktop JNI.
+- [ ] Complete the Android tagged build/draft pipeline. Alpha.4 passes the Kotlin
+  setting as a Flutter project argument, verifies the effective compiler task mode,
+  and adds a signing-secret-free Android compile to Checks. Hosted confirmation is pending.
 - [ ] Test the exact artifacts on the phone and second Windows PC, including an
   upgrade from the previous alpha, then explicitly publish the pre-release.
 

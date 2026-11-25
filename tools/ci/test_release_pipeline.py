@@ -9,6 +9,7 @@ from unittest.mock import patch
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
+from prepare import install_kotlin_guard
 sys.path.insert(0, str(ROOT / 'tools/releases'))
 from ci_signing import signed_build
 from draft import create_draft, validate_assets
@@ -117,6 +118,29 @@ class SigningTests(unittest.TestCase):
                     else:
                         signed_build('v0.2.0-alpha.2', env=env, run=run)
                 self.assertEqual(list(Path(directory).iterdir()), [])
+
+
+class GradleGuardTests(unittest.TestCase):
+    def test_guard_install_preserves_unrelated_init_scripts_and_is_repeatable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            (home / 'init.d').mkdir()
+            unrelated = home / 'init.d/owner.gradle'
+            unrelated.write_text('owner configuration')
+            target = install_kotlin_guard(home)
+            before = target.read_bytes()
+            self.assertEqual(install_kotlin_guard(home).read_bytes(), before)
+            self.assertEqual(unrelated.read_text(), 'owner configuration')
+
+    def test_guard_install_refuses_to_replace_an_existing_different_script(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            target = home / 'init.d/receipt-reader-release.gradle'
+            target.parent.mkdir()
+            target.write_text('existing configuration')
+            with self.assertRaisesRegex(ValueError, 'Refusing to replace'):
+                install_kotlin_guard(home)
+            self.assertEqual(target.read_text(), 'existing configuration')
 
 
 if __name__ == '__main__':

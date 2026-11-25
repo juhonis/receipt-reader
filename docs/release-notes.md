@@ -1,11 +1,12 @@
-# v0.2.0-alpha.3
+# v0.2.0-alpha.4
 
 First GitHub alpha candidate for Android and Windows, with a Finnish UI. The earlier
 local alpha build remains separate; this APK uses a greater Android build number.
 
-This candidate fixes Windows-runner Kotlin cache handling and prevents the build
-JDK from adding a Java runtime dependency to the Windows package. The earlier
-alpha.2 tagged build failed before a draft release was created.
+This candidate passes the Kotlin compilation setting directly through Flutter and
+adds an Android compile to signing-secret-free CI. Windows packaging now avoids an
+optional Java runtime dependency; its alpha.3 hosted build passed. Earlier attempts
+did not produce a complete draft release.
 
 - Offline JPEG/PNG receipt recognition, reviewed saving/corrections and history.
 - Week/month/year/custom spending charts, categories and product price comparisons.

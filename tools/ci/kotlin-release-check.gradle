@@ -1,0 +1,11 @@
+// CI-only assertion of the effective compiler mode after Flutter launches Gradle.
+// Installed outside the checkout in the hosted runner's Gradle init.d directory.
+if (System.getenv('GITHUB_ACTIONS') != 'true') return
+gradle.taskGraph.whenReady { graph ->
+    graph.allTasks.findAll { it.name in ['compileDebugKotlin', 'compileReleaseKotlin'] }.each { task ->
+        if (!task.hasProperty('incremental') || task.incremental != false) {
+            throw new GradleException("Receipt Reader CI requires nonincremental Kotlin: ${task.path}")
+        }
+        println "Receipt Reader CI: ${task.path} incremental=false"
+    }
+}

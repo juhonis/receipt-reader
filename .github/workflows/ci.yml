@@ -45,6 +45,8 @@ jobs:
           flutter analyze
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           flutter test --reporter expanded
+      - name: Compile Android without release credentials
+        run: flutter build apk --debug --android-project-arg=kotlin.incremental=false
       - name: Analyze and test shared packages
         run: |
           foreach ($package in @('receipt_domain', 'receipt_parser', 'receipt_storage')) {

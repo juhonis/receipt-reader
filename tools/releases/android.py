@@ -93,7 +93,10 @@ def main():
         raise ValueError('Versioned artifact already exists; do not silently replace a distributed version')
     # Review inputs must be current before starting an expensive build.
     audit.load_review()
-    command, flutter_env = tool_invocation([flutter, 'build', 'apk', '--release'], env)
+    # Project arguments retain their case through Flutter on Windows. Environment
+    # names are uppercased by Python/Dart and cannot carry kotlin.incremental.
+    command, flutter_env = tool_invocation(
+        [flutter, 'build', 'apk', '--release', '--android-project-arg=kotlin.incremental=false'], env)
     subprocess.run(command, cwd=ROOT, env=flutter_env, check=True)
     apk = ROOT / 'build/app/outputs/flutter-apk/app-release.apk'
     sdk = audit.android_sdk()
