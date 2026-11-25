@@ -53,9 +53,15 @@ def verify_source_unchanged(commit, allow_dirty):
 def inspect_apk(apk, version, certificate, aapt, signer, env):
     command, signer_env = tool_invocation([signer, 'verify', '--verbose', '--print-certs', apk], env)
     result = subprocess.check_output(command, env=signer_env, encoding='utf-8')
-    fingerprints = re.findall(r'^Signer #\d+ certificate SHA-256 digest: ([0-9a-fA-F]+)$', result, re.M)
-    if len(fingerprints) != 1 or fingerprints[0].lower() != certificate:
-        raise ValueError('APK is not signed by the pinned permanent release certificate')
+    fingerprints = [match[1].lower() for line in result.splitlines()
+                    if (match := re.fullmatch(r'Signer #\d+ certificate SHA-256 digest: ([0-9a-fA-F]{64})',
+                                              line.strip()))]
+    if len(fingerprints) != 1:
+        raise ValueError(f'Expected one APK signer certificate; parsed {len(fingerprints)}. '
+                         'Check the apksigner output format and signer count.')
+    if fingerprints[0] != certificate:
+        raise ValueError(f'APK signer certificate SHA-256 is {fingerprints[0]}; expected {certificate}. '
+                         'APK is not signed by the pinned permanent release certificate')
     if 'Verified using v2 scheme (APK Signature Scheme v2): true' not in result:
         raise ValueError('APK v2 signing verification failed')
     badging = subprocess.check_output([str(aapt), 'dump', 'badging', str(apk)], env=env, encoding='utf-8')

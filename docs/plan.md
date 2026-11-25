@@ -86,7 +86,9 @@ sync or update button yet.
 - [x] Confirm the Windows tagged build after disabling optional desktop JNI.
 - [ ] Complete the Android tagged build/draft pipeline. Alpha.4 passes the Kotlin
   setting as a Flutter project argument, verifies the effective compiler task mode,
-  and adds a signing-secret-free Android compile to Checks. Hosted confirmation is pending.
+  and adds a signing-secret-free Android compile to Checks. Hosted compilation now
+  passes; the APK certificate check fails. Local temporary-key signing matches the
+  pin; refresh/compare the protected keystore secret before retrying the same tag.
 - [ ] Test the exact artifacts on the phone and second Windows PC, including an
   upgrade from the previous alpha, then explicitly publish the pre-release.
 

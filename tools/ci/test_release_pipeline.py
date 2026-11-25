@@ -5,13 +5,16 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
+from subprocess import CompletedProcess
 from unittest.mock import patch
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 from prepare import install_kotlin_guard
 sys.path.insert(0, str(ROOT / 'tools/releases'))
-from ci_signing import signed_build
+from ci_signing import signed_build, verify_keystore
 from draft import create_draft, validate_assets
 from version import parse
 
@@ -111,13 +114,52 @@ class SigningTests(unittest.TestCase):
                     path = Path(child['RECEIPT_READER_STORE_FILE'])
                     self.assertEqual(path.read_bytes(), b'synthetic key')
                     if fail: raise RuntimeError('synthetic interrupted build')
-                with self.subTest(failure=fail), patch('ci_signing.sync'), patch('ci_signing.protect'):
+                with self.subTest(failure=fail), patch('ci_signing.sync'), patch('ci_signing.protect'), \
+                        patch('ci_signing.verify_keystore'):
                     if fail:
                         with self.assertRaisesRegex(RuntimeError, 'interrupted'):
                             signed_build('v0.2.0-alpha.2', env=env, run=run)
                     else:
                         signed_build('v0.2.0-alpha.2', env=env, run=run)
                 self.assertEqual(list(Path(directory).iterdir()), [])
+
+    def test_wrong_keystore_never_starts_a_build_and_is_removed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            env = {'RUNNER_TEMP': directory,
+                'RECEIPT_READER_KEYSTORE_BASE64': base64.b64encode(b'synthetic key').decode(),
+                'RECEIPT_READER_STORE_PASSWORD': 'synthetic-password',
+                'RECEIPT_READER_KEY_ALIAS': 'fixture', 'RECEIPT_READER_KEY_PASSWORD': 'synthetic-password'}
+            with patch('ci_signing.sync'), patch('ci_signing.protect'), \
+                    patch('ci_signing.verify_keystore', side_effect=ValueError('wrong certificate')), \
+                    patch('ci_signing.subprocess.run') as run, \
+                    self.assertRaisesRegex(ValueError, 'wrong certificate'):
+                signed_build('v0.2.0-alpha.2', env=env, run=run)
+            run.assert_not_called()
+            self.assertEqual(list(Path(directory).iterdir()), [])
+
+    def test_matching_keystore_checks_public_certificate_without_password_arguments(self):
+        env = {'RECEIPT_READER_KEY_ALIAS': 'fixture', 'RECEIPT_READER_STORE_PASSWORD': 'synthetic-password'}
+        certificate = hashlib.sha256(b'synthetic DER certificate').hexdigest()
+        with patch('ci_signing.subprocess.run', return_value=CompletedProcess(
+                [], 0, stdout=b'synthetic DER certificate')) as run, redirect_stdout(StringIO()) as output:
+            verify_keystore(Path('fixture.p12'), env, certificate)
+        self.assertIn(certificate, output.getvalue())
+        self.assertNotIn(env['RECEIPT_READER_STORE_PASSWORD'], run.call_args.args[0])
+        self.assertEqual(run.call_args.kwargs['env'], env)
+
+    def test_different_certificate_reports_only_public_fingerprints(self):
+        actual = hashlib.sha256(b'other DER certificate').hexdigest()
+        with patch('ci_signing.subprocess.run', return_value=CompletedProcess(
+                [], 0, stdout=b'other DER certificate')), \
+                self.assertRaisesRegex(ValueError, actual + '; expected ' + 'a' * 64):
+            verify_keystore(Path('fixture.p12'), {'RECEIPT_READER_KEY_ALIAS': 'fixture'}, 'a' * 64)
+
+    def test_keytool_failure_withholds_output_and_credentials(self):
+        with patch('ci_signing.subprocess.run', return_value=CompletedProcess(
+                [], 1, stdout=b'', stderr=b'synthetic private diagnostic')), \
+                self.assertRaisesRegex(ValueError, 'Cannot read the CI signing certificate') as failure:
+            verify_keystore(Path('fixture.p12'), {'RECEIPT_READER_KEY_ALIAS': 'fixture'}, 'a' * 64)
+        self.assertNotIn('synthetic private diagnostic', str(failure.exception))
 
 
 class GradleGuardTests(unittest.TestCase):

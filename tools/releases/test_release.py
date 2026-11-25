@@ -100,6 +100,11 @@ class VersionTests(unittest.TestCase):
                 return inspect_apk(Path('app.apk'), parse('0.2.0-alpha.1+2'), certificate,
                                    Path('aapt'), Path('signer'), {})
         self.assertTrue(inspect()['signatureV2Verified'])
+        self.assertTrue(inspect(signature.replace('\n', ' \r\n'))['signatureV2Verified'])
+        with self.assertRaisesRegex(ValueError, 'parsed 0'):
+            inspect('Unexpected apksigner certificate format\n')
+        with self.assertRaisesRegex(ValueError, 'SHA-256 is ' + 'b' * 64 + '; expected ' + certificate):
+            inspect(signature.replace(certificate, 'b' * 64))
         for sig, badge in [
             (signature.replace(certificate, 'b' * 64), badging),
             (signature + 'Signer #2 certificate SHA-256 digest: ' + certificate + '\n', badging),

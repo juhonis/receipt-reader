@@ -1,7 +1,9 @@
 """Restore a CI signing key only for the APK build, then remove the temporary copy."""
 import base64
+import hashlib
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -9,6 +11,27 @@ import tempfile
 
 from setup_signing import protect
 from version import ROOT, sync
+
+
+def verify_keystore(path, env, certificate):
+    """Compare public certificate bytes without exposing keytool credentials/output."""
+    if not re.fullmatch(r'[0-9a-f]{64}', certificate):
+        raise ValueError('Missing or invalid pinned release certificate')
+    keytool = Path(env.get('JAVA_HOME', 'C:/Program Files/Android/Android Studio/jbr')) / 'bin/keytool.exe'
+    result = subprocess.run([
+        str(keytool), '-exportcert', '-keystore', str(path),
+        '-alias', env['RECEIPT_READER_KEY_ALIAS'],
+        '-storepass:env', 'RECEIPT_READER_STORE_PASSWORD',
+    ], env=env, capture_output=True)
+    if result.returncode or not result.stdout:
+        raise ValueError('Cannot read the CI signing certificate. Check ANDROID_KEYSTORE_BASE64, '
+                         'ANDROID_STORE_PASSWORD and ANDROID_KEY_ALIAS; keytool output is withheld.')
+    actual = hashlib.sha256(result.stdout).hexdigest()
+    if actual != certificate:
+        raise ValueError(f'CI keystore certificate SHA-256 is {actual}; expected {certificate}. '
+                         'Restore ANDROID_KEYSTORE_BASE64 from the existing permanent .p12 file. '
+                         'Do not generate a new key or change the certificate pin.')
+    print('CI keystore certificate SHA-256:', actual, flush=True)
 
 
 def signed_build(tag, env=None, run=subprocess.run):
@@ -34,6 +57,8 @@ def signed_build(tag, env=None, run=subprocess.run):
         env['RECEIPT_READER_STORE_FILE'] = str(path)
         # The encoded private key is unnecessary in the Gradle/Flutter child environment.
         env.pop('RECEIPT_READER_KEYSTORE_BASE64')
+        certificate = (ROOT / 'android/release-certificate.sha256').read_text(encoding='ascii').strip()
+        verify_keystore(path, env, certificate)
         run([sys.executable, str(ROOT / 'tools/releases/android.py'), '--tag', tag],
             cwd=ROOT, env=env, check=True)
     finally:

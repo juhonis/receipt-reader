@@ -150,6 +150,8 @@ for publisher signing. See [dependency terms and notices](dependency-licenses.md
    Only its final job gets `contents: write`; it creates a **draft pre-release**.
    Signing material is temporary, outside checkout/output paths, and removed after
    the APK build. There are no signing caches. Existing releases/drafts are refused.
+   The current signing wrapper checks the restored keystore certificate before
+   compilation. Failure diagnostics include public fingerprints, never credentials.
 5. Test those exact downloads on the phone and second Windows PC: offline startup,
    recognition/save/reopen, backup/recovery and a previous-alpha upgrade. Publish
    explicitly after acceptance. Ordinary commits do not automatically ship updates.
@@ -162,9 +164,10 @@ become trusted merely because the repository is public.
 ## One-time GitHub activation
 
 The owner has completed this setup and made the repository public. Hosted Checks
-passes; the Windows alpha.3 job passed, while Android still failed before draft
-creation because the environment-based Kotlin setting lost its case. Alpha.4 uses
-an explicit project argument and effective-task guard; hosted confirmation is pending.
+and Windows builds pass. Alpha.4 also compiles Android successfully, but its APK
+certificate check fails. Local signing through the temporary-key CI path matches
+the permanent certificate. Refresh/compare the protected keystore secret and retry
+alpha.4 before creating another candidate; the hosted signer fingerprint is unknown.
 The procedure below remains the reference for another repository/installation.
 
 1. Review source/terms, then change repository visibility separately if desired.
