@@ -1,12 +1,15 @@
 # Temporary manual receipt review
 
+Historical development report. For current behavior and next work, start with
+[the documentation index](../README.md) and [roadmap](../plan.md).
+
 The home screen now opens **Kokeile kuitin tarkistusta**, a Finnish manual
 review prototype shared by Android and Windows. Enter branch, printed date/time,
 printed total, and signed financial rows. Add/remove rows and select product,
 discount, deposit/return, or explicitly identified adjustment. All amounts use
 the pure Dart parser's integer-cent rules.
 
-The home-screen workflow supports [temporary image import](image-import.md) and
+The home-screen workflow supports [temporary image import](../image-import.md) and
 [experimental Android OCR review](android-ocr-review.md), with **no database save
 or history**. Manual entry starts empty; imported images provide visual evidence,
 and Android OCR can explicitly populate a draft. Input stays
@@ -83,7 +86,7 @@ A subsequent run uses median local text-line slope to group words in projected
 baseline coordinates, without modifying source boxes. It also accepts a limited
 set of total-label diacritic variants and decimal-adjacent OCR whitespace, always
 with review issues. Bonus/member/payment footer boundaries stop item parsing.
-See [the algorithm and thresholds](parser-foundations.md).
+See [the algorithm and thresholds](../parser-foundations.md).
 
 With the same expectations and layout hints, the follow-up recognizes the printed
 total in every existing baseline case. Some complete posted-amount sequences now

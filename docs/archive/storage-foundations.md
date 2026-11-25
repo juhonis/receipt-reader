@@ -1,10 +1,13 @@
 # Durable receipt foundations
 
+Historical development report. For current behavior and next work, start with
+[the documentation index](../README.md) and [roadmap](../plan.md).
+
 Implemented in `packages/receipt_domain`, following the
-[local storage contract](local-storage-contract.md). This is a standalone Dart
+[local storage contract](../local-storage-contract.md). This is a standalone Dart
 package with no Flutter, SQLite, image, or network integration of its own. The app
-now uses it for [manual saving and history](manual-saving.md) and separate
-[live OCR review commands](ocr-saving.md).
+now uses it for [manual saving and history](../manual-saving.md) and separate
+[live OCR review commands](../ocr-saving.md).
 
 ## Values and receipt validation
 
@@ -101,13 +104,13 @@ precision and DST, immutable inputs, golden serialization/hashes, malformed
 payloads, unsupported OCR assertions, and stale manual confirmation. All pass,
 as did 68 parser tests, 40 storage tests and 53 Flutter tests at the manual-saving baseline. All package/app
 analyzers are clean. Native save/reopen verification on Android and Windows is
-documented in [manual saving](manual-saving.md).
+documented in [manual saving](../manual-saving.md).
 
-The [local receipt repository](local-storage.md) now uses Drift schema v2
+The [local receipt repository](../local-storage.md) now uses Drift schema v2
 and transactional writes, with constraint/migration/failure tests. The app has
 private database ownership, Android backup/transfer exclusions, explicit manual
 field/row/relationship checks, saving and basic read-only history. The separate
 OCR evidence adapter is now implemented through the same storage boundary;
-see [OCR saving](ocr-saving.md) for historical policy 2, current policy 3 and verification.
-[Manual corrections](manual-corrections.md) and [OCR corrections](ocr-corrections.md)
+see [OCR saving](../ocr-saving.md) for historical policy 2, current policy 3 and verification.
+[Manual corrections](../manual-corrections.md) and [OCR corrections](../ocr-corrections.md)
 now use that boundary. Deletion, backup/restore and networking remain later steps.

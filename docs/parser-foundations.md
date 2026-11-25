@@ -5,7 +5,7 @@ The first implementation is a standalone Dart package at
 native OCR or database dependency and performs no network requests. Its pinned
 `timezone` 0.11.2 dependency supplies bundled IANA 2026e timezone data; the
 parser imports the local database, not the package's loading APIs. The main app
-now uses its financial/date rules in a [manual review prototype](review-prototype.md),
+now uses its financial/date rules in [reviewed manual saving](manual-saving.md),
 and a draft seeds the shared [OCR review/save flow](ocr-saving.md) after offline
 image recognition on Android or Windows.
 All committed test inputs are invented, including prices,
@@ -187,9 +187,9 @@ date-only precision, winter/summer offsets, both DST transitions, competing
 candidates, and refusal to guess beyond the timezone database's usable range.
 
 Private OCR evaluation now documents real-layout failures in the
-[review prototype findings](review-prototype.md). Next, improve skew/section
+[review prototype findings](archive/review-prototype.md). Next, improve skew/section
 handling and remaining review corrections. The shared temporary review now
-supports [individual findings and quantity/discount relationships](android-ocr-review.md).
+supports [individual findings and quantity/discount relationships](archive/android-ocr-review.md).
 Orphan findings preserve a typed quantity/rate candidate when the strict parser
 can produce one; mismatched units or excessive precision do not create a candidate.
 All recognized financial discount rows require an explicit relationship review,
@@ -198,7 +198,7 @@ Engine packaging and clean-machine tests remain separate release requirements.
 
 Findings now carry `FindingScope` (receipt, item, or total). The temporary review
 supports scoped unparsed-item classification and invalid/normalized-total
-correction; see [review behavior](android-ocr-review.md). A structural
+correction; see [review behavior](archive/android-ocr-review.md). A structural
 `ReceiptEvidenceCoverage` inventory also retains original source words and any
 words outside header/row/finding/total/footer evidence. This detects omissions,
 including bands crossing the item boundary and text between competing totals;

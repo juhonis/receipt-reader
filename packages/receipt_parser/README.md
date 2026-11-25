@@ -1,8 +1,9 @@
 # receipt_parser
 
-Pure Dart receipt parsing and exact financial validation. Experimental;
-the Flutter app uses its numeric/date rules in a temporary manual review screen.
-OCR draft integration and persistence remain open.
+Pure Dart receipt parsing and exact financial validation. The Flutter app uses
+its numeric/date rules and geometry-backed drafts in reviewed manual/OCR workflows.
+Native recognition and persistence live outside this package. Broader real-photo
+recognition coverage remains open; every receipt still requires review.
 
 See [scope, numeric rules, and limitations](../../docs/parser-foundations.md).
 

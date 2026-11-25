@@ -3,10 +3,13 @@
 Drift/SQLite repository for reviewed local manual and supported OCR receipts.
 The Flutter app owns an application-support database and provides explicit saving
 and read-only history with validated branch/date/exact-cent filters. See the
-[filter contract and native checks](../../docs/history-filters.md). Schema 6 migrates released schemas 1–5 without rewriting
-event history; it supports historical detailed and current receipt-level OCR approvals. [Store-scoped products and aliases](../../docs/product-catalog.md)
-provide catalog revisions, exact suggestions and encrypted recovery; receipt-link
-review UI remains pending. See [storage implementation](../../docs/local-storage.md),
+[filter contract and native checks](../../docs/history-filters.md). Supported older
+schemas migrate without rewriting event history; current format versions are in
+the [roadmap](../../docs/plan.md#current-baseline).
+[Store-scoped products and aliases](../../docs/product-catalog.md) provide catalog
+revisions, exact suggestions, reviewed receipt links and encrypted recovery.
+Categories and explicit cross-store comparison groups extend those links without
+merging products. See [storage implementation](../../docs/local-storage.md),
 [OCR saving](../../docs/ocr-saving.md) and the [contract](../../docs/local-storage-contract.md).
 
 Run with Windows-native Dart:
@@ -21,7 +24,7 @@ After changing the schema, regenerate and check the migration baseline:
 
 ```powershell
 dart run build_runner build
-dart run drift_dev make-migrations
+dart run drift_dev schema dump lib/src/database.dart schema/receipt_database
 dart run drift_dev schema generate schema/receipt_database test/generated
 ```
 

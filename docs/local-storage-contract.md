@@ -1,27 +1,15 @@
 # Local storage contract
 
-Status: design baseline, 2026-11-16. This specifies the first Drift/SQLite
-implementation. The normal app now supports [reviewed manual saving and basic
-history](manual-saving.md) and separate [reviewed OCR saving](ocr-saving.md).
+Design baseline established November 16, 2026. Local persistence, reviewed
+manual/OCR workflows, catalog links, categories and encrypted recovery are
+implemented. The [roadmap](plan.md#current-baseline) records current format versions;
+feature-specific extensions are indexed in [the reference](README.md#technical-reference).
+Numbered sections below retain the original storage design and identify rules
+for future sync; planned conflict tables/transport are not implemented capabilities.
 
-The first [durable value and manual-command foundation](storage-foundations.md)
-is implemented as a standalone Dart package. A [local manual-receipt repository](local-storage.md)
-now implements schema v5, source-specific atomic saves/edits, reviewed deletion
-and event integrity checks.
-[OCR corrections](ocr-corrections.md) use fresh scans and explicit row identity
-matching; earlier source identities and decisions remain in immutable events.
-[Structured backup/isolated recovery](backup-recovery.md) now preserves event
-history with fresh installation identity. [Password-protected backup UI and
-activation](password-backups.md) now provide explicit dataset selection and retained
-previous slots. [Store-scoped catalog storage](product-catalog.md) now implements
-product/alias snapshots, ownership, exact suggestions and recovered history.
-Finnish catalog UI and reviewed receipt product links are also implemented.
-Conflict/sync rules remain open.
-
-This document makes the [plan's data and sync rules](plan.md#3-data-architecture--financial-rules)
-concrete. Implement local persistence first on Android and Windows. Network
-transport and pairing remain separate work. Explicit reviewed product matching
-is implemented; automatic matching and sync remain outside this increment.
+This makes the [architecture's data and sync rules](architecture.md#data-architecture-and-financial-rules)
+concrete. Network transport, pairing and conflict-resolution UI remain separate
+work. Restore preserves historical events but assigns a fresh installation identity.
 
 ## 1. Ownership and database lifecycle
 

@@ -1,12 +1,15 @@
 # Experimental Android OCR review
 
+Historical development report. For current behavior and next work, start with
+[the documentation index](../README.md) and [roadmap](../plan.md).
+
 Imported images offer **Tunnista kuitin teksti** using bundled ML Kit Latin
 recognition 16.0.1, now the approved Android MVP engine. The shared review also
-uses [app-bundled Tesseract on Windows](windows-ocr.md). Broader recognition quality,
+uses [app-bundled Tesseract on Windows](../windows-ocr.md). Broader recognition quality,
 clean-machine verification and release licensing remain open.
 
-The normal app now uses [quick and optional guided review](receipt-review.md)
-and [policy-3 saving](ocr-saving.md). Detailed row/page approvals described in
+The normal app now uses [quick and optional guided review](../receipt-review.md)
+and [policy-3 saving](../ocr-saving.md). Detailed row/page approvals described in
 earlier milestone sections below remain only in the no-save diagnostic prototype.
 
 ## Workflow
@@ -344,7 +347,7 @@ printed date/time, valid quantities and signed amounts, exact total reconciliati
 and final confirmation. Evidence can be ready while totals disagree; completion
 then stays blocked. Successful completion explicitly states that nothing was saved.
 There is still no database/history or permission for a future save layer.
-The [local storage contract](local-storage-contract.md) now specifies the separate
+The [local storage contract](../local-storage-contract.md) now specifies the separate
 durable snapshot, structured review results, and transaction requirements for
 that future layer; it does not change this prototype's no-save behaviour.
 

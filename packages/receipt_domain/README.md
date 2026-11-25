@@ -2,9 +2,11 @@
 
 Pure Dart storage-facing receipt values and source-specific review commands.
 The Flutter app uses them for manual and supported OCR saving through the local
-repository. See [reviewed OCR saving](../../docs/ocr-saving.md) for historical policy 2 and current quick/guided policy 3.
+repository. See [receipt review](../../docs/receipt-review.md) for quick/guided
+approval and preservation of historical review evidence. The package also holds
+catalog, spending, category and price-comparison values and rules.
 
-See [storage foundations](../../docs/storage-foundations.md) for the API boundary,
+See [storage foundations](../../docs/archive/storage-foundations.md) for the API boundary,
 canonical fixtures, checks performed, and remaining work. The
 [storage contract](../../docs/local-storage-contract.md) specifies the intended
 Drift repository and eventual recovery/sync behaviour.

@@ -10,7 +10,7 @@ The November 21 [dependency audit](dependency-licenses.md) adds complete readabl
 notices and artifact checks. Owner licensing/distribution decisions and signing
 remain open; the following older verification sections retain their original dates.
 
-The [initial spike](ocr-spike.md) used three private photos from one branch and
+The [initial spike](archive/ocr-spike.md) used three private photos from one branch and
 found missed/corrupted Windows amounts. The Android shared-engine experiment did
 not demonstrate a reason to replace ML Kit. A broader representative corpus is
 still needed before claiming general recognition quality. User approval and exact
@@ -186,7 +186,7 @@ clean-machine release acceptance remains open.
 
 The user also found the individual review confirmations too cumbersome for the
 final product. A simpler review flow is the proposed next milestone in the
-[project plan](plan.md#8-immediate-next-step). Existing review and persistence
+[project plan](plan.md#next-milestone-repeatable-phone-testing-and-releases). Existing review and persistence
 requirements remain in force until that change is implemented and tested.
 
 Verification for this guidance update: all 145 app tests and analysis pass, the

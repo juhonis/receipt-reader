@@ -2,7 +2,7 @@
 
 This isolated package evaluates candidate engines; it is not part of the
 receipt app and its dependencies do not select the production OCR stack.
-See [findings and the geometry contract](../../docs/ocr-spike.md).
+See [findings and the geometry contract](../../docs/archive/ocr-spike.md).
 
 Run commands from the repository root in Windows PowerShell unless noted.
 Public SDK/model installation needs internet; recognition uses local inputs.

@@ -1,10 +1,13 @@
 # Offline OCR spike: platform baselines
 
+Historical development report. For current behavior and next work, start with
+[the documentation index](../README.md) and [roadmap](../plan.md).
+
 Status: **historical exploratory evidence**. Run on 2026-11-14.
 The user approved ML Kit on Android and bundled Tesseract on Windows on 2026-11-18;
-see [the current adapter and packaging](windows-ocr.md). The limitations below
+see [the current adapter and packaging](../windows-ocr.md). The limitations below
 still describe the original experiment, not release certification.
-The independent harness is in [`tools/ocr_spike`](../tools/ocr_spike/README.md).
+The independent harness is in [`tools/ocr_spike`](../../tools/ocr_spike/README.md).
 The receipt app's dependency list and starter screen are unchanged.
 
 ## Scope and evidence
@@ -201,5 +204,5 @@ reject character guesses. Real receipt data and all prototype binaries stay igno
    offline Windows installation, then measure release size and comparable
    cold/warm timings.
 5. The user-approved MVP engines and Windows adapter now exist; see
-   [Windows OCR](windows-ocr.md). Complete the broader quality, licensing and
+   [Windows OCR](../windows-ocr.md). Complete the broader quality, licensing and
    clean-machine checks before calling the implementation release-ready.

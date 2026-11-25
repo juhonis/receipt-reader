@@ -2,7 +2,7 @@
 
 `packages/receipt_storage` implements the first local-only slice of the
 [storage contract](local-storage-contract.md), using the checked values and
-source-specific review commands from [receipt foundations](storage-foundations.md).
+source-specific review commands from [receipt foundations](archive/storage-foundations.md).
 
 The normal Flutter app now owns an application-support database and provides
 [explicit manual saving and basic history](manual-saving.md) on Android and
