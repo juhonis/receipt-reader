@@ -61,6 +61,12 @@ it is not an automatic legal approval of a new dependency.
 
 ## Vendor terms and release decisions
 
+The November 26 camera change uses Android's platform Camera2 API with no new
+third-party camera dependency. CAMERA is requested at runtime for in-app capture;
+the release allowlist now contains CAMERA and the generated signature receiver
+permission. INTERNET, ACCESS_NETWORK_STATE and storage/media permissions remain
+absent. Capture uses only ImageReader/process memory, not files or MediaStore.
+
 ML Kit's SDK/model terms are not the Apache license printed below its web code
 samples. Its POMs identify the [ML Kit terms](https://developers.google.com/ml-kit/terms),
 which incorporate the [Google APIs terms](https://developers.google.com/terms).

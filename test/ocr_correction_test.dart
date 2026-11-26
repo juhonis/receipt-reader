@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:receipt_domain/receipt_domain.dart';
 import 'package:receipt_storage/receipt_storage.dart';
@@ -116,6 +117,46 @@ void main() {
       Navigator.of(tester.element(find.byType(OcrCorrectionPage))).pop();
       await tester.pumpAndSettle();
       expect(find.byType(ReceiptDetailPage), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'history forwards camera capture and requires the original receipt',
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+      final store = FakeStore();
+      original(store);
+      var captures = 0;
+      await tester.pumpWidget(
+        ReceiptReaderApp(
+          storageOpener: () async => store,
+          cameraCapture: () async {
+            captures++;
+            return null;
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tap(tester, 'open-history');
+      await tester.tap(
+        find.text(store.documents.single.document.snapshot.branch.name),
+      );
+      await tester.pumpAndSettle();
+      await tap(tester, 'edit-ocr-receipt');
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.byKey(const Key('ocr-correction-camera')),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tap(tester, 'ocr-correction-original');
+      await tap(tester, 'ocr-correction-camera');
+      expect(captures, 1);
+      expect(store.saved, isEmpty);
+      expect(find.byType(OcrCorrectionPage), findsOneWidget);
     },
   );
 

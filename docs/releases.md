@@ -1,9 +1,9 @@
 # Releases and updates
 
-Updated November 25, 2026. Permanent Android signing and local APK verification
-and GitHub workflow definitions are implemented. Hosted Checks passes and owner
-setup is complete; successful tagged native builds, published phone alphas and
-the in-app updater remain pending. The [roadmap](plan.md) defines the order of work.
+Updated November 26, 2026. Alpha.5 passed hosted Checks, both native package jobs
+and draft creation; the owner installed its APK on the OnePlus. Alpha.6 adds
+memory-only Android camera capture. Full phone/laptop acceptance, retained-data
+upgrades, publication and the updater remain open. The [roadmap](plan.md) defines the order of work.
 The first distribution channel will be personal-use alpha pre-releases in the
 public GitHub repository, with Android APK and Windows x64 ZIP assets.
 
@@ -40,8 +40,8 @@ Changing visibility remains an explicit owner action.
 Native checks now cover backup save/read and image import/cancel on Windows and
 the emulator; synthetic image hashes stayed unchanged. Android uses bounded
 in-memory URI reads without persistent grants/cache images. Windows imports are
-read-only. The release permission audit now permits only the generated signature
-receiver permission, rejecting any unreviewed network/storage/other permission.
+read-only. The release permission audit permits CAMERA for in-app capture and the
+generated signature receiver permission, rejecting unreviewed network/storage permissions.
 OS cloud-backup/device-transfer exclusions are explicit; manufacturer enforcement
 and source-provider/cloud-storage behavior still require device-specific checks.
 SQLite is unencrypted locally, and receipt deletion retains historical events.
@@ -76,8 +76,8 @@ installation. Never solve a signature mismatch by clearing valuable application 
 
 `pubspec.yaml` is the version source. `tools/releases/version.py` generates the
 displayed `lib/app_version.dart`; its check rejects stale metadata or a wrong tag.
-The current candidate is `0.2.0-alpha.5+6`, with expected tag `v0.2.0-alpha.5` and
-Android build 6. Earlier candidates/tags are retained separately. Version checks
+The current candidate is `0.2.0-alpha.6+7`, with expected tag `v0.2.0-alpha.6` and
+Android build 7. Earlier candidates/tags are retained separately. Version checks
 reject tag mismatches and build numbers not greater than previous tagged builds.
 Local builders create no tag/release. Reject asset replacement for published
 versions. Artifacts should identify platform, version and build unambiguously.
@@ -88,7 +88,7 @@ After changing the pubspec version, regenerate and commit the Dart metadata:
 
 ```powershell
 python tools/releases/version.py
-python tools/releases/version.py --check --tag v0.2.0-alpha.5 --check-history
+python tools/releases/version.py --check --tag v0.2.0-alpha.6 --check-history
 python -m unittest discover -s tools/releases -p 'test_*.py'
 ```
 
@@ -96,7 +96,7 @@ Refresh the [notice inventory](dependency-licenses.md#reproduce-and-update) when
 its recorded build inputs change. From a clean, reviewed commit, build with:
 
 ```powershell
-python tools/releases/android.py --tag v0.2.0-alpha.5
+python tools/releases/android.py --tag v0.2.0-alpha.6
 ```
 
 The wrapper checks current notice evidence, builds the signed universal APK and
@@ -114,7 +114,7 @@ publishes, installs on a device, grants public-release approval or proves phone
 acceptance. Finish privacy/native-picker and offline/upgrade tests separately.
 
 Windows keeps the portable ZIP. Build it with `flutter build windows --release`,
-then `python tools/windows_ocr/package.py --tag v0.2.0-alpha.5`. Versioned mode
+then `python tools/windows_ocr/package.py --tag v0.2.0-alpha.6`. Versioned mode
 produces immutable ZIP/checksum/evidence files alongside the APK. The no-tag mode
 remains the legacy development ZIP. Preserve existing notice/runtime audits
 and settle applicable distribution conditions. Assess Authenticode signing before
@@ -166,11 +166,9 @@ become trusted merely because the repository is public.
 
 ## One-time GitHub activation
 
-The owner has completed this setup and made the repository public. Hosted Checks,
-Windows packaging and Android compilation pass. Alpha.4's certificate check fails
-because it chooses Build Tools 37 and expects the older signer text format. This
-is reproduced locally with the same correctly signed APK. Alpha.5 selects 36.0.0
-explicitly and adds preflight certificate diagnostics; hosted confirmation is pending.
+The owner has completed this setup and made the repository public. Alpha.5 passed
+all four hosted jobs and created a draft with verified APK/ZIP assets. The owner
+reported installing its APK; full runtime acceptance and upgrades remain open.
 The procedure below remains the reference for another repository/installation.
 
 1. Review source/terms, then change repository visibility separately if desired.
@@ -191,7 +189,7 @@ The procedure below remains the reference for another repository/installation.
 | `ANDROID_KEY_PASSWORD` | `keyPassword` from the private configuration |
 
 4. Push the reviewed main commit and let Checks pass. Then create/push its exact
-   version tag, for example `v0.2.0-alpha.5`. Tags whose commits are not on main,
+   version tag, for example `v0.2.0-alpha.6`. Tags whose commits are not on main,
    stale generated metadata and reused/lower Android build numbers are rejected.
 5. Approve the builders, inspect the draft/assets, and perform the phone/laptop
    checks before explicitly publishing. A failed upload can leave an incomplete

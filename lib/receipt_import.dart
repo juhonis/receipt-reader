@@ -4,8 +4,42 @@ import 'dart:ui' as ui;
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 
-enum ImportFailure { tooLarge, unsupported, unreadable }
+enum ImportFailure {
+  tooLarge,
+  unsupported,
+  unreadable,
+  cameraDenied,
+  cameraUnavailable,
+  captureFailed,
+}
+
+bool get supportsReceiptCamera =>
+    defaultTargetPlatform == TargetPlatform.android;
+
+/// Native JPEG bytes never pass through a file or Flutter's shared image cache.
+Future<ReceiptEvidence?> captureReceiptImage() async {
+  if (!supportsReceiptCamera) {
+    throw const ReceiptImportException(ImportFailure.cameraUnavailable);
+  }
+  try {
+    final bytes = await const MethodChannel('receipt_reader/import')
+        .invokeMethod<Uint8List>('captureImage');
+    return bytes == null ? null : await ReceiptEvidence.decode(bytes);
+  } on ReceiptImportException {
+    rethrow;
+  } on PlatformException catch (error) {
+    throw ReceiptImportException(switch (error.code) {
+      'camera_denied' => ImportFailure.cameraDenied,
+      'camera_unavailable' => ImportFailure.cameraUnavailable,
+      'too_large' => ImportFailure.tooLarge,
+      _ => ImportFailure.captureFailed,
+    });
+  } catch (_) {
+    throw const ReceiptImportException(ImportFailure.captureFailed);
+  }
+}
 
 class ReceiptImportException implements Exception {
   const ReceiptImportException(this.failure);

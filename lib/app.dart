@@ -26,6 +26,7 @@ class ReceiptReaderApp extends StatelessWidget {
   const ReceiptReaderApp({
     super.key,
     this.imagePicker = pickReceiptImage,
+    this.cameraCapture = captureReceiptImage,
     this.storageOpener,
     this.recoveryOpener,
     this.backupFiles = const NativeBackupFiles(),
@@ -34,6 +35,7 @@ class ReceiptReaderApp extends StatelessWidget {
   final Future<LocalStore> Function()? storageOpener, recoveryOpener;
   final BackupFiles backupFiles;
   final Future<ReceiptEvidence?> Function() imagePicker;
+  final Future<ReceiptEvidence?> Function() cameraCapture;
   final DateTime Function() dashboardClock;
 
   @override
@@ -56,6 +58,7 @@ class ReceiptReaderApp extends StatelessWidget {
       home: storageOpener == null
           ? _HomePage(
               imagePicker: imagePicker,
+              cameraCapture: cameraCapture,
               backupFiles: backupFiles,
               dashboardClock: dashboardClock,
             )
@@ -63,6 +66,7 @@ class ReceiptReaderApp extends StatelessWidget {
               opener: storageOpener!,
               recoveryOpener: recoveryOpener,
               imagePicker: imagePicker,
+              cameraCapture: cameraCapture,
               backupFiles: backupFiles,
               dashboardClock: dashboardClock,
             ),
@@ -73,6 +77,7 @@ class ReceiptReaderApp extends StatelessWidget {
 class _HomePage extends StatefulWidget {
   const _HomePage({
     required this.imagePicker,
+    required this.cameraCapture,
     required this.backupFiles,
     required this.dashboardClock,
     this.store,
@@ -81,6 +86,7 @@ class _HomePage extends StatefulWidget {
   final LocalStore? store;
   final DateTime Function() dashboardClock;
   final Future<ReceiptEvidence?> Function() imagePicker;
+  final Future<ReceiptEvidence?> Function() cameraCapture;
   @override
   State<_HomePage> createState() => _HomePageState();
 }
@@ -113,8 +119,11 @@ class _HomePageState extends State<_HomePage> {
 
   Future<void> _history() => Navigator.of(context).push<void>(
     MaterialPageRoute(
-      builder: (_) =>
-          HistoryPage(store: widget.store!, imagePicker: widget.imagePicker),
+      builder: (_) => HistoryPage(
+        store: widget.store!,
+        imagePicker: widget.imagePicker,
+        cameraCapture: widget.cameraCapture,
+      ),
     ),
   );
 
@@ -130,14 +139,16 @@ class _HomePageState extends State<_HomePage> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _import() async {
+  Future<void> _import({bool camera = false}) async {
     if (_importing) return;
     setState(() {
       _importing = true;
       _failure = null;
     });
     try {
-      final evidence = await widget.imagePicker();
+      final evidence = await (camera
+          ? widget.cameraCapture
+          : widget.imagePicker)();
       if (!mounted) {
         evidence?.dispose();
         return;
@@ -250,14 +261,30 @@ class _HomePageState extends State<_HomePage> {
                       ),
                       const SizedBox(height: 20),
                       if (!recovery)
-                        FilledButton.icon(
-                          onPressed: _importing ? null : _import,
-                          icon: const Icon(Icons.image_outlined),
-                          label: Text(
-                            _importing
-                                ? strings.importLoading
-                                : strings.importImage,
-                          ),
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            if (supportsReceiptCamera)
+                              FilledButton.icon(
+                                key: const Key('capture-receipt'),
+                                onPressed: _importing
+                                    ? null
+                                    : () => _import(camera: true),
+                                icon: const Icon(Icons.camera_alt_outlined),
+                                label: Text(strings.captureReceipt),
+                              ),
+                            FilledButton.icon(
+                              onPressed: _importing ? null : _import,
+                              icon: const Icon(Icons.image_outlined),
+                              label: Text(
+                                _importing
+                                    ? strings.importLoading
+                                    : strings.importImage,
+                              ),
+                            ),
+                          ],
                         ),
                       if (_failure != null)
                         Text(switch (_failure!) {
@@ -265,6 +292,10 @@ class _HomePageState extends State<_HomePage> {
                           ImportFailure.unsupported =>
                             strings.importUnsupported,
                           ImportFailure.unreadable => strings.importUnreadable,
+                          ImportFailure.cameraDenied => strings.cameraDenied,
+                          ImportFailure.cameraUnavailable =>
+                            strings.cameraUnavailable,
+                          ImportFailure.captureFailed => strings.cameraFailed,
                         }),
                       const SizedBox(height: 12),
                       if (!recovery)
@@ -359,6 +390,7 @@ class _StorageGate extends StatefulWidget {
     required this.opener,
     required this.recoveryOpener,
     required this.imagePicker,
+    required this.cameraCapture,
     required this.backupFiles,
     required this.dashboardClock,
   });
@@ -366,6 +398,7 @@ class _StorageGate extends StatefulWidget {
   final BackupFiles backupFiles;
   final Future<LocalStore> Function() opener;
   final Future<ReceiptEvidence?> Function() imagePicker;
+  final Future<ReceiptEvidence?> Function() cameraCapture;
   final DateTime Function() dashboardClock;
   @override
   State<_StorageGate> createState() => _StorageGateState();
@@ -409,6 +442,7 @@ class _StorageGateState extends State<_StorageGate> {
     if (_store case final store?) {
       return _HomePage(
         imagePicker: widget.imagePicker,
+        cameraCapture: widget.cameraCapture,
         store: store,
         backupFiles: widget.backupFiles,
         dashboardClock: widget.dashboardClock,

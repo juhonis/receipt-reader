@@ -11,6 +11,7 @@ import java.util.concurrent.Executors
 class MainActivity : FlutterActivity() {
     private val ocr = ReceiptOcr()
     private val backups = BackupDocuments(this)
+    private val camera = ReceiptCamera(this)
     private var pending: MethodChannel.Result? = null
     private val reader = Executors.newSingleThreadExecutor()
     private val requestImage = 4101
@@ -27,9 +28,12 @@ class MainActivity : FlutterActivity() {
             }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "receipt_reader/import")
             .setMethodCallHandler { call, result ->
-                if (call.method != "pickImage") {
+                if (call.method == "captureImage") {
+                    if (pending != null) result.error("busy", "Import already active", null)
+                    else camera.capture(result)
+                } else if (call.method != "pickImage") {
                     result.notImplemented()
-                } else if (pending != null) {
+                } else if (pending != null || camera.active) {
                     result.error("busy", "Import already active", null)
                 } else {
                     pending = result
@@ -53,6 +57,7 @@ class MainActivity : FlutterActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (backups.onResult(requestCode, resultCode, data)) return
+        if (camera.onResult(requestCode)) return
         if (requestCode != requestImage) return
         val result = pending ?: return
         val uri = data?.data
@@ -85,6 +90,7 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onDestroy() {
+        camera.close()
         ocr.close()
         backups.close()
         pending = null
@@ -93,4 +99,9 @@ class MainActivity : FlutterActivity() {
     }
 
     private class ImageTooLarge : Exception()
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        camera.onPermissionResult(requestCode, grantResults)
+    }
 }

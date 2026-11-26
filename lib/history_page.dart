@@ -21,10 +21,12 @@ class HistoryPage extends StatefulWidget {
     super.key,
     required this.store,
     this.imagePicker = pickReceiptImage,
+    this.cameraCapture = captureReceiptImage,
     this.initialSelection,
   });
   final LocalStore store;
   final Future<ReceiptEvidence?> Function() imagePicker;
+  final Future<ReceiptEvidence?> Function() cameraCapture;
   final HistoryFilterSelection? initialSelection;
   @override
   State<HistoryPage> createState() => _HistoryPageState();
@@ -180,6 +182,7 @@ class _HistoryPageState extends State<HistoryPage> {
                             receipt: receipt,
                             store: widget.store,
                             imagePicker: widget.imagePicker,
+                            cameraCapture: widget.cameraCapture,
                           ),
                         ),
                       );
@@ -211,10 +214,12 @@ class ReceiptDetailPage extends StatelessWidget {
     required this.receipt,
     required this.store,
     this.imagePicker = pickReceiptImage,
+    this.cameraCapture = captureReceiptImage,
   });
   final StoredReceipt receipt;
   final LocalStore store;
   final Future<ReceiptEvidence?> Function() imagePicker;
+  final Future<ReceiptEvidence?> Function() cameraCapture;
 
   @override
   Widget build(BuildContext context) {
@@ -301,6 +306,7 @@ class ReceiptDetailPage extends StatelessWidget {
                             store: store,
                             receipt: receipt,
                             imagePicker: imagePicker,
+                            cameraCapture: cameraCapture,
                           ),
                         ),
                       );

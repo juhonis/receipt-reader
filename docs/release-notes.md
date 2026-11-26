@@ -1,13 +1,10 @@
-# v0.2.0-alpha.5
+# v0.2.0-alpha.6
 
-First GitHub alpha candidate for Android and Windows, with a Finnish UI. The earlier
-local alpha build remains separate; this APK uses a greater Android build number.
-
-This candidate uses explicitly selected Android verification tools and checks the
-signing certificate before compilation. Earlier attempts built the APK but reported
-a false certificate mismatch after selecting a newer verifier with changed output.
-Kotlin compilation and Windows packaging fixes remain included; earlier attempts
-did not produce a complete draft release.
+Adds **Ota kuva** on Android: photograph receipts inside the app without creating
+gallery or temporary image files. The picture stays in memory during OCR/review
+and is released on save/cancel. Camera access is requested only when capturing;
+storage and internet permissions are not added. Keep the paper receipt if you may
+need to re-scan it. Existing gallery import remains available.
 
 - Offline JPEG/PNG receipt recognition, reviewed saving/corrections and history.
 - Week/month/year/custom spending charts, categories and product price comparisons.
@@ -25,8 +22,8 @@ Keep independent encrypted backups. The app stores structured data outside the
 program folder; an older executable may not open a migrated database or newer backup.
 SQLite schema 9 and inner backups up to 6 require a compatible reader.
 
-Known limits: camera capture, PC/phone synchronization, PDF/multi-image import and
-in-app update checking are not implemented. Import a phone-camera JPEG/PNG instead.
+Known limits: PC/phone synchronization, PDF/multi-image import and
+in-app update checking are not implemented. Capture one complete receipt at a time.
 OCR can miss or misread receipt content: review it even when totals match. Receipt
 deletion retains historical data; it is not secure erasure. Real-phone acceptance,
 manufacturer backup/transfer behavior and broader receipt layouts remain under test.

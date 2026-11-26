@@ -15,6 +15,7 @@ class OcrCorrectionPage extends StatefulWidget {
     required this.store,
     required this.receipt,
     this.imagePicker = pickReceiptImage,
+    this.cameraCapture = captureReceiptImage,
     this.recognizer,
   }) {
     if (receipt.document.review.source != 'ocr') {
@@ -24,6 +25,7 @@ class OcrCorrectionPage extends StatefulWidget {
   final LocalStore store;
   final StoredReceipt receipt;
   final Future<ReceiptEvidence?> Function() imagePicker;
+  final Future<ReceiptEvidence?> Function() cameraCapture;
   final Future<OcrPage> Function(ReceiptEvidence)? recognizer;
   @override
   State<OcrCorrectionPage> createState() => _OcrCorrectionPageState();
@@ -33,7 +35,7 @@ class _OcrCorrectionPageState extends State<OcrCorrectionPage> {
   bool _confirmed = false, _importing = false;
   ImportFailure? _failure;
 
-  Future<void> _import() async {
+  Future<void> _import({bool camera = false}) async {
     if (!_confirmed || _importing) return;
     setState(() {
       _importing = true;
@@ -41,7 +43,7 @@ class _OcrCorrectionPageState extends State<OcrCorrectionPage> {
     });
     ReceiptEvidence? evidence;
     try {
-      evidence = await widget.imagePicker();
+      evidence = await (camera ? widget.cameraCapture : widget.imagePicker)();
       if (!mounted || evidence == null) return;
       final changed = await Navigator.push<bool>(
         context,
@@ -90,6 +92,15 @@ class _OcrCorrectionPageState extends State<OcrCorrectionPage> {
                       ? null
                       : (v) => setState(() => _confirmed = v ?? false),
                 ),
+                if (supportsReceiptCamera)
+                  FilledButton.icon(
+                    key: const Key('ocr-correction-camera'),
+                    onPressed: _confirmed && !_importing
+                        ? () => _import(camera: true)
+                        : null,
+                    icon: const Icon(Icons.camera_alt_outlined),
+                    label: Text(s.captureReceipt),
+                  ),
                 FilledButton.icon(
                   key: const Key('ocr-correction-image'),
                   onPressed: _confirmed && !_importing ? _import : null,
@@ -101,6 +112,9 @@ class _OcrCorrectionPageState extends State<OcrCorrectionPage> {
                     ImportFailure.tooLarge => s.importTooLarge,
                     ImportFailure.unsupported => s.importUnsupported,
                     ImportFailure.unreadable => s.importUnreadable,
+                    ImportFailure.cameraDenied => s.cameraDenied,
+                    ImportFailure.cameraUnavailable => s.cameraUnavailable,
+                    ImportFailure.captureFailed => s.cameraFailed,
                   }),
               ],
             ),

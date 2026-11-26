@@ -4,7 +4,7 @@ Shared design constraints for Android and Windows. For current functionality and
 next work, use [the roadmap](plan.md). The [storage contract](local-storage-contract.md)
 defines persistence details; feature contracts are indexed in [the docs](README.md).
 
-The local import/review/storage/analytics workflows are implemented. Camera capture,
+The local camera/import/review/storage/analytics workflows are implemented. Device
 pairing, network transport and conflict-resolution UI remain planned. Requirements
 for those features below describe the intended behavior, not existing capabilities.
 Optional GitHub update checks are separate from receipt synchronization and must
@@ -78,7 +78,7 @@ Save only after store branch, date, total, and rows have been reviewed and recon
 ### Pipeline
 
 ```text
-Planned Android private camera capture OR existing Android/Windows image import
+Android in-memory camera capture OR Android/Windows image import
   -> bundled offline OCR adapter (normalized text, blocks, lines, bounding boxes)
   -> geometry-aware parsing and receipt-section classification
   -> store branch and date candidates
@@ -86,10 +86,19 @@ Planned Android private camera capture OR existing Android/Windows image import
   -> independent validation results and row warnings
   -> mandatory user review and correction
   -> atomic SQLite save + change-log entry
-  -> app-owned temporary image cleanup (never delete an imported original)
+  -> release route-owned image memory (never delete an imported original)
 ```
 
 Regexes identify candidates, not guaranteed facts. Use geometry to join names, quantities, and right-aligned prices, including wrapped descriptions. Separate receipt totals from payment totals and VAT sections.
+
+Android capture uses an app-owned Camera2 preview and JPEG ImageReader, with at
+most 12 million pixels and 20 MiB of encoded input. The Activity result contains
+no image: a token-scoped, process-only handoff transfers bytes to Flutter. There
+is no image file, MediaStore entry, external camera app, URI grant or saved-state
+photo. Leaving capture closes the camera and cancels the request. Decoded pixels
+remain available for review and are disposed on save/cancel; reopening a saved
+receipt does not recover a photo. Re-photograph the original paper for a fresh
+OCR correction. Existing gallery imports remain read-only.
 
 Recognize Finnish decimal commas, Unicode spaces, negative amounts, and common OCR confusions. Never globally replace letters with digits in product names. Store-chain recognition (`PRISMA`, `S-MARKET`, `SALE`, `ALEPA`) must be followed by branch resolution or explicit user selection.
 
@@ -174,9 +183,9 @@ Restore must assign a fresh local device identity and preserve imported event id
 
 ## Privacy, Retention & Recovery
 
-- Capture only into private application cache; do not export to the gallery. Import originals read-only and never delete or modify them. Explain that source images may remain in the user's gallery, file storage, or backups outside the app's control.
-- Delete temporary images on save, cancel, review exit, and error paths. Run stale-cache cleanup at startup after crashes; immediate deletion while the process is dead cannot be guaranteed.
-- Exclude temporary captures from OS backups where supported. Verify platform behaviour rather than promising secure erasure.
+- Capture only into bounded memory; do not write photo/cache files or export to the gallery. Import originals read-only and never delete or modify them. Source images may remain in the user's gallery, file storage, or backups outside the app's control.
+- Release image resources on save, cancel, review exit and error paths. Process death leaves no app-owned photo file to sweep. This is not a promise of forensic memory erasure or control over external screenshots/OS caches.
+- Exclude app data from OS backups where supported; validate manufacturer behavior separately. Camera photos never enter backup files.
 - Do not retain full OCR dumps in production. Keep only structured receipt fields, necessary per-line names, validation metadata, and parser version.
 - Redact receipt contents and credentials from logs, crash reports, and diagnostics. No cloud OCR or app-owned automatic telemetry. Bundled SDK diagnostics must be assessed separately when permissions change; see [dependency disclosures](dependency-licenses.md).
 - Ordinary SQLite storage is not application-level encryption. Document reliance on device/OS storage protection; separately evaluate database encryption if stronger at-rest protection is required.

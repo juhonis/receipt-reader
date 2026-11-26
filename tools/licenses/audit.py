@@ -336,7 +336,8 @@ def verify_windows(directory):
 
 def verify_permissions(permissions):
     requested = set(re.findall(r"^uses-permission(?:-sdk-\d+)?: name='([^']+)'", permissions, re.M))
-    allowed = {'fi.juhonis.receipt_reader.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'}
+    allowed = {'fi.juhonis.receipt_reader.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION',
+               'android.permission.CAMERA'}
     if requested != allowed:
         raise ValueError('Standalone release requests unexpected permissions: ' + ', '.join(sorted(requested - allowed)))
 

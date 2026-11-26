@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="camera_hint">Sovita koko kuitti kuvaan ja pidä puhelin vakaana. Kuvaa ei tallenneta galleriaan.</string>
+    <string name="camera_cancel">Peruuta</string>
+    <string name="camera_capture">Ota kuva</string>
+    <string name="camera_capturing">Otetaan kuvaa…</string>
+    <string name="camera_light_off">Valo pois</string>
+    <string name="camera_light_on">Valo päällä</string>
+</resources>

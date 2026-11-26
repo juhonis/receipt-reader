@@ -95,4 +95,5 @@ original files remain untouched. See [OCR saving](ocr-saving.md) and the
 
 These checks use synthetic fixtures and isolated storage. The external laptop
 acceptance report covers the prior detailed-review build. Broader store layouts,
-real camera capture, final redistribution licensing and signing remain open.
+physical-phone capture quality and final redistribution conditions remain open.
+Alpha.6 adds in-app memory-only capture; see [phone testing](phone-testing.md).

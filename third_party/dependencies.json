@@ -3,7 +3,7 @@
   "reviewDate": "2026-11-25",
   "scope": "Conservative supported-target inventory; includes upstream aggregate notices",
   "inputs": {
-    "pubspec.yaml": "7c55beb857a65fcfcc01ccb96664c896cc85aea280f171346609b96094278451",
+    "pubspec.yaml": "8209c597fbb7aced88f1806372dea285113463f08d98713c2fbb7ea3427b951b",
     "pubspec.lock": "579f113fd3b8aff48687353b96c3ef6d1b64f0aebe2f99d4190d4e6be7de2f0b",
     "android/app/build.gradle.kts": "175cb80de121944f89f2c12064a718c85bfaade4fc964f83f8d6ce19b72601f8",
     "android/settings.gradle.kts": "fd28aa10f4f4f4d8adb544e83b8c7c80b27fb4425044f951f6a5434d01d0b8bb",

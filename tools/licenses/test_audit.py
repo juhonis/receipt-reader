@@ -40,7 +40,8 @@ class NoticeTests(unittest.TestCase):
                     audit.android_build_tools()
 
     def test_release_permissions_reject_network_storage_and_other_unreviewed_access(self):
-        expected = "uses-permission: name='fi.juhonis.receipt_reader.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'\n"
+        expected = ("uses-permission: name='fi.juhonis.receipt_reader.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'\n"
+                    "uses-permission: name='android.permission.CAMERA'\n")
         audit.verify_permissions(expected)
         for permission in ['android.permission.INTERNET', 'android.permission.READ_MEDIA_IMAGES',
                            'android.permission.READ_CONTACTS']:

@@ -1,8 +1,9 @@
 # Testing on a real Android phone
 
 Start with a permanently signed alpha APK, then use successive GitHub pre-releases
-for everyday testing. This workflow is planned; there is no published signed alpha
-yet. See [release preparation](releases.md) for signing and distribution work.
+for everyday testing. Alpha.5 passed the hosted builds/draft pipeline and its owner
+reported installing it on the phone. Full runtime and upgrade acceptance remains
+open. See [release preparation](releases.md) for signing and distribution work.
 
 First target: OnePlus Nord 2T 5G, OxygenOS 14 / Android 14 (API 34). The universal
 APK must include arm64 support and support API 34. USB is optional for release
@@ -30,9 +31,14 @@ build over the phone's real dataset. Use the emulator for automated native tests
 ## Everyday acceptance checklist
 
 - [ ] First launch and receipt OCR work without internet or model downloads.
-- [ ] Import JPEG/PNG through the actual phone picker. Until in-app camera capture
-  is implemented, photograph a receipt with the phone's camera and import it.
-  That original stays in the gallery/files and may follow the phone's own backups.
+- [ ] Import JPEG/PNG through the actual phone picker. Imported originals stay in
+  the gallery/files and may follow the phone's own backups.
+- [ ] From alpha.6, use **Ota kuva** inside the app. Deny camera permission once,
+  retry/allow it, cancel, capture, and try again. Test the rear-camera focus and
+  light toggle on the OnePlus; fit the entire receipt in the frame.
+- [ ] Confirm new captures do not appear in the gallery. Check after save, cancel,
+  failed recognition, background/resume and app restart. The camera image exists
+  only in memory during review; retain the paper if you may need to re-scan it.
 - [ ] Verify branch, date, product rows, quantities, discounts, deposits/returns and
   printed total; correct problems, approve, save and reopen. Totals alone do not
   prove recognition accuracy. Try a realistic long/crumpled or poorly lit receipt.

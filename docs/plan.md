@@ -1,6 +1,6 @@
 # Project plan
 
-Updated November 25, 2026. The immediate goal is a dependable personal-use alpha
+Updated November 26, 2026. The immediate goal is a dependable personal-use alpha
 on a real Android phone and Windows, distributed through versioned GitHub Releases.
 [Documentation index](README.md) · [Architecture](architecture.md) · [Release plan](releases.md)
 
@@ -21,8 +21,9 @@ on a real Android phone and Windows, distributed through versioned GitHub Releas
 
 ## Current baseline
 
-Implemented: JPEG/PNG import and bundled OCR on both platforms; reviewed receipt
-save/edit/delete; catalog and links; dashboard, categories, price histories and
+Implemented: JPEG/PNG import and bundled OCR on both platforms; Android in-app,
+memory-only camera capture; reviewed receipt save/edit/delete; catalog and links;
+dashboard, categories, price histories and
 cross-store comparisons; encrypted backup/recovery. See the [feature references](README.md#technical-reference).
 
 Current persistence: SQLite schema 9, product payload 3, inner backup up to 6
@@ -34,9 +35,9 @@ The Windows development ZIP has a successful reported offline laptop save/reopen
 folder-move test. Broader photograph, privacy, native-picker and clean-machine checks
 remain open. Native backup/image picker checks now pass on both platforms. Android
 release builds require the permanent key. Versioned APK/ZIP and CI/draft workflows
-are implemented. Hosted Checks passes and the release environment is configured;
-successful tagged native builds/draft upload remain pending. There is no camera capture,
-sync or update button yet.
+are implemented. Alpha.5 passed all hosted jobs and created its draft; the owner
+installed it on the OnePlus. Detailed phone acceptance and retained-data upgrades
+remain open. Alpha.6 adds camera capture; there is no sync or update button yet.
 
 ## Next milestone: repeatable phone testing and releases
 
@@ -84,12 +85,9 @@ sync or update button yet.
 - [x] Owner configured the protected `release` environment, `v*` deployment tags,
   self-review approval and four signing secrets; hosted Checks passes.
 - [x] Confirm the Windows tagged build after disabling optional desktop JNI.
-- [ ] Complete the Android tagged build/draft pipeline. Alpha.4 compiles on CI;
-  its verifier incorrectly chooses Build Tools 37 and fails to parse its changed
-  signer label. Alpha.5 explicitly selects prepared Build Tools 36.0.0 and checks
-  the temporary keystore certificate before building. Local reproduction confirms
-  the same APK/key passes with 36 and hits the old parser error with 37. The signed
-  alpha.5 rehearsal passes; hosted confirmation remains pending.
+- [x] Complete the Android tagged build/draft pipeline. Alpha.5 passed Checks,
+  both native package jobs and draft creation. Keep the explicit Build Tools
+  36.0.0 selection and preflight certificate check.
 - [ ] Test the exact artifacts on the phone and second Windows PC, including an
   upgrade from the previous alpha, then explicitly publish the pre-release.
 
@@ -113,8 +111,9 @@ Release readiness is assessed per artifact; passing local tests alone is insuffi
 
 1. Use real-phone feedback to fix dense layouts, keyboard/file-picker behavior,
    slow review steps and representative receipt recognition failures.
-2. Add Android camera capture with private temporary storage, image-cleanup checks
-   and clear handling of long/incomplete receipts. Until then, import JPEG/PNG.
+2. Validate Android memory-only camera capture on the OnePlus, including permission
+   denial, cancel/background cleanup, focus/light, orientation and long receipts.
+   Multi-photo stitching remains deferred; fit one complete receipt in each shot.
 3. Continue useful analytics and product-comparison improvements from observed needs.
 4. Implement encrypted local two-device sync only after standalone and recovery
    workflows are dependable. Follow the [causal/conflict design](architecture.md#secure-bidirectional-local-sync)

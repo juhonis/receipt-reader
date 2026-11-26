@@ -1,17 +1,18 @@
 # Receipt Reader
 
 A local-first receipt and spending tracker for Android and Windows, with a Finnish
-UI. Personal testing is the current goal. CI and draft-release workflows are
-defined; GitHub activation and real-phone acceptance remain the next steps.
+UI. Personal testing is the current goal. The signed alpha.5 APK/ZIP draft pipeline
+works; full real-phone acceptance and retained-data upgrades remain open.
 
 ## What works
 
 - Offline receipt-image import and OCR, review, corrections, deletion and history.
+- Android in-app camera capture without gallery or temporary image files.
 - Products, aliases, editable categories and explicit cross-store price comparisons.
 - Week/month/year/custom dashboards, spending breakdowns and product price trends.
 - Password-protected backups and reviewed recovery.
 
-Android camera capture and device synchronization are not implemented. Windows
+Device synchronization is not implemented. Windows
 has a development ZIP; Android release builds require the permanent release key.
 The release workflow prepares a draft alpha APK/ZIP; it never publishes automatically.
 There is no in-app updater yet.

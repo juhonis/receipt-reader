@@ -52,6 +52,7 @@ an isolated build directory and restore its configuration afterward.
 | Changed area | Relevant integration entry point |
 | --- | --- |
 | Bundled OCR/import/save | `receipt_ocr_engine_test.dart` |
+| Android memory-only camera | `camera_capture_test.dart` (opt-in native interaction) |
 | Manual/OCR correction | `manual_correction_test.dart`, `ocr_correction_test.dart` |
 | Deletion and stale screens | `receipt_deletion_test.dart` |
 | Password-protected recovery | `protected_backup_test.dart` |
@@ -77,6 +78,21 @@ flutter test integration_test/image_picker_test.dart -d emulator-5554 --no-unins
 
 Copy the committed synthetic image into the emulator's Downloads first if needed.
 These picker harnesses never open normal application databases.
+
+Camera smoke testing uses an emulator with an emulated rear camera, initially
+denied CAMERA permission, and recorded airplane/permission state. Run:
+
+```powershell
+flutter test integration_test/camera_capture_test.dart -d emulator-5554 --no-uninstall --dart-define=INTERACTIVE_CAMERA=true
+```
+
+In order: deny permission; retry, allow and cancel; take two pictures; then press
+Home during the final capture and return to the app. The harness checks upright
+bounded images, native OCR, cancellation and disposal without opening the application database. Compare
+the emulator's gallery image IDs and app-private image paths before/after (never
+delete existing photos), then restore its previous permission/airplane state.
+For repeat runs, reset CAMERA's `user-set`/`user-fixed` permission flags on the
+emulator as well; do not clear app data to reset permission history.
 
 ```powershell
 flutter build windows --debug

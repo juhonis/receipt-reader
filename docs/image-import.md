@@ -9,8 +9,11 @@ does not detect truncated or multi-page captures.
 
 Imported evidence now supports the shared [OCR review/save workflow](ocr-saving.md)
 and [saved history](history-filters.md). The limits and original-file ownership below
-still apply. Camera capture, PDF, multiple selection and image-backed persisted
-drafts remain outside the current implementation.
+still apply. Android also offers **Ota kuva**, using an in-app rear-camera preview
+and a memory-only JPEG handoff. It creates no gallery or temporary image file;
+decoded pixels follow the same review lifetime. Captures are limited to 12 million
+pixels and the same 20 MiB input cap. Cancel/backgrounding closes the camera.
+PDF, multiple selection and image-backed persisted drafts remain deferred.
 
 ## Limits and lifetime
 
@@ -74,3 +77,11 @@ and the Android emulator: import the committed synthetic 1000×1000 receipt, dis
 the preview and cancel a second import. Source SHA-256 remained unchanged. The
 native backup-picker round trip also passed on both platforms. Reproduction commands
 are in [testing](testing.md#restore-normal-entry-points-after-integration-tests).
+
+On November 26, the offline emulator camera harness passed denial/grant, cancel,
+two upright captures with native OCR, and background/resume cancellation. Gallery
+image IDs and app-private image paths were unchanged; prior permission/airplane
+state was restored. The 239 app tests and analysis pass. Physical-phone focus,
+lighting and long-receipt quality remain acceptance checks.
+Synthetic preview/capture framing was also compared in portrait and landscape;
+the native transform avoids applying the sensor rotation twice.
