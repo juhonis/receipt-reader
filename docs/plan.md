@@ -37,7 +37,10 @@ remain open. Native backup/image picker checks now pass on both platforms. Andro
 release builds require the permanent key. Versioned APK/ZIP and CI/draft workflows
 are implemented. Alpha.5 passed all hosted jobs and created its draft; the owner
 installed it on the OnePlus. Detailed phone acceptance and retained-data upgrades
-remain open. Alpha.6 adds camera capture; there is no sync or update button yet.
+remain open. Alpha.6 camera capture worked on the OnePlus, but release OCR startup
+failed. Alpha.7 preserves ML Kit's reflected constructors and fixes failed-startup
+cleanup. All three supplied private samples now recognize in an optimized offline
+emulator probe; phone acceptance remains open. There is no sync or update button yet.
 
 ## Next milestone: repeatable phone testing and releases
 

@@ -3,6 +3,7 @@ package fi.juhonis.receipt_reader
 import android.graphics.BitmapFactory
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.TextRecognizer
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import io.flutter.plugin.common.MethodChannel
 import org.json.JSONArray
@@ -38,9 +39,13 @@ class ReceiptOcr {
             return
         }
         busy = true
-        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+        var recognizer: TextRecognizer? = null
         try {
-            recognizer.process(InputImage.fromBitmap(bitmap, 0))
+            // Construction can fail before a Task exists (e.g. missing R8-kept
+            // registrars). It must share the same cleanup/retry path as process().
+            val client = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+            recognizer = client
+            client.process(InputImage.fromBitmap(bitmap, 0))
                 .addOnCompleteListener { task ->
                     try {
                         if (!closed) {
@@ -70,13 +75,13 @@ class ReceiptOcr {
                     } catch (_: Exception) {
                         if (!closed) result.error("ocr_failed", "Invalid recognition result", null)
                     } finally {
-                        recognizer.close()
+                        client.close()
                         bitmap.recycle()
                         busy = false
                     }
                 }
         } catch (_: Exception) {
-            recognizer.close()
+            recognizer?.close()
             bitmap.recycle()
             busy = false
             if (!closed) result.error("ocr_failed", "Recognition failed", null)

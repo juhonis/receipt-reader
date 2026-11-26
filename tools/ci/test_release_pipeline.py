@@ -8,11 +8,12 @@ import unittest
 from contextlib import redirect_stdout
 from io import StringIO
 from subprocess import CompletedProcess
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 from prepare import install_kotlin_guard
+from android_release_smoke import check_release
 sys.path.insert(0, str(ROOT / 'tools/releases'))
 from ci_signing import signed_build, verify_keystore
 from draft import create_draft, validate_assets
@@ -39,6 +40,7 @@ class ArtifactTests(unittest.TestCase):
             if name.endswith('.apk'):
                 metadata.update({'apkSha256': checksum, 'certificateSha256': self.certificate,
                     'signatureV2Verified': True, 'arm64Included': True, 'packagedNoticesVerified': True,
+                    'mlkitRegistrarConstructorsVerified': True,
                     'applicationId': 'fi.juhonis.receipt_reader', 'versionName': self.version.name,
                     'versionCode': self.version.build})
             else:
@@ -66,6 +68,7 @@ class ArtifactTests(unittest.TestCase):
         path = (self.directory / self.version.artifact).with_suffix('.json')
         original = json.loads(path.read_text())
         for field, value in [('commit', 'c' * 40), ('certificateSha256', 'd' * 64),
+                             ('mlkitRegistrarConstructorsVerified', False),
                              ('developmentBuild', True), ('workingTreeDirty', True)]:
             path.write_text(json.dumps({**original, field: value}))
             with self.subTest(field=field), self.assertRaises(ValueError):
@@ -183,6 +186,37 @@ class GradleGuardTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Refusing to replace'):
                 install_kotlin_guard(home)
             self.assertEqual(target.read_text(), 'existing configuration')
+
+
+class OptimizedAndroidSmokeTests(unittest.TestCase):
+    def test_smoke_build_replaces_inherited_signing_values_and_verifies_dex(self):
+        with tempfile.TemporaryDirectory() as directory:
+            key = Path(directory) / 'debug.keystore'
+            key.write_bytes(b'synthetic emulator key')
+            env = {'ANDROID_USER_HOME': directory, 'RECEIPT_READER_STORE_FILE': 'unused-production-path',
+                'RECEIPT_READER_STORE_PASSWORD': 'unused-secret', 'RECEIPT_READER_KEY_ALIAS': 'unused-alias',
+                'RECEIPT_READER_KEY_PASSWORD': 'unused-secret', 'RECEIPT_READER_KEYSTORE_BASE64': 'unused-key'}
+            run, verify = Mock(), Mock()
+            with patch('android_release_smoke.shutil.which', return_value='flutter.bat'), \
+                    patch('android_release_smoke.tool_invocation', side_effect=lambda command, child: (command, child)), \
+                    redirect_stdout(StringIO()):
+                check_release(env, run=run, verify=verify)
+            child = run.call_args.kwargs['env']
+            self.assertEqual(child['RECEIPT_READER_STORE_FILE'], str(key))
+            self.assertEqual(child['RECEIPT_READER_KEY_ALIAS'], 'androiddebugkey')
+            self.assertNotIn('RECEIPT_READER_KEYSTORE_BASE64', child)
+            self.assertIn('--release', run.call_args.args[0])
+            verify.assert_called_once()
+            self.assertEqual(env['RECEIPT_READER_KEYSTORE_BASE64'], 'unused-key')
+
+    def test_smoke_build_never_generates_a_replacement_key(self):
+        with tempfile.TemporaryDirectory() as directory:
+            run, verify = Mock(), Mock()
+            with self.assertRaisesRegex(ValueError, 'Compile the debug APK first'):
+                check_release({'ANDROID_USER_HOME': directory}, run=run, verify=verify)
+            run.assert_not_called()
+            verify.assert_not_called()
+            self.assertEqual(list(Path(directory).iterdir()), [])
 
 
 if __name__ == '__main__':

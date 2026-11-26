@@ -3,13 +3,14 @@
   "reviewDate": "2026-11-25",
   "scope": "Conservative supported-target inventory; includes upstream aggregate notices",
   "inputs": {
-    "pubspec.yaml": "8209c597fbb7aced88f1806372dea285113463f08d98713c2fbb7ea3427b951b",
+    "pubspec.yaml": "3c43a27190161be5c0e0ac98eb5348d8a0caf82503f997c0c890f686b08f8602",
     "pubspec.lock": "579f113fd3b8aff48687353b96c3ef6d1b64f0aebe2f99d4190d4e6be7de2f0b",
-    "android/app/build.gradle.kts": "175cb80de121944f89f2c12064a718c85bfaade4fc964f83f8d6ce19b72601f8",
+    "android/app/build.gradle.kts": "c1016b89f4612605a678ffc1e7973b4f75eb2746f172e61c3ae30004cc1cdc81",
+    "android/app/proguard-rules.pro": "8718b1c94d0d423a563d42ab49e456f415da282d21142ee2d27455817cfc873a",
     "android/settings.gradle.kts": "fd28aa10f4f4f4d8adb544e83b8c7c80b27fb4425044f951f6a5434d01d0b8bb",
     "android/build.gradle.kts": "6a26dba2cb8dfba1e74f540b0d17a89d96c1301d3c3bfda14348bed257fddcba",
     "android/gradle.properties": "0f82b18017fba6bb5ce3aa4b2d1a00c9382fc8aae7b1d9326e44b18abd66d80b",
-    "tools/licenses/android-inventory.init.gradle": "54b3919c2925a08c9b6c6e2c8eb053f3c3197da7247d1ea22159e223c2c67c3a"
+    "tools/licenses/android-inventory.init.gradle": "71b31d62336cde4451bfa89563acc2a8b1f233306dbe078e95806a35c2d56625"
   },
   "flutter": {
     "frameworkVersion": "3.50.0",

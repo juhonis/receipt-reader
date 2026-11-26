@@ -113,6 +113,29 @@ void main() {
     expect(find.byKey(const Key('ocr-draft-blocked')), findsNothing);
   });
 
+  testWidgets('recognizer startup failure clears on a successful retry', (
+    tester,
+  ) async {
+    var attempts = 0;
+    await open(tester, (_) async {
+      if (++attempts == 1) {
+        throw PlatformException(
+          code: 'ocr_failed',
+          message: 'Recognizer startup failed',
+        );
+      }
+      return OcrPage(8, 12, []);
+    });
+    await tester.tap(find.byKey(const Key('recognize')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Tekstintunnistus epäonnistui'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('recognize')));
+    await tester.pumpAndSettle();
+    expect(attempts, 2);
+    expect(find.textContaining('Tekstintunnistus epäonnistui'), findsNothing);
+    expect(find.textContaining('Rajoja ei voitu'), findsOneWidget);
+  });
+
   testWidgets(
     'confirmed layout seeds rows and keeps original OCR after edits',
     (tester) async {

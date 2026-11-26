@@ -113,3 +113,18 @@ Unit and native tests are necessary evidence, not the full release gate. Test th
 actual packaged APK/ZIP, native file pickers, offline startup, retained-data upgrade,
 encrypted recovery and [Windows clean-machine behavior](windows-ocr-clean-machine.md).
 See [releases](releases.md) for the draft/publication sequence.
+
+Debug-only OCR tests missed ML Kit registrar constructors being removed by R8.
+`python tools/ci/android_release_smoke.py` now builds an optimized, emulator-key APK
+and inspects its actual public no-argument constructors. It uses only the existing
+debug key and creates no versioned assets. The production APK wrapper repeats this
+inspection with the permanent certificate and always builds `lib/main.dart`.
+
+Local opt-in `private_ocr_check_test.dart` reads three anonymous `input-N.jpg`
+copies staged in app-private `cache/receipt-private-ocr-check/`; enable it with
+`--dart-define=PRIVATE_OCR_CHECK=true`. Verify copies byte-for-byte and remove them
+afterward. The test and `tools/ocr_device_probe/main.dart` report only status/counts,
+never recognized text. The latter can run the same inputs in optimized release mode
+using the emulator's existing signing identity; never publish that entry point or
+install it over the phone's retained permanent-key app. Restore the normal debug
+entry point afterward. Originals and private fixtures never enter source/assets.

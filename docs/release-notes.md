@@ -1,6 +1,11 @@
-# v0.2.0-alpha.6
+# v0.2.0-alpha.7
 
-Adds **Ota kuva** on Android: photograph receipts inside the app without creating
+Fixes Android OCR failing immediately after import/capture in release builds. The
+optimized APK now retains ML Kit's reflected initializer constructors, and failed
+startup no longer leaves later attempts stuck as busy. CI checks the optimized
+DEX as well as compiling debug builds. Install over the existing alpha to retain data.
+
+Includes **Ota kuva** on Android: photograph receipts inside the app without creating
 gallery or temporary image files. The picture stays in memory during OCR/review
 and is released on save/cancel. Camera access is requested only when capturing;
 storage and internet permissions are not added. Keep the paper receipt if you may

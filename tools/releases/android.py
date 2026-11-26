@@ -74,6 +74,27 @@ def inspect_apk(apk, version, certificate, aapt, signer, env):
             'certificateSha256': certificate, 'signatureV2Verified': True, 'arm64Included': True}
 
 
+MLKIT_REGISTRARS = (
+    'com.google.mlkit.common.internal.CommonComponentRegistrar',
+    'com.google.mlkit.vision.common.internal.VisionCommonRegistrar',
+    'com.google.mlkit.vision.text.internal.TextRegistrar',
+)
+
+
+def verify_mlkit_registrars(apk, env):
+    """Check the optimized DEX, not just manifest entries or ProGuard source rules."""
+    analyzer = audit.android_sdk() / 'cmdline-tools/latest/bin/apkanalyzer.bat'
+    if not analyzer.is_file():
+        raise ValueError('Android SDK command-line tools with apkanalyzer are required')
+    for name in MLKIT_REGISTRARS:
+        command, child = tool_invocation(
+            [analyzer, 'dex', 'code', '--class', name, '--method', '<init>()V', apk], env)
+        result = subprocess.run(command, env=child, capture_output=True, encoding='utf-8')
+        if result.returncode or not re.search(
+                r'^\s*\.method\s+public\s+constructor\s+<init>\(\)V\s*$', result.stdout, re.M):
+            raise ValueError('Optimized APK lacks a public ML Kit registrar constructor: ' + name)
+
+
 def main():
     cli = argparse.ArgumentParser(description=__doc__)
     cli.add_argument('--allow-dirty', action='store_true', help='Local rehearsal only; output is marked development')
@@ -104,10 +125,12 @@ def main():
     # Project arguments retain their case through Flutter on Windows. Environment
     # names are uppercased by Python/Dart and cannot carry kotlin.incremental.
     command, flutter_env = tool_invocation(
-        [flutter, 'build', 'apk', '--release', '--android-project-arg=kotlin.incremental=false'], env)
+        [flutter, 'build', 'apk', '--release', '--target=lib/main.dart',
+         '--android-project-arg=kotlin.incremental=false'], env)
     subprocess.run(command, cwd=ROOT, env=flutter_env, check=True)
     apk = ROOT / 'build/app/outputs/flutter-apk/app-release.apk'
     metadata = inspect_apk(apk, version, certificate, build_tools / 'aapt2.exe', build_tools / 'apksigner.bat', env)
+    verify_mlkit_registrars(apk, env)
     native, permissions = audit.verify_apk(apk)
     dirty = verify_source_unchanged(commit, args.allow_dirty) or dirty
     metadata.update({'version': version.full, 'tag': version.tag,
@@ -116,6 +139,7 @@ def main():
         'apkSha256': sha256(apk), 'apkBytes': apk.stat().st_size,
         'noticeInventorySha256': sha256(ROOT / 'third_party/dependencies.json'),
         'applicationLicense': 'MIT', 'packagedNoticesVerified': True,
+        'mlkitRegistrarConstructorsVerified': True,
         'nativeLibraries': native, 'permissions': permissions.splitlines(),
         'phoneAcceptanceComplete': False})
     with artifact.open('xb') as target, apk.open('rb') as source:

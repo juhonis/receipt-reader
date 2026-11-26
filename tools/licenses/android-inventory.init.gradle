@@ -30,7 +30,7 @@ gradle.projectsEvaluated {
             def target = new File(gradle.rootProject.projectDir, '../build/licenses/android-artifacts.json')
             target.parentFile.mkdirs()
             def inputs = [:]
-            ['pubspec.yaml', 'pubspec.lock', 'android/app/build.gradle.kts',
+            ['pubspec.yaml', 'pubspec.lock', 'android/app/build.gradle.kts', 'android/app/proguard-rules.pro',
              'android/settings.gradle.kts', 'android/build.gradle.kts',
              'android/gradle.properties', 'tools/licenses/android-inventory.init.gradle'].each { name ->
                 def source = new File(gradle.rootProject.projectDir, '../' + name)

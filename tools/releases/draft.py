@@ -35,6 +35,7 @@ def validate_assets(directory, version, commit, certificate):
             if (metadata.get('apkSha256') != checksum or metadata.get('certificateSha256') != certificate or
                     metadata.get('signatureV2Verified') is not True or metadata.get('arm64Included') is not True or
                     metadata.get('packagedNoticesVerified') is not True or
+                    metadata.get('mlkitRegistrarConstructorsVerified') is not True or
                     metadata.get('applicationId') != 'fi.juhonis.receipt_reader' or
                     metadata.get('versionName') != version.name or metadata.get('versionCode') != version.build):
                 raise ValueError('Android artifact verification is incomplete')

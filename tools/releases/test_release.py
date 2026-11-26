@@ -6,12 +6,31 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from android import inspect_apk, tool_invocation, verify_source_unchanged
+from android import inspect_apk, tool_invocation, verify_source_unchanged, verify_mlkit_registrars
 import setup_signing
 from version import check_history, parse, sync
 
 
 class VersionTests(unittest.TestCase):
+    def test_optimized_apk_requires_public_no_argument_mlkit_constructors(self):
+        with tempfile.TemporaryDirectory() as directory:
+            sdk = Path(directory)
+            analyzer = sdk / 'cmdline-tools/latest/bin/apkanalyzer.bat'
+            analyzer.parent.mkdir(parents=True)
+            analyzer.touch()
+            public = subprocess.CompletedProcess([], 0, '.method public constructor <init>()V\n.end method\n', '')
+            with patch('android.audit.android_sdk', return_value=sdk), \
+                    patch('android.subprocess.run', return_value=public) as run:
+                verify_mlkit_registrars(Path('app.apk'), {})
+                self.assertEqual(run.call_count, 3)
+            for result in [subprocess.CompletedProcess([], 1, '', 'not found'),
+                           subprocess.CompletedProcess([], 0, '.method private constructor <init>()V\n', ''),
+                           subprocess.CompletedProcess([], 0, '.method public constructor <init>(I)V\n', '')]:
+                with self.subTest(result=result), patch('android.audit.android_sdk', return_value=sdk), \
+                        patch('android.subprocess.run', side_effect=[public, public, result]), \
+                        self.assertRaisesRegex(ValueError, 'TextRegistrar'):
+                    verify_mlkit_registrars(Path('app.apk'), {})
+
     def test_reusing_or_lowering_a_previously_tagged_android_build_is_rejected(self):
         for previous, accepted in [('0.2.0-alpha.1+2', True), ('0.2.0-alpha.1+3', False), ('0.2.0-alpha.1+4', False)]:
             with self.subTest(previous=previous), patch('version.subprocess.check_output', side_effect=[
