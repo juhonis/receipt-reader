@@ -1,9 +1,23 @@
-# v0.2.0-alpha.7
+# v0.2.0-alpha.8
 
-Fixes Android OCR failing immediately after import/capture in release builds. The
-optimized APK now retains ML Kit's reflected initializer constructors, and failed
-startup no longer leaves later attempts stuck as busy. CI checks the optimized
-DEX as well as compiling debug builds. Install over the existing alpha to retain data.
+Improves receipt recognition and review. Split price tokens now help automatic
+layout detection and preserve printed amounts. Known header notices and payment
+details no longer create unrelated product warnings; uncertain receipt content
+still needs review.
+
+Header text now recommends a Toimipiste and selects an existing branch only when
+there is one exact normalized-name match. Ambiguous matches require a choice;
+manual choices are preserved, and recognition never creates a branch by itself.
+
+Product rows offer **Ehdota nimeä tai tuotetta** from the selected branch's catalog.
+Use a suggested name or link a product explicitly. Name corrections retain original
+OCR evidence and financial values. Unknown names still need manual correction;
+suggestions never create aliases or merge products automatically.
+
+Includes alpha.7's release-mode OCR startup fix. This is Android build **9** with
+the same permanent signing certificate. Install over the existing release alpha
+to retain receipts and catalog data. No database or backup format changes from
+alpha.7. Before updating, keep an independent encrypted backup.
 
 Includes **Ota kuva** on Android: photograph receipts inside the app without creating
 gallery or temporary image files. The picture stays in memory during OCR/review
