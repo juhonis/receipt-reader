@@ -49,10 +49,8 @@ is an initial single-column layout implementation, not a general layout solver.
 
 `parseReceipt` takes an item-section top and price-column left edge in that
 image's pixels. These can remain explicit layout hints or come from the optional
-`proposeLayout` detector described below. Store/branch recognition is not
-implemented. Header date candidates are
-described below. A price
-column boundary cutting through a word or a badly skewed image can produce
+`proposeLayout` detector described below. Header name and date candidates are
+described below. A price-column boundary cutting through a word or a badly skewed image can produce
 unclassified rows; tune neither hints nor expected outputs to hide failures.
 
 ### Conservative layout proposals
@@ -195,6 +193,17 @@ Persistence validation and OCR issue-resolution workflows remain open.
 The numeric and printed-date conventions are now defined. Broad layout coverage,
 store confirmation, discount-parent relationships, date correction, and save
 validation remain open; this is not a production-ready parser milestone.
+
+## Header name candidates
+
+`ReceiptDraft.branchCandidates` retains proposed header names and their original
+word identities. Only baselines wholly above the item boundary qualify. Explicit
+inline phone/tax labels end a name; separating punctuation is excluded from the
+proposed name while source words stay unchanged. Metadata interrupts multiline
+joining, and overlapping header words do not produce candidates. Nearby aligned
+name lines can supply a two-line candidate. Candidates do not change financial
+rows, findings, source coverage or save approval. Existing-branch matching belongs
+to the app and uses complete normalized names; see [review](receipt-review.md).
 
 ## Verification
 

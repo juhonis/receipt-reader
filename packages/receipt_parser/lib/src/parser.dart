@@ -2,6 +2,7 @@ import 'finance.dart';
 import 'amount_geometry.dart';
 import 'geometry.dart';
 import 'receipt_date.dart';
+import 'receipt_branch.dart';
 import 'receipt_syntax.dart';
 
 enum ParseIssue {
@@ -106,6 +107,7 @@ class ReceiptDraft {
     Iterable<ParseFinding> findings = const [],
     this.evidenceCoverage,
     this.parseContext,
+    Iterable<ReceiptBranchCandidate> branchCandidates = const [],
   }) : rowEvidence = List.unmodifiable(
          rowEvidence.map((words) => List<OcrWord>.unmodifiable(words)),
        ),
@@ -113,7 +115,9 @@ class ReceiptDraft {
        issues = Set.unmodifiable(issues),
        notes = List.unmodifiable(notes),
        wrappedNames = List.unmodifiable(wrappedNames),
-       findings = List.unmodifiable(findings);
+       findings = List.unmodifiable(findings),
+       branchCandidates = List.unmodifiable(branchCandidates);
+  final List<ReceiptBranchCandidate> branchCandidates;
   final List<ParseFinding> findings;
   final ReceiptEvidenceCoverage? evidenceCoverage;
   final ReceiptParseContext? parseContext;
@@ -262,6 +266,9 @@ ReceiptDraft parseReceipt(
     bands
         .where((b) => b.every((w) => w.box.bottom <= itemTop))
         .map((b) => b.map((w) => w.text).join(' ')),
+  );
+  final branchCandidates = receiptBranchCandidates(
+    bands.where((b) => b.every((w) => w.box.bottom <= itemTop)),
   );
   bands.removeWhere((b) => b.any((w) => w.box.top < itemTop));
   final totals = bands
@@ -472,6 +479,7 @@ ReceiptDraft parseReceipt(
     wrappedNames,
     rowEvidence: rowEvidence,
     findings: findings,
+    branchCandidates: branchCandidates,
     parseContext: ReceiptParseContext(page, itemTop, priceColumnLeft),
     evidenceCoverage: ReceiptEvidenceCoverage(
       sourceWords: page.words,

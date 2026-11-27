@@ -7,8 +7,8 @@ on narrow screens. Recognition and parsing still run locally.
 ## Everyday workflow
 
 1. Import a JPEG/PNG, run recognition and check/apply the proposed layout.
-2. Choose a stored branch or enter a new branch's name/location. This deliberate
-   choice is sufficient; there is no extra branch-confirmation checkbox.
+2. Check the suggested branch, choose a stored branch or enter a new branch's
+   name/location. There is no extra branch-confirmation checkbox.
 3. Compare the displayed data to the original and edit anything incorrect. Field
    errors and the summary highlight missing/invalid fields and mismatched totals.
    Summary links return to the branch, date, total or affected row.
@@ -19,6 +19,24 @@ on narrow screens. Recognition and parsing still run locally.
 remaining blocker. It does not promise OCR accuracy: a wrong product name, omitted
 text the engine never recognized, or compensating amount errors can escape these
 checks. Every field remains editable even when the totals match.
+
+## Toimipiste recommendations
+
+After parsing, header text offers names to review. Exactly one existing branch
+whose complete name matches a candidate is selected automatically, with a visible
+reminder to check it. Matching trims/collapses whitespace and ignores case; it
+preserves diacritics and punctuation and does not use substring or fuzzy matching.
+Duplicate names or conflicting header matches require an explicit choice.
+
+Header extraction separates names from explicit inline phone/tax labels and their
+separator punctuation. Other metadata and text crossing the item boundary do not
+become names. Closely spaced adjacent header lines can supply a combined name.
+These are suggestions from OCR, not verified store identities or address lookup.
+
+**Käytä uutena nimenä** explicitly fills a new branch's editable name. Recognition
+never creates a stored branch by itself. Manual branch choices/edits take precedence
+over later recognition, and correction screens do not automatically select a new
+branch. The final save action approves the current branch along with the receipt.
 
 ## Optional guided review
 

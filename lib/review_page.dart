@@ -18,6 +18,7 @@ import 'catalog_service.dart';
 import 'product_picker.dart';
 import 'ocr_save_dialog.dart';
 import 'app_version.dart';
+import 'branch_recommendations.dart';
 
 class ReviewPage extends StatefulWidget {
   const ReviewPage({
@@ -178,7 +179,35 @@ class _ReviewPageState extends State<ReviewPage> {
 
   List<ReceiptBranch>? _branches;
   String? _branchChoice;
+  bool _branchTouched = false;
+  String? _automaticBranchChoice;
   bool _branchLoadFailed = false, _savePreparationFailed = false;
+
+  List<ReceiptBranch> get _recommendedBranches => recommendedBranches(
+    _draft?.branchCandidates ?? const [],
+    _branches ?? const [],
+  );
+
+  void _recommendBranch() {
+    // A saved receipt's branch and all explicit user choices take precedence.
+    if (_branchTouched || widget._initial != null) return;
+    final matches = _recommendedBranches;
+    if (matches.length != 1) return;
+    _branchChoice = matches.single.id.value;
+    _branch.text = matches.single.name;
+    _automaticBranchChoice = _branchChoice;
+  }
+
+  void _chooseBranch(String value, {String? proposedName}) {
+    _branchTouched = true;
+    _automaticBranchChoice = null;
+    _branchChoice = value;
+    _branch.text = value == 'new'
+        ? proposedName ?? ''
+        : _branches!.firstWhere((b) => b.id.value == value).name;
+    _branchConfirmed = false;
+    _edit();
+  }
 
   ReceiptBranch? get _selectedBranch => _branchChoice == 'new'
       ? (_branch.text.trim().isEmpty
@@ -208,6 +237,7 @@ class _ReviewPageState extends State<ReviewPage> {
         setState(() {
           _branches = branches;
           if (branches.isEmpty && _branchChoice == null) _branchChoice = 'new';
+          _recommendBranch();
         });
       }
     } catch (_) {
@@ -933,6 +963,7 @@ class _ReviewPageState extends State<ReviewPage> {
           '${date.second == null ? '' : ':${date.second!.toString().padLeft(2, '0')}'}';
     }
     _sourceRows = List.of(_rows);
+    _recommendBranch();
   }
 
   @override
@@ -1362,6 +1393,48 @@ class _ReviewPageState extends State<ReviewPage> {
                       const SizedBox(height: 16),
                       if (widget.store != null) ...[
                         Text(s.ocrBranchChoiceHelp),
+                        if (_automaticBranchChoice != null)
+                          Text(
+                            s.ocrBranchAutomaticallySelected,
+                            key: const Key('ocr-branch-auto-selected'),
+                          ),
+                        if (_branches != null &&
+                            (_draft?.branchCandidates.isNotEmpty ?? false)) ...[
+                          Text(s.ocrBranchSuggestions),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: [
+                              for (final branch in _recommendedBranches)
+                                ActionChip(
+                                  key: ValueKey(
+                                    'ocr-branch-match-${branch.id.value}',
+                                  ),
+                                  label: Text(
+                                    s.ocrUseExistingBranch(branch.name),
+                                  ),
+                                  onPressed: () =>
+                                      _chooseBranch(branch.id.value),
+                                ),
+                              for (final name in {
+                                for (final candidate
+                                    in _draft!.branchCandidates)
+                                  if (!_recommendedBranches.any(
+                                    (b) =>
+                                        normalizeReceiptNameV1(b.name) ==
+                                        normalizeReceiptNameV1(candidate.name),
+                                  ))
+                                    candidate.name,
+                              })
+                                ActionChip(
+                                  key: ValueKey('ocr-branch-name-$name'),
+                                  label: Text(s.ocrUseBranchName(name)),
+                                  onPressed: () =>
+                                      _chooseBranch('new', proposedName: name),
+                                ),
+                            ],
+                          ),
+                        ],
                         if (_branches == null && !_branchLoadFailed)
                           const LinearProgressIndicator(),
                         if (_branchLoadFailed) ...[
@@ -1395,14 +1468,7 @@ class _ReviewPageState extends State<ReviewPage> {
                               ),
                             ],
                             onChanged: (value) {
-                              _branchChoice = value;
-                              _branch.text = value == 'new'
-                                  ? ''
-                                  : _branches!
-                                        .firstWhere((b) => b.id.value == value)
-                                        .name;
-                              _branchConfirmed = false;
-                              _edit();
+                              if (value != null) _chooseBranch(value);
                             },
                           ),
                         if (_branchChoice == 'new') Text(s.newBranchNotice),
@@ -1427,6 +1493,8 @@ class _ReviewPageState extends State<ReviewPage> {
                             errorMaxLines: 3,
                           ),
                           onChanged: (_) {
+                            _branchTouched = true;
+                            _automaticBranchChoice = null;
                             _branchConfirmed = false;
                             _edit();
                           },

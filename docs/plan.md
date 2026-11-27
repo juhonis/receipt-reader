@@ -48,7 +48,8 @@ update button yet.
 
 A confirmed private receipt now produces automatic boundaries, correct amounts,
 date/time, total and both quantity lines in the optimized Android pipeline.
-Product-name errors and missing branch extraction remain separate problems.
+Header names now support branch recommendations and exact existing-name matches;
+product-name errors remain open.
 Detailed evidence and the confirmed reference stay in the Git-ignored
 `localreceipts/` folder; do not copy private data into public fixtures.
 
@@ -63,18 +64,19 @@ Detailed evidence and the confirmed reference stay in the Git-ignored
    wholly within an anchored payment/footer region no longer create product
    warnings. Unknown/unpriced text, date/total/product geometry, section cuts and
    boxes extending into the total remain reviewable. Final approval is unchanged.
-3. Recommend Toimipiste from header text and select a unique normalized-name match
-   from existing branches. Keep ambiguous matches user-selectable; do not silently
-   create branches or overwrite user edits.
+3. Completed Toimipiste recommendations from header text, with automatic selection
+   of a unique normalized-name match among existing branches. Duplicate/conflicting
+   matches remain user-selectable. New names need an explicit action, user choices
+   take precedence and saving still requires approval. See [review](receipt-review.md).
 4. Offer reviewable product-name/catalog suggestions. Measure bounded in-memory
    image preprocessing only after layout improvements; keep the current offline
    engine until broader evidence justifies a replacement.
 
 Validate each field against confirmed references, repeat on both native platforms
 for shared-parser changes, and test fresh photos on the OnePlus. One successful
-receipt or a reconciled total is not a general OCR accuracy result. The next
-implementation should add Toimipiste recommendation and unique existing-branch
-matching without silently creating branches or choosing ambiguous matches.
+receipt or a reconciled total is not a general OCR accuracy result. Next, add
+reviewable product-name/catalog suggestions without silently changing product
+identities or merging catalog entries.
 
 ## Next milestone: repeatable phone testing and releases
 
