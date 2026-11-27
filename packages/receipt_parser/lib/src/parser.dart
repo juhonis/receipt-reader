@@ -272,6 +272,16 @@ ReceiptDraft parseReceipt(
   final candidates = totals
       .where((b) => footer < 0 || bands.indexOf(b) < footer)
       .toList();
+  // Only an uninterrupted prefix of exact, unpriced boilerplate is header
+  // evidence. Unknown descriptions or a posted amount end that prefix; they
+  // may be an unpriced product and must not disappear into header metadata.
+  final headerNotices = <List<OcrWord>>{};
+  if (date.printed != null) {
+    for (final band in bands) {
+      if (!receiptHeaderNotice(band.map((w) => w.text).join(' '))) break;
+      headerNotices.add(band);
+    }
+  }
   activeWords = candidates.expand((band) => band);
   activeScope = FindingScope.total;
   BigInt? total;
@@ -286,6 +296,34 @@ ReceiptDraft parseReceipt(
     }
     if (total == null) report(ParseIssue.invalidAmount);
   }
+  // Finalize geometry only after identifying non-financial evidence. A unique
+  // readable pre-footer total anchors footer exclusion. Unknown post-total text
+  // stays uncovered; absent/ambiguous totals retain conservative geometry checks.
+  final totalBottom = total == null
+      ? null
+      : candidates.single
+            .map((word) => page.baselineY(word) + word.box.height / 2)
+            .reduce((a, b) => a > b ? a : b);
+  final nonFinancial = <OcrWord>{
+    ...headerNotices.expand((band) => band),
+    if (footer >= 0 && totalBottom != null)
+      ...bands
+          .skip(footer)
+          .expand((band) => band)
+          .where(
+            (word) => page.baselineY(word) - word.box.height / 2 > totalBottom,
+          ),
+  };
+  findings.removeWhere(
+    (finding) =>
+        finding.issue == ParseIssue.ambiguousGeometry &&
+        finding.geometryKind != GeometryFindingKind.sectionBoundary &&
+        finding.words.isNotEmpty &&
+        finding.words.every(nonFinancial.contains),
+  );
+  issues
+    ..clear()
+    ..addAll(findings.map((finding) => finding.issue));
   final end = candidates.isNotEmpty
       ? bands.indexOf(candidates.first)
       : footer >= 0
@@ -302,6 +340,7 @@ ReceiptDraft parseReceipt(
     caseSensitive: false,
   );
   for (final band in bands.take(end)) {
+    if (headerNotices.contains(band)) continue;
     activeWords = band;
     activeScope = FindingScope.item;
     activeRow = null;
@@ -436,7 +475,10 @@ ReceiptDraft parseReceipt(
     parseContext: ReceiptParseContext(page, itemTop, priceColumnLeft),
     evidenceCoverage: ReceiptEvidenceCoverage(
       sourceWords: page.words,
-      header: page.words.where((word) => word.box.bottom <= itemTop),
+      header: [
+        ...page.words.where((word) => word.box.bottom <= itemTop),
+        ...headerNotices.expand((band) => band),
+      ],
       rows: rowEvidence.expand((words) => words),
       // Geometry evidence locates a problem; it does not classify its words.
       // Whole-page skew evidence must not conceal section omissions.

@@ -136,6 +136,24 @@ A missing price can look like wrapping, so these are proposals only.
 Payment/VAT boundaries additionally recognize `PANKKIKORTTI`, `VAIHTORAHA`,
 and `VEROTON`. Quantity/rate text can span separate description/price columns.
 
+### Header notices and financial geometry
+
+After a printed header date, an uninterrupted prefix of the exact notice
+`ASIAKASOMISTAJAN EDUT ON HUOMIOITU` (optional period, case/spacing ignored)
+is classified as header evidence. The original words remain in the page and
+coverage. Added prices, extra wording, an unknown preceding line, or a position
+inside the product table prevent this classification. Such text remains available
+for item/wrapped-name review; boilerplate is not a fuzzy product-name filter.
+
+Geometry findings are finalized after sections are identified. With one readable
+pre-footer total and a known payment/VAT boundary, overlaps and price-column
+crossings wholly within footer evidence do not become product warnings. Footer
+boxes must lie fully below the total in projected coordinates. Mixed findings,
+unknown post-total text, product/date/total geometry and cut item-section boundaries
+remain reviewable. Missing or competing totals retain conservative geometry checks.
+Global skew and financial/text-normalization findings are unchanged. Classifying
+metadata never supplies the final receipt approval or excuses an omitted product.
+
 ## Printed dates and Helsinki time
 
 `draft.date` is independent of financial reconciliation. `parseReceiptDate`

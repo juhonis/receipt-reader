@@ -29,3 +29,9 @@ String? receiptTotalLabel(String text) =>
 bool receiptFooterLabel(String text) => RegExp(
   r'^(ALV|VEROTON|VISA|MASTERCARD|KÄTEINEN|MAKSETTU|PANKKIKORTTI|VAIHTORAHA|BONUSTA|JÄSENNUMERO|TID)(?:\s|:|$)',
 ).hasMatch(text.trim().toUpperCase());
+
+/// A complete printed boilerplate notice, not a fuzzy product-name classifier.
+/// The parser additionally requires a leading position after a printed date.
+bool receiptHeaderNotice(String text) =>
+    RegExp(r'^ASIAKASOMISTAJAN EDUT ON HUOMIOITU\.?$')
+        .hasMatch(text.trim().toUpperCase().replaceAll(RegExp(r'\s+'), ' '));

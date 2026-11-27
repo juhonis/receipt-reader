@@ -46,12 +46,11 @@ update button yet.
 
 ## Immediate priority: receipt recognition quality
 
-A confirmed private receipt was tested through the unchanged optimized Android
-OCR/parser. Automatic layout failed on split decimal tokens. Replaying the same
-words with visual manual boundaries recovered all seven amounts, the date/time,
-total and both quantity lines. Product-name errors and missing branch extraction
-remain separate problems. Detailed evidence and the confirmed reference stay in
-the Git-ignored `localreceipts/` folder; do not copy private data into public fixtures.
+A confirmed private receipt now produces automatic boundaries, correct amounts,
+date/time, total and both quantity lines in the optimized Android pipeline.
+Product-name errors and missing branch extraction remain separate problems.
+Detailed evidence and the confirmed reference stay in the Git-ignored
+`localreceipts/` folder; do not copy private data into public fixtures.
 
 1. Completed the first slice: layout and parsing share geometry-aware joining for
    split amounts, preserving printed signs and original evidence. Invented
@@ -60,9 +59,10 @@ the Git-ignored `localreceipts/` folder; do not copy private data into public fi
    confirmed private image now produces automatic boundaries and correct financial
    fields in an optimized emulator run. This does not remove its text errors or
    header/footer review findings, and does not establish general OCR accuracy.
-2. Separate header/item/total/footer evidence so payment geometry and introductory
-   notices do not create misleading financial warnings. Preserve ambiguous and
-   unpriced item evidence and an explicit manual-layout fallback.
+2. Completed section-aware findings: exact leading header notices and geometry
+   wholly within an anchored payment/footer region no longer create product
+   warnings. Unknown/unpriced text, date/total/product geometry, section cuts and
+   boxes extending into the total remain reviewable. Final approval is unchanged.
 3. Recommend Toimipiste from header text and select a unique normalized-name match
    from existing branches. Keep ambiguous matches user-selectable; do not silently
    create branches or overwrite user edits.
@@ -73,8 +73,8 @@ the Git-ignored `localreceipts/` folder; do not copy private data into public fi
 Validate each field against confirmed references, repeat on both native platforms
 for shared-parser changes, and test fresh photos on the OnePlus. One successful
 receipt or a reconciled total is not a general OCR accuracy result. The next
-implementation should separate section evidence and reduce irrelevant warnings,
-then add Toimipiste recommendation/lookup.
+implementation should add Toimipiste recommendation and unique existing-branch
+matching without silently creating branches or choosing ambiguous matches.
 
 ## Next milestone: repeatable phone testing and releases
 
