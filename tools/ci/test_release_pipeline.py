@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
-from prepare import install_kotlin_guard
+from prepare import install_kotlin_guard, prepare_android_tools
 from android_release_smoke import check_release
 sys.path.insert(0, str(ROOT / 'tools/releases'))
 from ci_signing import signed_build, verify_keystore
@@ -166,6 +166,25 @@ class SigningTests(unittest.TestCase):
 
 
 class GradleGuardTests(unittest.TestCase):
+    def test_prepare_installs_pinned_analyzer_even_when_other_packages_exist(self):
+        with tempfile.TemporaryDirectory() as directory:
+            sdk = Path(directory)
+            manager = sdk / 'cmdline-tools/latest/bin/sdkmanager.bat'
+            manager.parent.mkdir(parents=True)
+            manager.touch()
+            (sdk / 'build-tools/36.0.0').mkdir(parents=True)
+            tools = sdk / 'cmdline-tools/23.0'
+            with patch('prepare.android_command_line_tools', side_effect=[ValueError('old tools'), tools]), \
+                    patch('prepare.run') as run, redirect_stdout(StringIO()):
+                prepare_android_tools(sdk, ['build-tools;36.0.0'], {})
+            self.assertEqual(run.call_count, 2)
+            self.assertEqual(run.call_args.args[0],
+                             [manager, '--sdk_root=' + str(sdk), 'cmdline-tools;23.0'])
+            with patch('prepare.android_command_line_tools', return_value=tools), \
+                    patch('prepare.run') as run, redirect_stdout(StringIO()):
+                prepare_android_tools(sdk, ['build-tools;36.0.0'], {})
+            run.assert_not_called()
+
     def test_guard_install_preserves_unrelated_init_scripts_and_is_repeatable(self):
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)

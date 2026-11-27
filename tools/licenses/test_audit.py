@@ -11,6 +11,27 @@ import audit
 
 
 class NoticeTests(unittest.TestCase):
+    def test_analyzer_selection_requires_exact_revision_and_complete_tools(self):
+        with tempfile.TemporaryDirectory() as directory:
+            sdk = Path(directory)
+            latest = sdk / 'cmdline-tools/latest'
+            pinned = sdk / 'cmdline-tools' / audit.ANDROID_COMMAND_LINE_TOOLS_VERSION
+            for tools in [latest, pinned]:
+                (tools / 'bin').mkdir(parents=True)
+                for name in ['apkanalyzer.bat', 'sdkmanager.bat']:
+                    (tools / 'bin' / name).touch()
+            latest.joinpath('source.properties').write_text('Pkg.Revision=8.0\n')
+            with self.assertRaisesRegex(ValueError, 'cmdline-tools;23.0'):
+                audit.android_command_line_tools(sdk)
+            latest.joinpath('source.properties').write_text('Pkg.Revision=23.0\n')
+            self.assertEqual(audit.android_command_line_tools(sdk), latest)
+            pinned.joinpath('source.properties').write_text('Pkg.Revision = 23.0\n')
+            self.assertEqual(audit.android_command_line_tools(sdk), pinned)
+            pinned.joinpath('bin/apkanalyzer.bat').unlink()
+            latest.joinpath('source.properties').write_text('Pkg.Revision=24.0\n')
+            with self.assertRaises(ValueError):
+                audit.android_command_line_tools(sdk)
+
     def test_verifiers_use_prepared_build_tools_even_with_newer_sdk_tools(self):
         with tempfile.TemporaryDirectory() as directory:
             sdk = Path(directory)

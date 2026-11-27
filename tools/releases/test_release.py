@@ -15,21 +15,33 @@ class VersionTests(unittest.TestCase):
     def test_optimized_apk_requires_public_no_argument_mlkit_constructors(self):
         with tempfile.TemporaryDirectory() as directory:
             sdk = Path(directory)
-            analyzer = sdk / 'cmdline-tools/latest/bin/apkanalyzer.bat'
-            analyzer.parent.mkdir(parents=True)
-            analyzer.touch()
+            tools = sdk / 'cmdline-tools/23.0'
             public = subprocess.CompletedProcess([], 0, '.method public constructor <init>()V\n.end method\n', '')
-            with patch('android.audit.android_sdk', return_value=sdk), \
+            with patch('android.audit.android_command_line_tools', return_value=tools), \
                     patch('android.subprocess.run', return_value=public) as run:
                 verify_mlkit_registrars(Path('app.apk'), {})
                 self.assertEqual(run.call_count, 3)
-            for result in [subprocess.CompletedProcess([], 1, '', 'not found'),
-                           subprocess.CompletedProcess([], 0, '.method private constructor <init>()V\n', ''),
+            for result in [subprocess.CompletedProcess([], 0, '.method private constructor <init>()V\n', ''),
                            subprocess.CompletedProcess([], 0, '.method public constructor <init>(I)V\n', '')]:
-                with self.subTest(result=result), patch('android.audit.android_sdk', return_value=sdk), \
+                with self.subTest(result=result), patch('android.audit.android_command_line_tools', return_value=tools), \
                         patch('android.subprocess.run', side_effect=[public, public, result]), \
                         self.assertRaisesRegex(ValueError, 'TextRegistrar'):
                     verify_mlkit_registrars(Path('app.apk'), {})
+
+    def test_analyzer_failure_reports_tool_diagnostic_without_signing_environment(self):
+        failure = subprocess.CompletedProcess([], 1, '', 'SDK tool initialization failed')
+        env = {**os.environ, 'RECEIPT_READER_STORE_PASSWORD': 'synthetic-password',
+               'RECEIPT_READER_BATCH_ARG_99': 'stale-value'}
+        with patch('android.audit.android_command_line_tools', return_value=Path('sdk/tools')), \
+                patch('android.subprocess.run', return_value=failure) as run, \
+                self.assertRaisesRegex(ValueError, 'APK analyzer failed') as error:
+            verify_mlkit_registrars(Path('app.apk'), env)
+        self.assertIn('SDK tool initialization failed', str(error.exception))
+        self.assertNotIn('lacks a public', str(error.exception))
+        child = run.call_args.kwargs['env']
+        self.assertNotIn('RECEIPT_READER_STORE_PASSWORD', child)
+        self.assertNotIn('RECEIPT_READER_BATCH_ARG_99', child)
+        self.assertEqual(env['RECEIPT_READER_STORE_PASSWORD'], 'synthetic-password')
 
     def test_reusing_or_lowering_a_previously_tagged_android_build_is_rejected(self):
         for previous, accepted in [('0.2.0-alpha.1+2', True), ('0.2.0-alpha.1+3', False), ('0.2.0-alpha.1+4', False)]:

@@ -11,7 +11,7 @@ for checks and distribution, rather than appending feature verification here.
 | --- | --- |
 | Flutter / Dart | Flutter stable 3.50.0 / bundled Dart 3.14.0 |
 | Android Studio | Installed with Flutter/Dart plugins; use its bundled JDK 21 |
-| Android SDK | Platforms 35 and 36, build tools 36.0.0, NDK 28.2.13676358 |
+| Android SDK | Platforms 35 and 36, build tools 36.0.0, command-line tools 23.0, NDK 28.2.13676358 |
 | Emulator | `Receipt_Reader_API_36_1`, Pixel 7 profile, Android 36.1 Google Play x86_64 |
 | Windows C++ | Visual Studio 2022 Build Tools 17.14.45, C++ desktop workload, CMake, Windows SDK 10.0.26100.0 |
 | Windows OCR setup | Python 3.12+; builds pinned bundled Tesseract/models using the C++ tools |

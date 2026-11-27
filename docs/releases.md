@@ -151,6 +151,10 @@ for publisher signing. See [dependency terms and notices](dependency-licenses.md
    preserve reflection entry points; merely keeping their class names is insufficient.
    The APK wrapper explicitly targets `lib/main.dart`, and draft provenance must
    include the successful constructor check. No diagnostic entry point is distributed.
+   CI prepares command-line tools 23.0, matching the locally tested analyzer.
+   Verifiers accept `cmdline-tools/23.0` or `latest` with revision 23.0 confirmed
+   in `source.properties`; analyzer execution errors report their tool diagnostic
+   separately from a successful inspection that finds a missing constructor.
 4. Produce versioned assets, SHA-256 checksums, sanitized commit/build provenance,
    and brief user-facing release notes with compatibility/known-issue information.
    [Draft release](../.github/workflows/release.yml) validates the exact six APK/ZIP,

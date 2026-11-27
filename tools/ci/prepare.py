@@ -10,7 +10,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tools/releases'))
 from android import tool_invocation
-from audit import ANDROID_BUILD_TOOLS_VERSION
+from audit import (ANDROID_BUILD_TOOLS_VERSION, ANDROID_COMMAND_LINE_TOOLS_VERSION,
+                   android_command_line_tools)
 
 
 def run(arguments, env, **kwargs):
@@ -29,6 +30,25 @@ def install_kotlin_guard(gradle_home):
     with target.open('xb') as output:
         output.write(source)
     return target
+
+
+def prepare_android_tools(android, packages, env):
+    try:
+        tools = android_command_line_tools(android)
+    except ValueError:
+        tools = None
+    missing = [package for package in packages if not (android / package.replace(';', '/')).is_dir()]
+    if tools is None:
+        missing.append('cmdline-tools;' + ANDROID_COMMAND_LINE_TOOLS_VERSION)
+    if missing:
+        manager = (tools or android / 'cmdline-tools/latest') / 'bin/sdkmanager.bat'
+        if not manager.is_file():
+            raise ValueError('Install Android SDK command-line tools before CI setup')
+        run([manager, '--sdk_root=' + str(android), '--licenses'], env, input='y\n' * 100, text=True)
+        run([manager, '--sdk_root=' + str(android), *missing], env)
+    tools = android_command_line_tools(android)
+    print('Android verification command-line tools:', ANDROID_COMMAND_LINE_TOOLS_VERSION,
+          '(' + str(tools) + ')', flush=True)
 
 
 def prepare(existing=False):
@@ -73,13 +93,7 @@ def prepare(existing=False):
     env['ANDROID_HOME'] = env['ANDROID_SDK_ROOT'] = str(android)
     packages = ['platform-tools', 'platforms;android-35', 'platforms;android-36',
                 'build-tools;' + ANDROID_BUILD_TOOLS_VERSION, 'ndk;' + reviewed['androidNdk']['version']]
-    required = [android / item.replace(';', '/') for item in packages]
-    if not all(path.is_dir() for path in required):
-        manager = android / 'cmdline-tools/latest/bin/sdkmanager.bat'
-        if not manager.is_file():
-            raise ValueError('Install Android SDK command-line tools before CI setup')
-        run([manager, '--sdk_root=' + str(android), '--licenses'], env, input='y\n' * 100, text=True)
-        run([manager, '--sdk_root=' + str(android), *packages], env)
+    prepare_android_tools(android, packages, env)
     if not existing:
         run([flutter, 'precache', '--windows', '--android'], env)
     run([flutter, 'pub', 'get', '--enforce-lockfile'], env)

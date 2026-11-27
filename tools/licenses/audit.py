@@ -20,6 +20,7 @@ SEPARATOR = '\n' + '-' * 80 + '\n'
 GOOGLE_TERMS = 'https://developers.google.com/ml-kit/terms'
 ANDROID_TERMS = 'https://developer.android.com/studio/terms.html'
 ANDROID_BUILD_TOOLS_VERSION = '36.0.0'
+ANDROID_COMMAND_LINE_TOOLS_VERSION = '23.0'
 
 
 def digest(data):
@@ -70,6 +71,23 @@ def android_build_tools():
         raise ValueError('Install Android SDK build-tools;' + ANDROID_BUILD_TOOLS_VERSION +
                          ' before verifying an APK; newer versions are not a fallback')
     return tools
+
+
+def android_command_line_tools(sdk=None):
+    """Select the tested analyzer revision, including Android Studio's latest layout."""
+    sdk = android_sdk() if sdk is None else sdk
+    for name in [ANDROID_COMMAND_LINE_TOOLS_VERSION, 'latest']:
+        tools = sdk / 'cmdline-tools' / name
+        properties = tools / 'source.properties'
+        if not properties.is_file():
+            continue
+        revision = re.search(r'^Pkg\.Revision\s*=\s*(\S+)\s*$',
+                             properties.read_text(encoding='utf-8'), re.M)
+        if (revision and revision[1] == ANDROID_COMMAND_LINE_TOOLS_VERSION and
+                all((tools / 'bin' / tool).is_file() for tool in ['apkanalyzer.bat', 'sdkmanager.bat'])):
+            return tools
+    raise ValueError('Install Android SDK cmdline-tools;' + ANDROID_COMMAND_LINE_TOOLS_VERSION +
+                     ' before verifying an APK; unversioned latest is not a fallback')
 
 
 def notice_family(name, notice, owned):
