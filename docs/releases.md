@@ -5,7 +5,8 @@ and draft creation; the owner installed its APK on the OnePlus. Alpha.6 adds
 memory-only Android camera capture. Alpha.7 fixes the release-only ML Kit registrar
 constructor removal and adds optimized-DEX checks. Alpha.8 improves split-price
 layout detection, section-aware findings, branch recommendations and explicit
-catalog/name suggestions. Full phone/laptop acceptance, retained-data
+catalog/name suggestions. Alpha.9 adds sequential grouped problem review, optional
+comments and progress retained across unrelated edits. Full phone/laptop acceptance, retained-data
 upgrades, publication and the updater remain open. The [roadmap](plan.md) defines the order of work.
 The first distribution channel will be personal-use alpha pre-releases in the
 public GitHub repository, with Android APK and Windows x64 ZIP assets.
@@ -79,8 +80,8 @@ installation. Never solve a signature mismatch by clearing valuable application 
 
 `pubspec.yaml` is the version source. `tools/releases/version.py` generates the
 displayed `lib/app_version.dart`; its check rejects stale metadata or a wrong tag.
-The current candidate is `0.2.0-alpha.8+9`, with expected tag `v0.2.0-alpha.8` and
-Android build 9. Earlier candidates/tags are retained separately. Version checks
+The current candidate is `0.2.0-alpha.9+10`, with expected tag `v0.2.0-alpha.9` and
+Android build 10. Earlier candidates/tags are retained separately. Version checks
 reject tag mismatches and build numbers not greater than previous tagged builds.
 Local builders create no tag/release. Reject asset replacement for published
 versions. Artifacts should identify platform, version and build unambiguously.
@@ -91,7 +92,7 @@ After changing the pubspec version, regenerate and commit the Dart metadata:
 
 ```powershell
 python tools/releases/version.py
-python tools/releases/version.py --check --tag v0.2.0-alpha.8 --check-history
+python tools/releases/version.py --check --tag v0.2.0-alpha.9 --check-history
 python -m unittest discover -s tools/releases -p 'test_*.py'
 ```
 
@@ -99,7 +100,7 @@ Refresh the [notice inventory](dependency-licenses.md#reproduce-and-update) when
 its recorded build inputs change. From a clean, reviewed commit, build with:
 
 ```powershell
-python tools/releases/android.py --tag v0.2.0-alpha.8
+python tools/releases/android.py --tag v0.2.0-alpha.9
 ```
 
 The wrapper checks current notice evidence, builds the signed universal APK and
@@ -117,7 +118,7 @@ publishes, installs on a device, grants public-release approval or proves phone
 acceptance. Finish privacy/native-picker and offline/upgrade tests separately.
 
 Windows keeps the portable ZIP. Build it with `flutter build windows --release`,
-then `python tools/windows_ocr/package.py --tag v0.2.0-alpha.8`. Versioned mode
+then `python tools/windows_ocr/package.py --tag v0.2.0-alpha.9`. Versioned mode
 produces immutable ZIP/checksum/evidence files alongside the APK. The no-tag mode
 remains the legacy development ZIP. Preserve existing notice/runtime audits
 and settle applicable distribution conditions. Assess Authenticode signing before
@@ -205,7 +206,7 @@ The procedure below remains the reference for another repository/installation.
 | `ANDROID_KEY_PASSWORD` | `keyPassword` from the private configuration |
 
 4. Push the reviewed main commit and let Checks pass. Then create/push its exact
-   version tag, for example `v0.2.0-alpha.8`. Tags whose commits are not on main,
+   version tag, for example `v0.2.0-alpha.9`. Tags whose commits are not on main,
    stale generated metadata and reused/lower Android build numbers are rejected.
 5. Approve the builders, inspect the draft/assets, and perform the phone/laptop
    checks before explicitly publishing. A failed upload can leave an incomplete

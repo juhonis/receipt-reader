@@ -1,23 +1,27 @@
-# v0.2.0-alpha.8
+# v0.2.0-alpha.9
 
-Improves receipt recognition and review. Split price tokens now help automatic
-layout detection and preserve printed amounts. Known header notices and payment
-details no longer create unrelated product warnings; uncertain receipt content
-still needs review.
+Streamlines receipt review after phone feedback. Possible problems now appear one
+at a time with clear completed/remaining progress. Ignore non-purchase text, choose
+**Selittävä teksti** or another information category, or correct/link a row. The
+next unfinished problem appears automatically and scrolls into view.
 
-Header text now recommends a Toimipiste and selects an existing branch only when
-there is one exact normalized-name match. Ambiguous matches require a choice;
-manual choices are preserved, and recognition never creates a branch by itself.
+Comments are optional throughout problem review. Separate source-word checks on
+one printed line share one action, and already-accounted overlap text no longer
+needs repeated classification. Completed decisions survive unrelated edits;
+changing relevant values reopens their approval. Next alone never dismisses a
+problem. Final saving still requires valid financial data and explicit approval.
 
-Product rows offer **Ehdota nimeä tai tuotetta** from the selected branch's catalog.
-Use a suggested name or link a product explicitly. Name corrections retain original
-OCR evidence and financial values. Unknown names still need manual correction;
-suggestions never create aliases or merge products automatically.
+Includes alpha.8's split-price layout improvements, branch recommendations and
+explicit product-name/catalog suggestions. Unknown product names still need manual
+correction. Original OCR evidence and financial values remain preserved during
+name correction; suggestions never create aliases or merge products automatically.
 
-Includes alpha.7's release-mode OCR startup fix. This is Android build **9** with
+Includes alpha.7's release-mode OCR startup fix. This is Android build **10** with
 the same permanent signing certificate. Install over the existing release alpha
-to retain receipts and catalog data. No database or backup format changes from
-alpha.7. Before updating, keep an independent encrypted backup.
+to retain receipts and catalog data. Before updating, keep an independent encrypted
+backup. Schema and backup format versions are unchanged, but newly supported review
+decisions need alpha.9 or newer for opening/restoring; older alpha builds may reject
+data containing them. Keep the updated app for recovery.
 
 Includes **Ota kuva** on Android: photograph receipts inside the app without creating
 gallery or temporary image files. The picture stays in memory during OCR/review
