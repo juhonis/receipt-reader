@@ -1,4 +1,4 @@
-import 'finance.dart';
+import 'amount_geometry.dart';
 import 'geometry.dart';
 import 'receipt_date.dart';
 import 'receipt_syntax.dart';
@@ -31,7 +31,6 @@ LayoutProposal proposeLayout(OcrPage page) {
   bool sameLine(OcrWord a, OcrWord b) =>
       (page.baselineY(a) - page.baselineY(b)).abs() <=
       (a.box.height < b.box.height ? a.box.height : b.box.height) * .45;
-  BigInt? money(OcrWord w) => parseCents(normalizedOcrAmountLiteral(w.text));
   final footers = page.words.where((w) => receiptFooterLabel(w.text)).toList();
   final footerY = footers.isEmpty
       ? double.infinity
@@ -44,14 +43,9 @@ LayoutProposal proposeLayout(OcrPage page) {
   if (totals.isEmpty) return fail(LayoutIssue.missingTotal);
   if (totals.length != 1) return fail(LayoutIssue.ambiguousTotal);
   final label = totals.single;
-  final totalAmounts = page.words
-      .where(
-        (w) =>
-            w.box.left > label.box.right &&
-            sameLine(label, w) &&
-            money(w) != null,
-      )
-      .toList();
+  final totalAmounts = amountCandidates(
+    page.words.where((w) => sameLine(label, w)).toList(),
+  ).where((w) => w.box.left > label.box.right).toList();
   if (totalAmounts.length != 1) return fail(LayoutIssue.ambiguousTotal);
   final totalAmount = totalAmounts.single;
   final labelWords =
@@ -92,13 +86,13 @@ LayoutProposal proposeLayout(OcrPage page) {
   if (dates.length != 1) return fail(LayoutIssue.missingHeaderDate);
   final date = dates.single.first;
   final tolerance = totalAmount.box.height;
+  final amounts = headerLines.expand(amountCandidates).toList();
   final candidates =
-      page.words
+      amounts
           .where(
             (w) =>
                 page.baselineY(w) > page.baselineY(date) &&
                 page.baselineY(w) < page.baselineY(label) &&
-                money(w) != null &&
                 (w.box.right - totalAmount.box.right).abs() <= tolerance,
           )
           .toList()
@@ -125,11 +119,8 @@ LayoutProposal proposeLayout(OcrPage page) {
     return fail(LayoutIssue.ambiguousColumn);
   // An additional decimal column may be unit prices or another receipt. Do not
   // silently decide its meaning, even if one interpretation reconciles.
-  if (page.words.any(
-    (w) =>
-        money(w) != null &&
-        w.box.right < boundary &&
-        candidates.any((p) => sameLine(p, w)),
+  if (amounts.any(
+    (w) => w.box.right < boundary && candidates.any((p) => sameLine(p, w)),
   ))
     return fail(LayoutIssue.ambiguousColumn);
   // Preserve unpriced lines before the first recognized price for review.

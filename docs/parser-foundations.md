@@ -59,11 +59,16 @@ unclassified rows; tune neither hints nor expected outputs to hide failures.
 
 `proposeLayout` requires a unique whole-word total label before recognized footer
 markers, exactly one amount to its right on the projected baseline, a unique
-reconstructed header date, and at least two earlier amount words aligned with
-the total's right edge (within one total-word height). It rejects additional
-decimal columns and ambiguous baseline grouping. It currently requires each
-amount to be represented by one OCR word; split amounts can cause abstention.
-No sum or expected financial value is used to choose a layout.
+reconstructed header date, and at least two earlier amounts aligned with the
+total's right edge (within one total-amount box height). It rejects additional
+decimal columns and ambiguous baseline grouping. Nearby tokens on a projected
+baseline can form one amount, including `1,` + `25`, `1` + `,25`, or
+`1` + `,` + `25`. Layout and parsing share the same monetary-field joining rules:
+non-currency gaps cannot exceed the smaller adjacent word height, and adjacent
+digit runs cannot be fused into a new number. Printed sign tokens stay in the
+amount column. A separate euro suffix does not shift the numeric alignment.
+No digits are inferred, and no sum or expected financial value chooses a layout.
+The detector's temporary combined boxes never replace original source words.
 
 The proposed item section starts after the complete date baseline, rather than
 at the first recognized amount. Unpriced descriptions and intervening header
@@ -72,6 +77,13 @@ the leftmost aligned amount, including the total. A proposal still requires
 review; unavailable proposals return explicit layout issues and null boundaries.
 This does not solve multi-column receipts, strong perspective variation, or
 long/incomplete captures. Explicit hints remain supported for development.
+
+Regression cases cover split posted/total amounts, margins and skew, wrapped
+names with quantity/rate continuation lines, weighed items, unpriced intervening
+products and inconsistent quantity extensions. Unit rates do not become extra
+purchases, and package-size text is not a purchased quantity. Wrapped or ambiguous
+descriptions still require review; independent quantity/rate lines split over
+multiple visual rows are not automatically joined by this layout change.
 
 Supported candidates:
 

@@ -53,13 +53,13 @@ total and both quantity lines. Product-name errors and missing branch extraction
 remain separate problems. Detailed evidence and the confirmed reference stay in
 the Git-ignored `localreceipts/` folder; do not copy private data into public fixtures.
 
-1. Add invented regression cases for fragmented amounts and repair automatic
-   layout using nearby tokens and column geometry. Explicitly cover multiline
-   products: wrapped names, quantity/unit-price continuation lines and weighed
-   items. Attach details to the correct product; never count a unit price as an
-   extra purchase or attach details across another product. Ambiguous attachments
-   and quantity/rate mismatches must remain visible for review. Preserve source
-   evidence; never infer missing digits or choose a layout by making totals match.
+1. Completed the first slice: layout and parsing share geometry-aware joining for
+   split amounts, preserving printed signs and original evidence. Invented
+   regressions cover multiline products, wrapped names, unit-price continuation
+   lines, weighed items, interrupted attachment and quantity mismatches. The
+   confirmed private image now produces automatic boundaries and correct financial
+   fields in an optimized emulator run. This does not remove its text errors or
+   header/footer review findings, and does not establish general OCR accuracy.
 2. Separate header/item/total/footer evidence so payment geometry and introductory
    notices do not create misleading financial warnings. Preserve ambiguous and
    unpriced item evidence and an explicit manual-layout fallback.
@@ -72,8 +72,9 @@ the Git-ignored `localreceipts/` folder; do not copy private data into public fi
 
 Validate each field against confirmed references, repeat on both native platforms
 for shared-parser changes, and test fresh photos on the OnePlus. One successful
-receipt or a reconciled total is not a general OCR accuracy result. The first
-implementation should focus on split-token layout and its regression tests.
+receipt or a reconciled total is not a general OCR accuracy result. The next
+implementation should separate section evidence and reduce irrelevant warnings,
+then add Toimipiste recommendation/lookup.
 
 ## Next milestone: repeatable phone testing and releases
 

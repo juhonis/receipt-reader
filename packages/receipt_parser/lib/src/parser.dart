@@ -1,4 +1,5 @@
 import 'finance.dart';
+import 'amount_geometry.dart';
 import 'geometry.dart';
 import 'receipt_date.dart';
 import 'receipt_syntax.dart';
@@ -242,20 +243,7 @@ ReceiptDraft parseReceipt(
       .trim();
   String price(List<OcrWord> band) {
     final tokens = band.where((w) => w.box.left >= priceColumnLeft).toList();
-    for (var i = 1; i < tokens.length; i++) {
-      final currencySuffix =
-          i == tokens.length - 1 && euroCurrencyMarker(tokens[i].text);
-      if ((!currencySuffix &&
-              tokens[i].box.left - tokens[i - 1].box.right >
-                  tokens[i].box.height) ||
-          (RegExp(r'[0-9]$').hasMatch(tokens[i - 1].text.trim()) &&
-              RegExp(r'^[0-9]').hasMatch(tokens[i].text.trim()))) {
-        return tokens
-            .map((w) => w.text)
-            .join(' | '); // Never fuse separate amounts.
-      }
-    }
-    return tokens.map((w) => w.text).join('').trim();
+    return joinAmountWords(tokens) ?? tokens.map((w) => w.text).join(' | ');
   }
 
   BigInt? amount(String text) {
