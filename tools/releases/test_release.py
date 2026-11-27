@@ -15,22 +15,29 @@ class VersionTests(unittest.TestCase):
     def test_optimized_apk_requires_public_no_argument_mlkit_constructors(self):
         with tempfile.TemporaryDirectory() as directory:
             sdk = Path(directory)
-            tools = sdk / 'cmdline-tools/23.0'
+            tools = sdk / 'Program Files (x86)/Android SDK/cmdline-tools/23.0'
+            env = {'JAVA_HOME': str(sdk / 'Program Files/JDK')}
             public = subprocess.CompletedProcess([], 0, '.method public constructor <init>()V\n.end method\n', '')
             with patch('android.audit.android_command_line_tools', return_value=tools), \
                     patch('android.subprocess.run', return_value=public) as run:
-                verify_mlkit_registrars(Path('app.apk'), {})
+                verify_mlkit_registrars(Path('app.apk'), env)
                 self.assertEqual(run.call_count, 3)
+                command = run.call_args.args[0]
+                self.assertIsInstance(command, list)
+                self.assertEqual(command[:5], [str(Path(env['JAVA_HOME']) / 'bin/java.exe'),
+                    '-Dcom.android.sdklib.toolsdir=' + str(tools), '-classpath',
+                    str(tools / 'lib/apkanalyzer-classpath.jar'),
+                    'com.android.tools.apk.analyzer.ApkAnalyzerCli'])
             for result in [subprocess.CompletedProcess([], 0, '.method private constructor <init>()V\n', ''),
                            subprocess.CompletedProcess([], 0, '.method public constructor <init>(I)V\n', '')]:
                 with self.subTest(result=result), patch('android.audit.android_command_line_tools', return_value=tools), \
                         patch('android.subprocess.run', side_effect=[public, public, result]), \
                         self.assertRaisesRegex(ValueError, 'TextRegistrar'):
-                    verify_mlkit_registrars(Path('app.apk'), {})
+                    verify_mlkit_registrars(Path('app.apk'), env)
 
     def test_analyzer_failure_reports_tool_diagnostic_without_signing_environment(self):
         failure = subprocess.CompletedProcess([], 1, '', 'SDK tool initialization failed')
-        env = {**os.environ, 'RECEIPT_READER_STORE_PASSWORD': 'synthetic-password',
+        env = {**os.environ, 'JAVA_HOME': 'fixture JDK', 'RECEIPT_READER_STORE_PASSWORD': 'synthetic-password',
                'RECEIPT_READER_BATCH_ARG_99': 'stale-value'}
         with patch('android.audit.android_command_line_tools', return_value=Path('sdk/tools')), \
                 patch('android.subprocess.run', return_value=failure) as run, \

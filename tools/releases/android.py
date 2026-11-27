@@ -83,14 +83,23 @@ MLKIT_REGISTRARS = (
 
 def verify_mlkit_registrars(apk, env):
     """Check the optimized DEX, not just manifest entries or ProGuard source rules."""
-    analyzer = audit.android_command_line_tools() / 'bin/apkanalyzer.bat'
+    tools = audit.android_command_line_tools()
+    java = (str(Path(env['JAVA_HOME'].strip('"')) / 'bin/java.exe')
+            if env.get('JAVA_HOME') else shutil.which('java'))
+    if not java:
+        raise ValueError('Java 21 is required to inspect the optimized APK; configure JAVA_HOME')
+    # apkanalyzer.bat expands its toolsdir property without quotes, breaking SDK
+    # paths under Program Files (x86) on hosted Windows runners. Pass Java argv
+    # directly so both the property and classpath remain single arguments.
+    analyzer = [java, '-Dcom.android.sdklib.toolsdir=' + str(tools),
+                '-classpath', str(tools / 'lib/apkanalyzer-classpath.jar'),
+                'com.android.tools.apk.analyzer.ApkAnalyzerCli']
     # This tool reads public APK code only; do not pass the build's signing values.
     analyzer_env = {key: value for key, value in env.items()
                     if not key.upper().startswith('RECEIPT_READER_')}
     for name in MLKIT_REGISTRARS:
-        command, child = tool_invocation(
-            [analyzer, 'dex', 'code', '--class', name, '--method', '<init>()V', apk], analyzer_env)
-        result = subprocess.run(command, env=child, capture_output=True, encoding='utf-8', errors='replace')
+        command = [*analyzer, 'dex', 'code', '--class', name, '--method', '<init>()V', str(apk)]
+        result = subprocess.run(command, env=analyzer_env, capture_output=True, encoding='utf-8', errors='replace')
         if result.returncode:
             diagnostic = (result.stderr.strip() or result.stdout.strip() or 'No tool diagnostic')[:4000]
             raise ValueError(f'APK analyzer failed (exit {result.returncode}) inspecting {name}:\n{diagnostic}')
