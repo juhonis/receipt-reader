@@ -12,6 +12,11 @@ and resolve highlighted problems. A straightforward receipt saves with one
 guide has no required note. Completing the guide does not save or override errors.
 Edits rerun validation without forcing the guide to be repeated.
 
+Finding review is now a [grouped, sequential queue](receipt-review.md#review-problems-one-at-a-time).
+All finding/relationship/geometry/page comments are optional throughout the UI,
+live audit and command adapter. Explicit typed decisions and image-backed approval
+are still required; an empty comment never counts as an approval on its own.
+
 Supported findings, omitted/removed source words, quantity links, discount scopes
 and geometry decisions remain explicit. Deposits require a product parent or
 standalone status; adjustments require a reason. Matching totals alone never
@@ -44,6 +49,12 @@ reconstruct the source or prove recognition accuracy. Temporary pixels are relea
 when the review closes; imported originals are never modified or deleted.
 
 ## Versions and migration
+
+The queue uses existing typed fields and leaves schema, payload and backup format
+versions unchanged. New nonfinancial orphan-information dispositions and accepted
+boundary decisions require the updated reader; older alpha builds may reject a
+dataset or backup containing them. Keep the updated app for opening/restoring it.
+Existing records remain readable and are not rewritten.
 
 | Layer | Current support |
 | --- | --- |

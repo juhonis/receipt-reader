@@ -23,31 +23,34 @@ bool isUnparsedItemFinding(ParseFinding finding) =>
         finding.issue == ParseIssue.removedSource);
 
 /// Review-only findings retain omissions separately from parser warnings.
-List<ParseFinding> reviewFindingsForDraft(ReceiptDraft draft) =>
-    List.unmodifiable([
-      ...draft.findings,
-      for (final issue in draft.issues)
-        if (!draft.findings.any((finding) => finding.issue == issue))
-          ParseFinding(issue),
-      for (final word in draft.evidenceCoverage?.unassignedWords ?? <OcrWord>[])
+List<ParseFinding> reviewFindingsForDraft(
+  ReceiptDraft draft, {
+  bool streamlined = false,
+}) => List.unmodifiable([
+  ...draft.findings,
+  for (final issue in draft.issues)
+    if (!draft.findings.any((finding) => finding.issue == issue))
+      ParseFinding(issue),
+  for (final word in draft.evidenceCoverage?.unassignedWords ?? <OcrWord>[])
+    ParseFinding(
+      ParseIssue.unassignedSource,
+      scope: FindingScope.item,
+      words: [word],
+    ),
+  if (!streamlined)
+    for (final word in {
+      for (final finding in draft.findings)
+        if (finding.geometryKind == GeometryFindingKind.wordOverlap ||
+            finding.geometryKind == GeometryFindingKind.ambiguousBand)
+          ...finding.words,
+    })
+      if (!(draft.evidenceCoverage?.unassignedWords.contains(word) ?? false))
         ParseFinding(
-          ParseIssue.unassignedSource,
+          ParseIssue.geometrySource,
           scope: FindingScope.item,
           words: [word],
         ),
-      for (final word in {
-        for (final finding in draft.findings)
-          if (finding.geometryKind == GeometryFindingKind.wordOverlap ||
-              finding.geometryKind == GeometryFindingKind.ambiguousBand)
-            ...finding.words,
-      })
-        if (!(draft.evidenceCoverage?.unassignedWords.contains(word) ?? false))
-          ParseFinding(
-            ParseIssue.geometrySource,
-            scope: FindingScope.item,
-            words: [word],
-          ),
-    ]);
+]);
 
 List<OcrWord> unreviewedOmissions(
   ReceiptEvidenceCoverage coverage,
@@ -67,14 +70,28 @@ List<OcrWord> unreviewedOmissions(
   );
 }
 
-/// Field prerequisites only; image comparison and an explanation are required
-/// by the review workflow. No arithmetic-based inference of missing rows.
+/// Field prerequisites only; the workflow still requires an image-backed,
+/// explicit decision. Written notes are optional. No arithmetic-based inference
+/// of missing rows.
 bool canResolveRowEvidence(
   ParseFinding finding,
   RowEvidenceKind kind, {
   ReviewRowInput? target,
 }) {
-  if (!isUnparsedItemFinding(finding) || finding.words.isEmpty) return false;
+  final orphanInformation =
+      finding.rowIndex == null &&
+      ((finding.issue == ParseIssue.quantityWithoutProduct &&
+              finding.discountKind == null) ||
+          (finding.issue == ParseIssue.discountNeedsReview &&
+              finding.discountKind == DiscountFindingKind.explanatoryPrice));
+  if ((!isUnparsedItemFinding(finding) && !orphanInformation) ||
+      finding.words.isEmpty)
+    return false;
+  if (orphanInformation &&
+      kind != RowEvidenceKind.headerMetadata &&
+      kind != RowEvidenceKind.paymentOrTax &&
+      kind != RowEvidenceKind.explanatoryText)
+    return false;
   switch (kind) {
     case RowEvidenceKind.financialRow:
     case RowEvidenceKind.description:

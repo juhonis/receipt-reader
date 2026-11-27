@@ -164,7 +164,12 @@ ReceiptDocument _buildOcr(
     'review',
     'staleHeads',
   );
-  _validateOcrRecord(adapted.$1, adapted.$2, adapted.$3);
+  _validateOcrRecord(
+    adapted.$1,
+    adapted.$2,
+    adapted.$3,
+    receiptPolicy: audit.policy == OcrReviewPolicy.receipt,
+  );
   return ReceiptDocument._(
     adapted.$1,
     OcrReviewRecord._(
@@ -229,7 +234,7 @@ ReceiptDocument _buildOcr(
   for (var i = 0; i < audit.findings.length; i++) {
     final finding = audit.findings[i], decision = audit.decisions[i];
     _require(
-      decision != null && decision.compared && decision.note.trim().isNotEmpty,
+      decision != null && decision.compared,
       'review.finding',
       'unchecked',
     );

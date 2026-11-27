@@ -90,7 +90,6 @@ class PageEvidenceApproval {
   final bool headerCompared, footerCompared, layoutCompared, imageComplete;
   bool validFor(OcrReviewSnapshot current) =>
       snapshot.matches(current) &&
-      note.trim().isNotEmpty &&
       headerCompared &&
       footerCompared &&
       layoutCompared &&
@@ -219,9 +218,8 @@ class OcrEvidenceAudit {
         : rowWithId(originalRowIds[finding.rowIndex!]);
     bool ordinaryValid(int index) {
       final finding = findings[index], decision = decisions[index];
-      if (decision == null ||
-          !decision.compared ||
-          decision.note.trim().isEmpty)
+      if (decision == null || !decision.compared) return false;
+      if (decision.rowKind != null && decision.relationshipKind != null)
         return false;
       if ([
             ParseIssue.geometrySource,
@@ -231,6 +229,14 @@ class OcrEvidenceAudit {
           finding.words.length != 1)
         return false;
       final target = rowWithId(decision.target)?.input;
+      if (decision.rowKind != null &&
+          decision.relationshipKind == null &&
+          finding.rowIndex == null &&
+          (finding.issue == ParseIssue.quantityWithoutProduct ||
+              finding.discountKind == DiscountFindingKind.explanatoryPrice)) {
+        return decision.target == null &&
+            canResolveRowEvidence(finding, decision.rowKind!);
+      }
       if (isUnparsedItemFinding(finding)) {
         return decision.rowKind != null &&
             (decision.target == null || target != null) &&
@@ -360,7 +366,10 @@ class OcrEvidenceAudit {
       final supportsGeometry =
           (finding.issue == ParseIssue.ambiguousGeometry &&
               (kind == GeometryFindingKind.wordOverlap ||
-                  kind == GeometryFindingKind.ambiguousBand)) ||
+                  kind == GeometryFindingKind.ambiguousBand ||
+                  (policy == OcrReviewPolicy.receipt &&
+                      (kind == GeometryFindingKind.sectionBoundary ||
+                          kind == GeometryFindingKind.priceBoundary)))) ||
           (finding.issue == ParseIssue.skewAdjusted &&
               kind == GeometryFindingKind.skew);
       final prerequisites =
@@ -377,13 +386,18 @@ class OcrEvidenceAudit {
           finding.words.isNotEmpty &&
           finding.words.every(sourceSet.contains) &&
           (kind == GeometryFindingKind.skew ||
-              finding.words.every(accountedWords.contains));
+              finding.words.every(
+                (word) =>
+                    accountedWords.contains(word) ||
+                    (policy == OcrReviewPolicy.receipt &&
+                        coverage.sourceWords.contains(word) &&
+                        !coverage.unassignedWords.contains(word)),
+              ));
       if (prerequisites) _resolvableGeometry.add(i);
       final decision = decisions[i];
       if (!prerequisites ||
           decision == null ||
           !decision.compared ||
-          decision.note.trim().isEmpty ||
           !(decision.geometrySnapshot?.matches(snapshot) ?? false))
         _unresolved.add(i);
     }

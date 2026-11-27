@@ -117,21 +117,11 @@ class _PageEvidenceDialogState extends State<PageEvidenceDialog> {
                 controller: _note,
                 maxLines: 3,
                 decoration: InputDecoration(
-                  labelText: s.pageEvidenceNoteRequired,
+                  labelText: s.findingNote,
                   helperText: s.pageEvidenceNoteHelp,
                   helperMaxLines: 3,
                 ),
                 onChanged: (_) => setState(() {}),
-              ),
-            if (!widget.guided &&
-                _header &&
-                _footer &&
-                _layout &&
-                _complete &&
-                _note.text.trim().isEmpty)
-              Text(
-                s.pageEvidenceNoteMissing,
-                key: const Key('page-note-required'),
               ),
           ],
         ),
@@ -148,8 +138,7 @@ class _PageEvidenceDialogState extends State<PageEvidenceDialog> {
                   _header &&
                   _footer &&
                   _layout &&
-                  _complete &&
-                  (widget.guided || _note.text.trim().isNotEmpty)
+                  _complete
               ? () => Navigator.pop(
                   context,
                   widget.guided
@@ -265,7 +254,7 @@ class _GeometryEvidenceDialogState extends State<GeometryEvidenceDialog> {
         ),
         FilledButton(
           key: const Key('confirm-geometry-evidence'),
-          onPressed: widget.allowed && _compared && _note.text.trim().isNotEmpty
+          onPressed: widget.allowed && _compared
               ? () => Navigator.pop(context, _note.text.trim())
               : null,
           child: Text(s.resolveFinding),

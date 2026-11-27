@@ -20,6 +20,40 @@ remaining blocker. It does not promise OCR accuracy: a wrong product name, omitt
 text the engine never recognized, or compensating amount errors can escape these
 checks. Every field remains editable even when the totals match.
 
+## Review problems one at a time
+
+The normal receipt screen shows one problem at a time, a **Käsitelty n/total**
+progress bar and a clear pending/done status. Separate source-word findings on
+the same printed line share one review action. Overlap/band warnings no longer
+require classifying every already-accounted word again; genuinely unassigned
+text still needs an explicit disposition.
+
+- **Ohita — ei ostosrivi** marks the displayed information as explanatory text,
+  without adding/removing money or changing purchased rows. Alternatively choose
+  **Selittävä teksti**, header metadata or payment/tax information directly.
+- **Hyväksy nykyiset tiedot** confirms a valid field or image-backed geometry
+  warning. Boundary warnings become acceptable after every cut word has been
+  explicitly accounted for. Missing/invalid financial data remains blocked.
+- **Lisää, liitä riviin tai korjaa…** opens the relevant row/relationship editor,
+  fields or layout review when information needs correction.
+
+Accepting/classifying advances to the next unfinished problem. **Seuraava** alone
+does not resolve anything. Previous/next navigation also lets you inspect completed
+items and change their handling. **Jatka tallentamiseen** reaches the final save
+action after the queue is complete; classification never saves by itself.
+
+Comments are optional for every finding, relationship, row-evidence, geometry and
+page review. The quick flow uses the explicit action as confirmation, without a
+second comparison checkbox. Optional comments remain temporary and are excluded
+from saved receipt data. Completed text classifications survive unrelated edits;
+field approvals reopen when their relevant values change, and geometry approvals
+reopen after changes to their approved snapshot.
+
+This does not automatically discard unknown content, create balancing amounts or
+allow removing a parsed quantity to hide an inconsistency. Original row/source
+accounting, valid dates and quantities, arithmetic reconciliation and final receipt
+approval remain required. Review progress is temporary state for the current view.
+
 ## Toimipiste recommendations
 
 After parsing, header text offers names to review. Exactly one existing branch

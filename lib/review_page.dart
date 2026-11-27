@@ -20,6 +20,7 @@ import 'ocr_save_dialog.dart';
 import 'app_version.dart';
 import 'branch_recommendations.dart';
 import 'product_suggestion_dialog.dart';
+import 'finding_review.dart';
 
 class ReviewPage extends StatefulWidget {
   const ReviewPage({
@@ -472,6 +473,221 @@ class _ReviewPageState extends State<ReviewPage> {
   List<ParseFinding> _findings = [];
   PageEvidenceApproval? _pageApproval;
   final _geometryApprovals = <int, OcrReviewSnapshot>{};
+  final _findingSignatures = <int, Object?>{};
+  final _problemsAnchor = GlobalKey();
+  final _saveAnchor = GlobalKey();
+  int _activeProblem = 0;
+
+  List<FindingReviewGroup> get _problemGroups =>
+      groupReviewFindings(_findings, _draft?.parseContext?.page);
+
+  Object? _findingSignature(int index) {
+    final finding = _findings[index];
+    Object? input(_RowFields? row) => row == null
+        ? null
+        : (
+            row,
+            row.name.text,
+            row.amount.text,
+            row.kind,
+            row.quantity.text,
+            row.rate.text,
+            row.unit,
+          );
+    final disposition = _rowDecisions[index];
+    if (disposition != null) {
+      return (disposition.kind, input(_rowDecisionTarget(disposition)));
+    }
+    final relationship = _relationships[index];
+    if (relationship != null) {
+      return (
+        relationship.kind,
+        input(_findingRow(finding)),
+        input(_relationshipTarget(relationship)),
+      );
+    }
+    if (finding.rowIndex != null) {
+      final row = _findingRow(finding);
+      if (row == null) return null;
+      return finding.issue == ParseIssue.wrappedNameNeedsReview
+          ? (row, row.name.text)
+          : (
+              row,
+              row.amount.text,
+              row.quantity.text,
+              row.rate.text,
+              row.unit,
+              row.kind,
+            );
+    }
+    return (finding.issue, _total.text);
+  }
+
+  void _rememberFinding(int index) {
+    _resolvedFindings.add(index);
+    _findingSignatures[index] = _findingSignature(index);
+  }
+
+  void _retainValidFindingReviews() {
+    if (!_streamlined) {
+      _resolvedFindings.clear();
+      return;
+    }
+    _resolvedFindings.removeWhere(
+      (i) =>
+          isGeometryFinding(_findings[i]) ||
+          !_findingSignatures.containsKey(i) ||
+          _findingSignatures[i] != _findingSignature(i),
+    );
+  }
+
+  bool _problemDone(FindingReviewGroup group, [Set<int>? unresolved]) =>
+      group.indices.every(
+        (i) =>
+            _resolvedFindings.contains(i) &&
+            !(unresolved ?? _evidenceAudit?.unresolved ?? const <int>{})
+                .contains(i),
+      );
+
+  void _advanceProblem() {
+    _revealProblem();
+    final groups = _problemGroups;
+    final unresolved = _evidenceAudit?.unresolved ?? const <int>{};
+    final ordinaryPending = groups.any(
+      (g) => !isGeometryFinding(g.finding) && !_problemDone(g, unresolved),
+    );
+    for (var step = 1; step <= groups.length; step++) {
+      final next = (_activeProblem + step) % groups.length;
+      if (!_problemDone(groups[next], unresolved) &&
+          (!ordinaryPending || !isGeometryFinding(groups[next].finding))) {
+        _activeProblem = next;
+        return;
+      }
+    }
+  }
+
+  void _revealProblem() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _showField(_problemsAnchor);
+    });
+  }
+
+  void _selectProblem(int position) {
+    setState(() => _activeProblem = position);
+    _revealProblem();
+  }
+
+  bool _canClassifyProblem(FindingReviewGroup group) =>
+      canResolveRowEvidence(group.finding, RowEvidenceKind.explanatoryText) &&
+      !group.indices.any(
+        (i) =>
+            _rowDecisions[i]?.createdTarget == true &&
+            _rowDecisionTarget(_rowDecisions[i]!) != null,
+      );
+
+  void _classifyProblem(FindingReviewGroup group, RowEvidenceKind kind) {
+    if (!_hasLayoutContext ||
+        !_canClassifyProblem(group) ||
+        !canResolveRowEvidence(group.finding, kind)) {
+      return;
+    }
+    setState(() {
+      _invalidatePageEvidence();
+      final note = _findingNotes[group.indices.first] ?? '';
+      for (final i in group.indices) {
+        _relationships.remove(i);
+        _rowDecisions[i] = RowEvidenceDecision(kind, null, note);
+        _findingNotes[i] = note;
+        _rememberFinding(i);
+      }
+      _reviewed = false;
+      _edited = true;
+      _advanceProblem();
+    });
+  }
+
+  void _acceptProblem(FindingReviewGroup group) {
+    if (!_hasLayoutContext) return;
+    final finding = group.finding;
+    if (isGeometryFinding(finding)) {
+      if (!group.indices.every(
+        (i) => _evidenceAudit!.resolvableGeometry.contains(i),
+      )) {
+        return;
+      }
+    } else if (!_canResolve(finding) &&
+        finding.issue != ParseIssue.wrappedNameNeedsReview) {
+      return;
+    }
+    setState(() {
+      if (finding.issue == ParseIssue.wrappedNameNeedsReview) {
+        for (final entry in _draft!.wrappedNames.asMap().entries) {
+          if (entry.value.rowIndex == finding.rowIndex) {
+            _handledNames.add(entry.key);
+          }
+        }
+      }
+      for (final i in group.indices) {
+        if (isGeometryFinding(finding)) _geometryApprovals[i] = _snapshot;
+        _rememberFinding(i);
+      }
+      _reviewed = false;
+      _advanceProblem();
+    });
+  }
+
+  Widget _problemQueue(String Function(ParseFinding) label) {
+    final groups = _problemGroups;
+    if (groups.isEmpty) return const SizedBox.shrink();
+    final position = _activeProblem.clamp(0, groups.length - 1);
+    final group = groups[position], finding = group.finding;
+    final audit = _evidenceAudit;
+    final unresolved = audit?.unresolved ?? const <int>{};
+    final completed = groups.where((g) => _problemDone(g, unresolved)).length;
+    final canAccept = isGeometryFinding(finding)
+        ? group.indices.every(
+            (i) => audit?.resolvableGeometry.contains(i) ?? false,
+          )
+        : _canResolve(finding) ||
+              (finding.issue == ParseIssue.wrappedNameNeedsReview &&
+                  (_findingRow(finding)?.name.text.trim().isNotEmpty ?? false));
+    return KeyedSubtree(
+      key: _problemsAnchor,
+      child: FindingReviewPanel(
+        key: ValueKey(group.indices.first),
+        group: group,
+        position: position,
+        total: groups.length,
+        completed: completed,
+        done: _problemDone(group, unresolved),
+        message:
+            '${label(finding)}${_rowDecisions[group.indices.first] == null ? '' : '\n${rowEvidenceKindLabel(AppLocalizations.of(context)!, _rowDecisions[group.indices.first]!.kind)}'}',
+        image: widget.evidence?.image,
+        note: _findingNotes[group.indices.first] ?? '',
+        onNoteChanged: (value) => _findingNotes[group.indices.first] = value,
+        onAccept: canAccept ? () => _acceptProblem(group) : null,
+        onDismiss: _canClassifyProblem(group)
+            ? () => _classifyProblem(group, RowEvidenceKind.explanatoryText)
+            : null,
+        onClassify: _canClassifyProblem(group)
+            ? (kind) => _classifyProblem(group, kind)
+            : null,
+        onPrevious: () => _selectProblem(position - 1),
+        onNext: () => _selectProblem((position + 1) % groups.length),
+        onFinish: () => _showField(_saveAnchor),
+        onReview: () async {
+          if (isUnparsedItemFinding(finding)) {
+            await _reviewUnparsedRow(group.indices.first, group: group);
+          } else if (!isGeometryFinding(finding) && !_isRelationship(finding)) {
+            await _showField(_findingRow(finding)?.anchor ?? _totalAnchor);
+          } else {
+            await _reviewFinding(group.indices.first, label(finding));
+          }
+          if (mounted && _problemDone(group)) setState(_advanceProblem);
+        },
+      ),
+    );
+  }
 
   OcrReviewSnapshot get _snapshot => OcrReviewSnapshot(
     _draft!,
@@ -573,7 +789,7 @@ class _ReviewPageState extends State<ReviewPage> {
     setState(() {
       _findingNotes[index] = note;
       _geometryApprovals[index] = _snapshot;
-      _resolvedFindings.add(index);
+      _rememberFinding(index);
       _reviewed = false;
     });
   }
@@ -681,17 +897,21 @@ class _ReviewPageState extends State<ReviewPage> {
     return null;
   }
 
-  Future<void> _reviewUnparsedRow(int index) async {
+  Future<void> _reviewUnparsedRow(
+    int index, {
+    FindingReviewGroup? group,
+  }) async {
     final decision = await showDialog<RowEvidenceDecision>(
       context: context,
       builder: (_) => RowEvidenceDialog(
-        finding: _findings[index],
+        finding: group?.finding ?? _findings[index],
         image: widget.evidence?.image,
         targets: [
           for (var i = 0; i < _rows.length; i++)
             RelationshipTarget(_rows[i], _rows[i].input, i + 1),
         ],
         initial: _rowDecisions[index],
+        quick: _streamlined,
       ),
     );
     if (!mounted || decision == null) return;
@@ -712,24 +932,26 @@ class _ReviewPageState extends State<ReviewPage> {
     setState(() {
       if (created != null) {
         _rows.add(target!);
-        _resolvedFindings.clear();
+        _retainValidFindingReviews();
         _resetRowComparisons();
       }
       final previous = _rowDecisions[index];
       _invalidatePageEvidence();
       if (previous != null) _rowDecisionTarget(previous)?.imageCompared = false;
       target?.imageCompared = false;
-      _rowDecisions[index] = RowEvidenceDecision(
-        decision.kind,
-        target,
-        decision.note,
-        createdTarget:
-            created != null ||
-            (_rowDecisions[index]?.createdTarget == true &&
-                identical(_rowDecisions[index]?.target, target)),
-      );
-      _findingNotes[index] = decision.note;
-      _resolvedFindings.add(index);
+      for (final index in group?.indices ?? [index]) {
+        _rowDecisions[index] = RowEvidenceDecision(
+          decision.kind,
+          target,
+          decision.note,
+          createdTarget:
+              created != null ||
+              (_rowDecisions[index]?.createdTarget == true &&
+                  identical(_rowDecisions[index]?.target, target)),
+        );
+        _findingNotes[index] = decision.note;
+        _rememberFinding(index);
+      }
       _reviewed = false;
       _edited = true;
     });
@@ -749,6 +971,7 @@ class _ReviewPageState extends State<ReviewPage> {
               RelationshipTarget(_rows[i], _rows[i].input, i + 1),
         ],
         initial: _relationships[index],
+        quick: _streamlined,
         previousTargetInput: _relationships[index] == null
             ? null
             : _relationshipTarget(_relationships[index]!)?.input,
@@ -768,15 +991,17 @@ class _ReviewPageState extends State<ReviewPage> {
     }
     setState(() {
       if (decision.kind == ReviewRelationshipKind.quantity) {
-        if (target!.quantity.text != decision.quantity ||
+        final changed =
+            target!.quantity.text != decision.quantity ||
             target.rate.text != decision.rate ||
-            target.unit != decision.unit) {
-          _resolvedFindings.clear();
+            target.unit != decision.unit;
+        if (changed) {
           _resetRowComparisons();
         }
         target.quantity.text = decision.quantity;
         target.rate.text = decision.rate;
         target.unit = decision.unit;
+        if (changed) _retainValidFindingReviews();
       }
       // Keep original rows/evidence intact; links are separate temporary state.
       final previous = _relationships[index];
@@ -786,8 +1011,9 @@ class _ReviewPageState extends State<ReviewPage> {
       }
       target?.imageCompared = false;
       _relationships[index] = decision;
+      _rowDecisions.remove(index);
       _findingNotes[index] = decision.note;
-      _resolvedFindings.add(index);
+      _rememberFinding(index);
       _reviewed = false;
       _edited = true;
     });
@@ -840,7 +1066,7 @@ class _ReviewPageState extends State<ReviewPage> {
     if (mounted && note != null) {
       setState(() {
         _findingNotes[index] = note;
-        _resolvedFindings.add(index);
+        _rememberFinding(index);
         _reviewed = false;
       });
     }
@@ -929,7 +1155,9 @@ class _ReviewPageState extends State<ReviewPage> {
 
   void _seed(ReceiptDraft draft) {
     _draft = draft;
-    _findings = List.of(reviewFindingsForDraft(draft));
+    _findings = List.of(
+      reviewFindingsForDraft(draft, streamlined: _streamlined),
+    );
     if (draft.parseContext case final data?) {
       _ocr = data.page;
       _itemTop = data.itemTop / data.page.height;
@@ -992,7 +1220,7 @@ class _ReviewPageState extends State<ReviewPage> {
     }
     _reviewed = false;
     _edited = true;
-    _resolvedFindings.clear();
+    _retainValidFindingReviews();
     _resetRowComparisons();
   });
 
@@ -1258,11 +1486,12 @@ class _ReviewPageState extends State<ReviewPage> {
                               : s.ocrDraftNotice,
                           key: const Key('ocr-draft-blocked'),
                         ),
-                        Text(
-                          s.ocrIssuesPresent(
-                            _findings.length - _resolvedFindings.length,
+                        if (!_streamlined)
+                          Text(
+                            s.ocrIssuesPresent(
+                              _findings.length - _resolvedFindings.length,
+                            ),
                           ),
-                        ),
                         if (!_streamlined)
                           Text(
                             s.rowImageProgress(
@@ -1277,78 +1506,84 @@ class _ReviewPageState extends State<ReviewPage> {
                             onPressed: () => _inspectLayout(),
                             child: Text(s.layoutReviewTitle),
                           ),
-                        for (var f = 0; f < _findings.length; f++)
-                          Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Text(findingText(_findings[f])),
-                                  if (_findings[f].rowIndex != null)
-                                    Text(
-                                      _findingRow(_findings[f])?.name.text ??
-                                          s.findingRowRemoved,
-                                    ),
-                                  Text(
-                                    _resolvedFindings.contains(f)
-                                        ? s.findingResolved
-                                        : s.findingOpen,
-                                  ),
-                                  if (_findingNotes[f] != null)
-                                    Text(_findingNotes[f]!),
-                                  if (_rowDecisions[f]
-                                      case final decision?) ...[
-                                    Text(
-                                      rowEvidenceKindLabel(s, decision.kind),
-                                    ),
-                                    if (decision.target != null)
+                        if (_streamlined) _problemQueue(findingText),
+                        if (!_streamlined)
+                          for (var f = 0; f < _findings.length; f++)
+                            Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Text(findingText(_findings[f])),
+                                    if (_findings[f].rowIndex != null)
                                       Text(
-                                        _rowDecisionTarget(decision)
-                                                ?.name
-                                                .text ??
+                                        _findingRow(_findings[f])?.name.text ??
                                             s.findingRowRemoved,
                                       ),
-                                  ],
-                                  if (_relationships[f]
-                                      case final relation?) ...[
-                                    Text(switch (relation.kind) {
-                                      ReviewRelationshipKind.quantity =>
-                                        s.linkQuantityTitle,
-                                      ReviewRelationshipKind.explanatoryPrice =>
-                                        s.relationshipExplanatory,
-                                      ReviewRelationshipKind.productDiscount =>
-                                        s.relationshipProduct,
-                                      ReviewRelationshipKind.receiptDiscount =>
-                                        s.relationshipReceipt,
-                                    }),
-                                    if (relation.target != null)
-                                      Text(
-                                        _relationshipTarget(relation)
-                                                ?.name
-                                                .text ??
-                                            s.findingRowRemoved,
-                                      ),
-                                  ],
-                                  TextButton(
-                                    key: ValueKey('finding-$f'),
-                                    onPressed: () => _reviewFinding(
-                                      f,
-                                      findingText(_findings[f]),
+                                    Text(
+                                      _resolvedFindings.contains(f)
+                                          ? s.findingResolved
+                                          : s.findingOpen,
                                     ),
-                                    child: Text(s.reviewFinding),
-                                  ),
-                                  if (_hasLayoutContext &&
-                                      isGeometryFinding(_findings[f]))
+                                    if (_findingNotes[f] != null)
+                                      Text(_findingNotes[f]!),
+                                    if (_rowDecisions[f]
+                                        case final decision?) ...[
+                                      Text(
+                                        rowEvidenceKindLabel(s, decision.kind),
+                                      ),
+                                      if (decision.target != null)
+                                        Text(
+                                          _rowDecisionTarget(decision)
+                                                  ?.name
+                                                  .text ??
+                                              s.findingRowRemoved,
+                                        ),
+                                    ],
+                                    if (_relationships[f]
+                                        case final relation?) ...[
+                                      Text(switch (relation.kind) {
+                                        ReviewRelationshipKind.quantity =>
+                                          s.linkQuantityTitle,
+                                        ReviewRelationshipKind
+                                            .explanatoryPrice =>
+                                          s.relationshipExplanatory,
+                                        ReviewRelationshipKind
+                                            .productDiscount =>
+                                          s.relationshipProduct,
+                                        ReviewRelationshipKind
+                                            .receiptDiscount =>
+                                          s.relationshipReceipt,
+                                      }),
+                                      if (relation.target != null)
+                                        Text(
+                                          _relationshipTarget(relation)
+                                                  ?.name
+                                                  .text ??
+                                              s.findingRowRemoved,
+                                        ),
+                                    ],
                                     TextButton(
-                                      key: ValueKey('geometry-review-$f'),
-                                      onPressed: () => _reviewGeometry(f),
-                                      child: Text(s.geometryEvidenceTitle),
+                                      key: ValueKey('finding-$f'),
+                                      onPressed: () => _reviewFinding(
+                                        f,
+                                        findingText(_findings[f]),
+                                      ),
+                                      child: Text(s.reviewFinding),
                                     ),
-                                ],
+                                    if (_hasLayoutContext &&
+                                        isGeometryFinding(_findings[f]))
+                                      TextButton(
+                                        key: ValueKey('geometry-review-$f'),
+                                        onPressed: () => _reviewGeometry(f),
+                                        child: Text(s.geometryEvidenceTitle),
+                                      ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
                         for (final note in draft.notes) Text(note),
                         if (draft.evidenceCoverage case final coverage?)
                           ExpansionTile(
@@ -2040,6 +2275,20 @@ class _ReviewPageState extends State<ReviewPage> {
                           ),
                         if (!_mappingReady)
                           Text(s.ocrCorrectionMappingRequired),
+                        if (audit.unresolved.isNotEmpty)
+                          TextButton(
+                            key: const Key('ocr-jump-problems'),
+                            onPressed: () {
+                              setState(() {
+                                final next = _problemGroups.indexWhere(
+                                  (g) => !_problemDone(g),
+                                );
+                                if (next >= 0) _activeProblem = next;
+                              });
+                              _showField(_problemsAnchor);
+                            },
+                            child: Text(s.problemReviewRemaining),
+                          ),
                         for (var i = 0; i < _rows.length; i++)
                           if (_rows[i].name.text.trim().isEmpty ||
                               parseCents(_rows[i].amount.text) == null ||
@@ -2138,20 +2387,23 @@ class _ReviewPageState extends State<ReviewPage> {
                             s.ocrSaveDetailsInvalid,
                             key: const Key('ocr-save-preparation-error'),
                           ),
-                        FilledButton(
-                          key: const Key('ocr-save'),
-                          onPressed:
-                              !_saving &&
-                                  validation.complete &&
-                                  _selectedBranch != null &&
-                                  _mappingReady &&
-                                  _detailsReady
-                              ? _saveOcr
-                              : null,
-                          child: Text(
-                            widget._initial == null
-                                ? s.ocrAcceptAndSave
-                                : s.saveCorrection,
+                        KeyedSubtree(
+                          key: _saveAnchor,
+                          child: FilledButton(
+                            key: const Key('ocr-save'),
+                            onPressed:
+                                !_saving &&
+                                    validation.complete &&
+                                    _selectedBranch != null &&
+                                    _mappingReady &&
+                                    _detailsReady
+                                ? _saveOcr
+                                : null,
+                            child: Text(
+                              widget._initial == null
+                                  ? s.ocrAcceptAndSave
+                                  : s.saveCorrection,
+                            ),
                           ),
                         ),
                       ],
@@ -2250,11 +2502,7 @@ class _FindingDialogState extends State<_FindingDialog> {
         ),
         FilledButton(
           key: const Key('resolve-finding'),
-          onPressed:
-              widget.image != null &&
-                  widget.allowed &&
-                  _compared &&
-                  _note.text.trim().isNotEmpty
+          onPressed: widget.image != null && widget.allowed && _compared
               ? () => Navigator.pop(context, _note.text.trim())
               : null,
           child: Text(s.resolveFinding),

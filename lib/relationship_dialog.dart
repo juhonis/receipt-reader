@@ -39,6 +39,7 @@ class RelationshipDialog extends StatefulWidget {
     required this.occupiedQuantityTargets,
     this.previousTargetInput,
     this.initial,
+    this.quick = false,
   });
   final ParseFinding finding;
   final ui.Image? image;
@@ -47,6 +48,7 @@ class RelationshipDialog extends StatefulWidget {
   final Set<Object> occupiedQuantityTargets;
   final ReviewRowInput? previousTargetInput;
   final RelationshipDecision? initial;
+  final bool quick;
   @override
   State<RelationshipDialog> createState() => _RelationshipDialogState();
 }
@@ -297,14 +299,15 @@ class _RelationshipDialogState extends State<RelationshipDialog> {
                 maxLines: 3,
                 onChanged: (_) => setState(() {}),
               ),
-              CheckboxListTile(
-                key: const Key('relationship-compared'),
-                title: Text(s.findingCompared),
-                value: _compared,
-                onChanged: (v) => setState(() {
-                  _compared = v ?? false;
-                }),
-              ),
+              if (!widget.quick)
+                CheckboxListTile(
+                  key: const Key('relationship-compared'),
+                  title: Text(s.findingCompared),
+                  value: _compared,
+                  onChanged: (v) => setState(() {
+                    _compared = v ?? false;
+                  }),
+                ),
             ],
           ),
         ),
@@ -320,8 +323,7 @@ class _RelationshipDialogState extends State<RelationshipDialog> {
               widget.image != null &&
                   valid &&
                   (!replacing || _replace) &&
-                  _compared &&
-                  _note.text.trim().isNotEmpty
+                  (widget.quick || _compared)
               ? () => Navigator.pop(
                   context,
                   RelationshipDecision(

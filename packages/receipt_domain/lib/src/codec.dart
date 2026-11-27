@@ -566,7 +566,12 @@ OcrReviewRecord _readOcrReview(
     'review.evidence',
     'incompleteChecks',
   );
-  _validateOcrRecord(snapshot, originals, decisions);
+  _validateOcrRecord(
+    snapshot,
+    originals,
+    decisions,
+    receiptPolicy: receiptPolicy,
+  );
   return OcrReviewRecord._(
     at,
     app,
@@ -584,8 +589,9 @@ OcrReviewRecord _readOcrReview(
 void _validateOcrRecord(
   ReceiptSnapshot snapshot,
   List<DurableId> originals,
-  List<OcrDecisionRecord> decisions,
-) {
+  List<OcrDecisionRecord> decisions, {
+  bool receiptPolicy = false,
+}) {
   final byId = {for (final item in snapshot.items) item.id: item};
   _require(
     originals.toSet().length == originals.length &&
@@ -619,6 +625,8 @@ void _validateOcrRecord(
                     : [
                         GeometryFindingKind.wordOverlap,
                         GeometryFindingKind.ambiguousBand,
+                        if (receiptPolicy) GeometryFindingKind.sectionBoundary,
+                        if (receiptPolicy) GeometryFindingKind.priceBoundary,
                       ].contains(d.geometryKind))
           : d.geometryKind == null,
       'review.evidence',
@@ -633,9 +641,21 @@ void _validateOcrRecord(
         scope: d.scope,
       );
       final target = byId[d.targetRowId];
+      final orphanInformation =
+          d.sourceRowId == null &&
+          target == null &&
+          [
+            RowEvidenceKind.headerMetadata,
+            RowEvidenceKind.paymentOrTax,
+            RowEvidenceKind.explanatoryText,
+          ].contains(kind) &&
+          ((d.issue == ParseIssue.quantityWithoutProduct &&
+                  d.discountKind == null) ||
+              (d.issue == ParseIssue.discountNeedsReview &&
+                  d.discountKind == DiscountFindingKind.explanatoryPrice));
       _require(
-        isUnparsedItemFinding(finding) &&
-            d.discountKind == null &&
+        ((isUnparsedItemFinding(finding) && d.discountKind == null) ||
+                orphanInformation) &&
             ([
                   RowEvidenceKind.financialRow,
                   RowEvidenceKind.description,

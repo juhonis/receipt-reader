@@ -29,11 +29,13 @@ class RowEvidenceDialog extends StatefulWidget {
     required this.image,
     required this.targets,
     this.initial,
+    this.quick = false,
   });
   final ParseFinding finding;
   final ui.Image? image;
   final List<RelationshipTarget> targets;
   final RowEvidenceDecision? initial;
+  final bool quick;
   @override
   State<RowEvidenceDialog> createState() => _RowEvidenceDialogState();
 }
@@ -224,7 +226,7 @@ class _RowEvidenceDialogState extends State<RowEvidenceDialog> {
                   _compared = false;
                 }),
               ),
-            if (_kind != null && !_needsTarget)
+            if (!widget.quick && _kind != null && !_needsTarget)
               CheckboxListTile(
                 key: const Key('row-evidence-non-financial'),
                 title: Text(s.unparsedNonFinancial),
@@ -243,14 +245,15 @@ class _RowEvidenceDialogState extends State<RowEvidenceDialog> {
               decoration: InputDecoration(labelText: s.findingNote),
               onChanged: (_) => setState(() {}),
             ),
-            CheckboxListTile(
-              key: const Key('row-evidence-compared'),
-              title: Text(s.findingCompared),
-              value: _compared,
-              onChanged: (v) => setState(() {
-                _compared = v ?? false;
-              }),
-            ),
+            if (!widget.quick)
+              CheckboxListTile(
+                key: const Key('row-evidence-compared'),
+                title: Text(s.findingCompared),
+                value: _compared,
+                onChanged: (v) => setState(() {
+                  _compared = v ?? false;
+                }),
+              ),
           ],
         ),
       ),
@@ -264,9 +267,8 @@ class _RowEvidenceDialogState extends State<RowEvidenceDialog> {
           onPressed:
               widget.image != null &&
                   valid &&
-                  _compared &&
-                  _note.text.trim().isNotEmpty &&
-                  (_needsTarget || _nonFinancial)
+                  (widget.quick || _compared) &&
+                  (widget.quick || _needsTarget || _nonFinancial)
               ? () => Navigator.pop(
                   context,
                   RowEvidenceDecision(

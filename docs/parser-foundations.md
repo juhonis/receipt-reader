@@ -250,12 +250,18 @@ in geometry evidence. `reviewFindingsForDraft` adds independent review-only
 `unassignedSource` findings for omissions without mutating the parser result.
 `unreviewedOmissions` tracks their explicit review separately from the immutable
 structural inventory; resolving an unrelated geometry warning cannot clear them.
+The `streamlined` option omits duplicate per-word geometry tasks for source already
+accounted for structurally. The app groups remaining unparsed findings by printed
+baseline for presentation while retaining each original finding/word in the audit.
 
 `OcrEvidenceAudit` validates supported OCR evidence independently of financial
 reconciliation. Whole-page and geometry approvals retain immutable field/row/
-evidence snapshots, which must match current data. Geometry types distinguish
-boundary errors (re-parse required) from individually reviewed overlap/band/skew
-cases. Unsupported decisions, stale targets, unaccounted deleted rows, silently
+evidence snapshots, which must match current data. Normal receipt review can accept
+boundary, overlap, band and skew warnings after all source/financial problems are
+accounted for; the older detailed prototype still requires re-parsing boundaries.
+Written notes are optional. Unattached quantity/price information can be explicitly
+classified as nonfinancial; posted money and parsed quantity inconsistencies cannot
+be discarded this way. Unsupported decisions, stale targets, unaccounted deleted rows, silently
 dropped quantities, and incomplete context cannot approve a receipt. A ready
-audit is combined with exact `ReviewValidation` and final confirmation to complete
-only the temporary no-save prototype; persistence remains a separate contract.
+audit is combined with exact `ReviewValidation` and final confirmation for the
+[reviewed save command](ocr-saving.md).

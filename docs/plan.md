@@ -44,7 +44,13 @@ emulator probe. The owner now reports working camera capture on the OnePlus;
 recognition quality and broader phone acceptance remain open. There is no sync or
 update button yet.
 
-## Immediate priority: receipt recognition quality
+## Immediate priority: receipt review friction and recognition quality
+
+Phone feedback reports that important fields are recognized but false positives,
+mandatory comments and unclear completion state make review too slow. The review
+now uses a grouped, one-at-a-time queue with direct ignore/category/accept actions,
+optional comments and retained progress for unaffected decisions. Verify this flow
+on the phone before adding more recognition complexity.
 
 A confirmed private receipt now produces automatic boundaries, correct amounts,
 date/time, total and both quantity lines in the optimized Android pipeline.
@@ -77,8 +83,9 @@ Detailed evidence and the confirmed reference stay in the Git-ignored
 
 Validate each field against confirmed references, repeat on both native platforms
 for shared-parser changes, and test fresh photos on the OnePlus. One successful
-receipt or a reconciled total is not a general OCR accuracy result. Next, collect
-fresh OnePlus samples and measure bounded in-memory image preprocessing against
+receipt or a reconciled total is not a general OCR accuracy result. Next, validate
+the streamlined queue on the OnePlus, then collect samples and measure bounded
+in-memory image preprocessing against
 confirmed references. Keep the current offline engine until broader evidence
 justifies a replacement.
 
