@@ -1,6 +1,6 @@
 # Project plan
 
-Updated November 26, 2026. The immediate goal is a dependable personal-use alpha
+Updated November 27, 2026. The immediate goal is a dependable personal-use alpha
 on a real Android phone and Windows, distributed through versioned GitHub Releases.
 [Documentation index](README.md) · [Architecture](architecture.md) · [Release plan](releases.md)
 
@@ -40,7 +40,36 @@ installed it on the OnePlus. Detailed phone acceptance and retained-data upgrade
 remain open. Alpha.6 camera capture worked on the OnePlus, but release OCR startup
 failed. Alpha.7 preserves ML Kit's reflected constructors and fixes failed-startup
 cleanup. All three supplied private samples now recognize in an optimized offline
-emulator probe; phone acceptance remains open. There is no sync or update button yet.
+emulator probe. The owner now reports working camera capture on the OnePlus;
+recognition quality and broader phone acceptance remain open. There is no sync or
+update button yet.
+
+## Immediate priority: receipt recognition quality
+
+A confirmed private receipt was tested through the unchanged optimized Android
+OCR/parser. Automatic layout failed on split decimal tokens. Replaying the same
+words with visual manual boundaries recovered all seven amounts, the date/time,
+total and both quantity lines. Product-name errors and missing branch extraction
+remain separate problems. Detailed evidence and the confirmed reference stay in
+the Git-ignored `localreceipts/` folder; do not copy private data into public fixtures.
+
+1. Add invented regression cases for fragmented amounts and repair automatic
+   layout using nearby tokens and column geometry. Preserve source evidence;
+   never infer missing digits or choose a layout by making totals match.
+2. Separate header/item/total/footer evidence so payment geometry and introductory
+   notices do not create misleading financial warnings. Preserve ambiguous and
+   unpriced item evidence and an explicit manual-layout fallback.
+3. Recommend Toimipiste from header text and select a unique normalized-name match
+   from existing branches. Keep ambiguous matches user-selectable; do not silently
+   create branches or overwrite user edits.
+4. Offer reviewable product-name/catalog suggestions. Measure bounded in-memory
+   image preprocessing only after layout improvements; keep the current offline
+   engine until broader evidence justifies a replacement.
+
+Validate each field against confirmed references, repeat on both native platforms
+for shared-parser changes, and test fresh photos on the OnePlus. One successful
+receipt or a reconciled total is not a general OCR accuracy result. The first
+implementation should focus on split-token layout and its regression tests.
 
 ## Next milestone: repeatable phone testing and releases
 
