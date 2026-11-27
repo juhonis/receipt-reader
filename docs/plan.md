@@ -54,8 +54,12 @@ remain separate problems. Detailed evidence and the confirmed reference stay in
 the Git-ignored `localreceipts/` folder; do not copy private data into public fixtures.
 
 1. Add invented regression cases for fragmented amounts and repair automatic
-   layout using nearby tokens and column geometry. Preserve source evidence;
-   never infer missing digits or choose a layout by making totals match.
+   layout using nearby tokens and column geometry. Explicitly cover multiline
+   products: wrapped names, quantity/unit-price continuation lines and weighed
+   items. Attach details to the correct product; never count a unit price as an
+   extra purchase or attach details across another product. Ambiguous attachments
+   and quantity/rate mismatches must remain visible for review. Preserve source
+   evidence; never infer missing digits or choose a layout by making totals match.
 2. Separate header/item/total/footer evidence so payment geometry and introductory
    notices do not create misleading financial warnings. Preserve ambiguous and
    unpriced item evidence and an explicit manual-layout fallback.
