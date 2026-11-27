@@ -19,6 +19,7 @@ import 'product_picker.dart';
 import 'ocr_save_dialog.dart';
 import 'app_version.dart';
 import 'branch_recommendations.dart';
+import 'product_suggestion_dialog.dart';
 
 class ReviewPage extends StatefulWidget {
   const ReviewPage({
@@ -995,6 +996,45 @@ class _ReviewPageState extends State<ReviewPage> {
     _resetRowComparisons();
   });
 
+  Future<void> _suggestProduct(_RowFields row) async {
+    final service = widget.store, branchId = _selectedBranch?.id;
+    final name = row.name.text;
+    if (service is! CatalogService ||
+        branchId == null ||
+        _branchChoice == 'new' ||
+        name.trim().isEmpty) {
+      return;
+    }
+    final choice = await showDialog<ProductSuggestionChoice>(
+      context: context,
+      builder: (_) => ProductSuggestionDialog(
+        service: service as CatalogService,
+        branchId: branchId,
+        receiptName: name,
+      ),
+    );
+    if (!mounted ||
+        choice == null ||
+        _saving ||
+        !_rows.contains(row) ||
+        row.kind != LineKind.product ||
+        row.name.text != name ||
+        _selectedBranch?.id != branchId ||
+        _branchChoice == 'new') {
+      return;
+    }
+    if (choice.name case final corrected?) {
+      row.name.text = corrected;
+      row.product = null;
+      row.productName = null;
+    }
+    if (choice.link case final link?) {
+      row.product = link;
+      row.productName = row.name.text.trim();
+    }
+    _edit();
+  }
+
   void _showEvidence(_RowFields row) {
     _showEvidenceWords(_rowEvidence(row));
   }
@@ -1643,6 +1683,20 @@ class _ReviewPageState extends State<ReviewPage> {
                                 ),
                                 if (_rows[i].kind == LineKind.product &&
                                     widget.store is CatalogService)
+                                  TextButton(
+                                    key: ValueKey('ocr-product-suggestions-$i'),
+                                    onPressed:
+                                        _recognizing ||
+                                            _saving ||
+                                            _branchChoice == 'new' ||
+                                            _selectedBranch == null ||
+                                            _rows[i].name.text.trim().isEmpty
+                                        ? null
+                                        : () => _suggestProduct(_rows[i]),
+                                    child: Text(s.productSuggestionsTitle),
+                                  ),
+                                if (_rows[i].kind == LineKind.product &&
+                                    widget.store is CatalogService)
                                   ReceiptProductSelector(
                                     key: ValueKey('ocr-product-$i'),
                                     service: widget.store! as CatalogService,
@@ -1722,6 +1776,8 @@ class _ReviewPageState extends State<ReviewPage> {
                                     ),
                                     DropdownButtonFormField<QuantityUnit>(
                                       key: ValueKey('row-unit-$i'),
+                                      isExpanded: true,
+                                      itemHeight: null,
                                       initialValue: _rows[i].unit,
                                       decoration: InputDecoration(
                                         labelText: s.unitLabel,

@@ -34,6 +34,11 @@ Deterministic concurrent conflict resolution remains required before sync.
 
 ## Storage-facing APIs
 
+The [OCR review](receipt-review.md#product-name-and-catalog-suggestions) can now
+offer canonical-name spelling suggestions alongside exact alias suggestions.
+These read-only proposals require an explicit name or product choice; they do
+not change alias keys, merge equal-name products or rewrite existing receipts.
+
 `receipt_domain` adds immutable `ProductSnapshot`, `ProductDocument`,
 `ProductAliasSnapshot` and `ProductAliasDocument` values and canonical codecs.
 Uncategorized product documents and alias documents retain v1; categorized product

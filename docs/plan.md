@@ -48,8 +48,9 @@ update button yet.
 
 A confirmed private receipt now produces automatic boundaries, correct amounts,
 date/time, total and both quantity lines in the optimized Android pipeline.
-Header names now support branch recommendations and exact existing-name matches;
-product-name errors remain open.
+Header names support branch recommendations and exact existing-name matches.
+Raw product-name errors remain; existing catalog names can now supply explicit
+review suggestions.
 Detailed evidence and the confirmed reference stay in the Git-ignored
 `localreceipts/` folder; do not copy private data into public fixtures.
 
@@ -68,15 +69,18 @@ Detailed evidence and the confirmed reference stay in the Git-ignored
    of a unique normalized-name match among existing branches. Duplicate/conflicting
    matches remain user-selectable. New names need an explicit action, user choices
    take precedence and saving still requires approval. See [review](receipt-review.md).
-4. Offer reviewable product-name/catalog suggestions. Measure bounded in-memory
-   image preprocessing only after layout improvements; keep the current offline
-   engine until broader evidence justifies a replacement.
+4. Completed reviewable product-name/catalog suggestions from the selected
+   branch: exact aliases/names and conservative spelling alternatives. Name and
+   product-link actions are explicit, preserve OCR evidence and financial fields,
+   and never create aliases or merge products. Unknown names still need manual
+   correction. See [review behavior and limits](receipt-review.md#product-name-and-catalog-suggestions).
 
 Validate each field against confirmed references, repeat on both native platforms
 for shared-parser changes, and test fresh photos on the OnePlus. One successful
-receipt or a reconciled total is not a general OCR accuracy result. Next, add
-reviewable product-name/catalog suggestions without silently changing product
-identities or merging catalog entries.
+receipt or a reconciled total is not a general OCR accuracy result. Next, collect
+fresh OnePlus samples and measure bounded in-memory image preprocessing against
+confirmed references. Keep the current offline engine until broader evidence
+justifies a replacement.
 
 ## Next milestone: repeatable phone testing and releases
 

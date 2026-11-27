@@ -38,6 +38,38 @@ never creates a stored branch by itself. Manual branch choices/edits take preced
 over later recognition, and correction screens do not automatically select a new
 branch. The final save action approves the current branch along with the receipt.
 
+## Product-name and catalog suggestions
+
+For a product row, **Ehdota nimeä tai tuotetta** looks in the selected existing
+branch's catalog. It offers exact active receipt-name aliases, exact canonical
+names and conservative close spellings. Compare the proposal to the product and
+package on the receipt; even an exact name does not establish product identity.
+Equal-name products remain separate choices. Nothing is selected automatically.
+
+- **Käytä nimeä** changes the editable row name and clears an earlier product
+  link. The original OCR row name and evidence remain available; prices,
+  quantities/rates, date and total stay unchanged.
+- **Liitä tuote** selects that product and its reviewed revision without changing
+  the row name. Choose the name separately if both changes are wanted.
+- Closing the dialog leaves the draft unchanged. Catalog/alias records are never
+  created or edited by these suggestions. Final receipt saving still requires
+  **Hyväksy ja tallenna**.
+
+Suggestions are read on request, not while typing. A product changed since loading
+must be reviewed again before selection. A result cannot replace a row whose name,
+branch or kind changed, or one removed while the dialog was open. The existing
+**Valitse tuote** picker remains available for other products and catalog editing.
+
+The first implementation scans at most 2,000 canonical product names in pages of
+200 and shows up to five choices; exact active aliases are checked independently.
+Close spelling allows one edit for names with 6–11 letters and two for longer
+names, preserving token order, numbers, symbols and short variant/unit tokens.
+Separate punctuation/spacing may differ. Names over 256 characters are excluded
+from spelling comparison. These limits keep local work bounded; they do not imply
+a confidence score, package equivalence or general spelling correction. Without
+an appropriate catalog entry, correct the name manually. No image processing,
+OCR engine, schema, saved payload or backup format changed.
+
 ## Optional guided review
 
 **Tarkista vaiheittain** opens the four-part image checklist: header, footer,
