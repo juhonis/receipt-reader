@@ -7,6 +7,24 @@ on 2026-11-17. Existing receipts are never automatically matched or rewritten.
 
 ## Identity and matching rules
 
+**Hae tuotteita** searches the selected branch's complete catalog and is also
+available when choosing a product for a receipt. It matches partial canonical
+names and active alias names, ignoring case. Every space-separated word must
+match a name or active alias of that product. Finnish diacritics and punctuation
+are literal; the search never merges equal-name identities or links a row without
+an explicit selection. Inactive aliases do not make a product searchable.
+
+Search in the **Kuittinimet** view matches alias text and preserves that view's
+active/inactive visibility. Changing text or branch restarts paging; clearing text
+returns to browsing the same branch. No matches has a separate message. The product
+picker hides unrelated suggestions during search and ignores late results from
+older queries.
+
+`products(..., query:)` and `aliases(..., query:)` apply matching before offset and
+limit, preserving name/ID ordering and branch ownership. Nonempty searches scan
+bounded batches inside one read transaction; Unicode case matching runs in Dart.
+No search indexes, schema migrations or backup changes are introduced.
+
 Products have durable UUIDs and one immutable store-branch owner. Identical names
 do not merge products, even within a branch. A product has a corrected canonical
 name and optional package quantity represented as an integer value, scale 0..6

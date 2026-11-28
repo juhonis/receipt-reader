@@ -64,7 +64,13 @@ ReviewedReceipt _command(
 
 Future<void> _tap(WidgetTester tester, String key) async {
   final finder = find.byKey(Key(key));
-  if (finder.evaluate().isEmpty) await tester.scrollUntilVisible(finder, 300);
+  if (finder.evaluate().isEmpty) {
+    await tester.scrollUntilVisible(
+      finder,
+      300,
+      scrollable: verticalScrollable(),
+    );
+  }
   await tester.ensureVisible(finder);
   await tester.pumpAndSettle();
   await tester.tap(finder);

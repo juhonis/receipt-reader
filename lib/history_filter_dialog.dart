@@ -133,6 +133,7 @@ class _HistoryFilterDialogState extends State<HistoryFilterDialog> {
           minTotalCents: min,
           maxTotalCents: max,
           category: widget.selection?.filter.category,
+          query: widget.selection?.filter.query ?? '',
         ),
         _branch == '*'
             ? null

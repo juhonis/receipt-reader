@@ -5,6 +5,7 @@ import 'package:receipt_reader/product_picker.dart';
 import 'package:receipt_parser/receipt_parser.dart';
 
 import 'manual_save_test.dart' show tapKey, enter, start, review;
+import 'support/navigation.dart';
 import 'support/fake_catalog_store.dart';
 
 Future<void> openCatalog(WidgetTester t, FakeCatalogStore store) async {
@@ -17,6 +18,8 @@ Future<void> openCatalog(WidgetTester t, FakeCatalogStore store) async {
 }
 
 Future<void> selectProduct(WidgetTester t, String key) async {
+  await t.ensureVisible(find.byKey(ValueKey(key)));
+  await t.pumpAndSettle();
   await t.tap(find.byKey(ValueKey(key)));
   await t.pumpAndSettle();
 }
@@ -295,7 +298,11 @@ void main() {
           .position
           .jumpTo(0);
       await t.pumpAndSettle();
-      await t.scrollUntilVisible(find.byKey(const Key('catalog-add')), 250);
+      await t.scrollUntilVisible(
+        find.byKey(const Key('catalog-add')),
+        250,
+        scrollable: verticalScrollable(),
+      );
       await tapKey(t, 'catalog-add');
       await enter(t, 'catalog-name', 'NARROW TEST');
       final checkbox = find.descendant(

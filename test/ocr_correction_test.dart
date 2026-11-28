@@ -12,6 +12,7 @@ import 'package:receipt_reader/ocr_correction_page.dart';
 import 'package:receipt_reader/receipt_import.dart';
 import 'package:receipt_reader/review_page.dart';
 
+import 'support/navigation.dart';
 import 'support/fake_store.dart';
 
 void main() {
@@ -30,7 +31,9 @@ void main() {
 
   Future<void> tap(WidgetTester tester, String key) async {
     final f = find.byKey(Key(key));
-    if (f.evaluate().isEmpty) await tester.scrollUntilVisible(f, 250);
+    if (f.evaluate().isEmpty) {
+      await tester.scrollUntilVisible(f, 250, scrollable: verticalScrollable());
+    }
     await tester.ensureVisible(f);
     await tester.pumpAndSettle();
     await tester.tap(f);

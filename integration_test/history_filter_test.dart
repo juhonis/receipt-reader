@@ -182,6 +182,7 @@ void main() {
         await tester.scrollUntilVisible(
           find.byKey(const Key('history-more')),
           500,
+          scrollable: verticalScrollable(),
         );
         await _tap(tester, 'history-more');
         expect(store.offsets.last, 30);

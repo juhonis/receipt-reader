@@ -56,6 +56,7 @@ an isolated build directory and restore its configuration afterward.
 | Explicit product-name/catalog suggestions | `product_suggestion_review_test.dart` (synthetic pixels and fake storage) |
 | Sequential problems, optional comments and retained review progress | `sequential_problem_review_test.dart` (synthetic pixels and fake storage) |
 | Duplicate comparison and atomic replacement | `duplicate_receipt_review_test.dart` (synthetic UI plus real temporary SQLite rollback/reopen/backup checks) |
+| Receipt/catalog/picker text search | `text_search_test.dart` (synthetic UI plus real temporary SQLite search after reopen) |
 | Android memory-only camera | `camera_capture_test.dart` (opt-in native interaction) |
 | Manual/OCR correction | `manual_correction_test.dart`, `ocr_correction_test.dart` |
 | Deletion and stale screens | `receipt_deletion_test.dart` |

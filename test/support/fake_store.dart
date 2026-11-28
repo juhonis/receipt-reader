@@ -54,6 +54,7 @@ class FakeStore implements LocalStore, ReceiptReplacementStore {
                   s.totalCents >= filter!.minTotalCents!) &&
               (filter?.maxTotalCents == null ||
                   s.totalCents <= filter!.maxTotalCents!) &&
+              TextSearchQuery(filter?.query ?? '').matchesReceipt(s) &&
               (filter?.category == null ||
                   categorizeReceipt(
                     s,

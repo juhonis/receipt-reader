@@ -10,6 +10,7 @@ import 'package:sqlite3/common.dart' as sqlite;
 
 import 'database.dart';
 import 'history_filter.dart';
+import 'text_search.dart';
 
 part 'integrity.dart';
 part 'backup.dart';
@@ -171,10 +172,18 @@ final class ReceiptRepository {
     final where = conditions.isEmpty
         ? ''
         : 'WHERE ${conditions.join(' AND ')} ';
-    if (filter?.category case final category?) {
+    final query = TextSearchQuery(filter?.query ?? '');
+    if (filter?.category != null || !query.isEmpty) {
       return _guard(
         () => _db.transaction(
-          () => _categoryHistory(where, args, category, limit, offset),
+          () => _filteredHistory(
+            where,
+            args,
+            filter?.category,
+            query,
+            limit,
+            offset,
+          ),
         ),
       );
     }

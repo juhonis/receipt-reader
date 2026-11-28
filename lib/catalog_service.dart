@@ -8,12 +8,14 @@ abstract interface class CatalogService {
     DurableId storeId, {
     int limit = 30,
     int offset = 0,
+    String query = '',
   });
   Future<List<StoredProductAlias>> aliases(
     DurableId storeId, {
     bool activeOnly = false,
     int limit = 30,
     int offset = 0,
+    String query = '',
   });
   Future<StoredProduct?> readProduct(DurableId id);
   Future<StoredProductAlias?> readAlias(DurableId id);

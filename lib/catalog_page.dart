@@ -9,6 +9,7 @@ import 'purchase_history_page.dart';
 import 'catalog_editor.dart';
 import 'product_picker.dart';
 import 'l10n/generated/app_localizations.dart';
+import 'text_search_field.dart';
 
 class CatalogPage extends StatefulWidget {
   const CatalogPage({super.key, required this.store, required this.catalog});
@@ -23,14 +24,15 @@ class _CatalogPageState extends State<CatalogPage> {
   ReceiptBranch? _branch;
   bool _aliases = false;
   int _offset = 0;
+  String _query = '';
   Future<List<Object>>? _items;
   void _load() {
     final branch = _branch;
     _items = branch == null
         ? null
         : _aliases
-        ? widget.catalog.aliases(branch.id, offset: _offset)
-        : widget.catalog.products(branch.id, offset: _offset);
+        ? widget.catalog.aliases(branch.id, offset: _offset, query: _query)
+        : widget.catalog.products(branch.id, offset: _offset, query: _query);
   }
 
   Future<void> _open({
@@ -128,9 +130,23 @@ class _CatalogPageState extends State<CatalogPage> {
                 onPressed: _branch == null ? null : () => _open(),
                 child: Text(_aliases ? s.catalogAddAlias : s.catalogAddProduct),
               ),
+              TextSearchField(
+                fieldKey: 'catalog-search',
+                value: _query,
+                label: s.productSearch,
+                hint: _aliases ? s.aliasSearchHint : s.productSearchHint,
+                enabled: _branch != null,
+                onChanged: (query) => setState(() {
+                  _query = query;
+                  _offset = 0;
+                  _load();
+                }),
+              ),
               if (_items != null)
                 FutureBuilder(
-                  key: ValueKey('${_branch?.id.value}:$_aliases:$_offset'),
+                  key: ValueKey(
+                    '${_branch?.id.value}:$_aliases:$_offset:$_query',
+                  ),
                   future: _items,
                   builder: (context, result) {
                     if (result.hasError) {
@@ -143,7 +159,12 @@ class _CatalogPageState extends State<CatalogPage> {
                     final items = result.data!;
                     return Column(
                       children: [
-                        if (items.isEmpty) Text(s.catalogEmpty),
+                        if (items.isEmpty)
+                          Text(
+                            _query.trim().isEmpty
+                                ? s.catalogEmpty
+                                : s.searchNoMatches,
+                          ),
                         for (final item in items)
                           if (item is StoredProduct)
                             ListTile(

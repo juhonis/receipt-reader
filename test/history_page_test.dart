@@ -10,6 +10,7 @@ import 'package:receipt_reader/history_page.dart';
 import 'package:receipt_reader/receipt_format.dart';
 import 'package:receipt_reader/history_filter_dialog.dart';
 
+import 'support/navigation.dart';
 import 'support/fake_store.dart';
 
 StoredReceipt syntheticReceipt(
@@ -56,6 +57,14 @@ Future<void> openHistory(WidgetTester tester, FakeStore store) async {
 }
 
 Future<void> tapKey(WidgetTester tester, String key) async {
+  final target = find.byKey(Key(key));
+  if (target.evaluate().isEmpty) {
+    await tester.scrollUntilVisible(
+      target,
+      250,
+      scrollable: verticalScrollable(),
+    );
+  }
   await tester.ensureVisible(find.byKey(Key(key)));
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(Key(key)));
@@ -65,7 +74,7 @@ Future<void> tapKey(WidgetTester tester, String key) async {
 Future<void> filterText(WidgetTester tester, String key, String text) async {
   await tester.ensureVisible(find.byKey(Key('history-filter-$key')));
   await tester.enterText(find.byKey(Key('history-filter-$key')), text);
-  tester.testTextInput.hide();
+  FocusManager.instance.primaryFocus?.unfocus();
   await tester.pumpAndSettle();
 }
 
@@ -118,6 +127,7 @@ void main() {
       await tester.scrollUntilVisible(
         find.byKey(const Key('history-more')),
         500,
+        scrollable: verticalScrollable(),
       );
       await tester.ensureVisible(find.byKey(const Key('history-more')));
       await tester.pumpAndSettle();
@@ -151,12 +161,20 @@ void main() {
       await tester.tap(find.byKey(const Key('open-history')));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      await tester.scrollUntilVisible(find.text(store.branch.name), 300);
+      await tester.scrollUntilVisible(
+        find.text(store.branch.name),
+        300,
+        scrollable: verticalScrollable(),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text(store.branch.name));
       await tester.pumpAndSettle();
       expect(find.byType(ReceiptDetailPage), findsOneWidget);
-      await tester.scrollUntilVisible(find.text('SYNTHETIC RETURN'), 300);
+      await tester.scrollUntilVisible(
+        find.text('SYNTHETIC RETURN'),
+        300,
+        scrollable: verticalScrollable(),
+      );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     },
@@ -206,6 +224,7 @@ void main() {
       await tester.scrollUntilVisible(
         find.byKey(const Key('history-more')),
         500,
+        scrollable: verticalScrollable(),
       );
       await tapKey(tester, 'history-more');
       expect(store.historyOffsets, [0, 0, 30]);
@@ -258,6 +277,7 @@ void main() {
       await tester.scrollUntilVisible(
         find.byKey(const Key('history-more')),
         500,
+        scrollable: verticalScrollable(),
       );
       await tapKey(tester, 'history-more');
       expect(store.historyOffsets.last, 30);

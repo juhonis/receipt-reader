@@ -9,6 +9,7 @@ import 'package:receipt_reader/app.dart';
 import 'package:receipt_reader/history_page.dart';
 import 'package:receipt_reader/receipt_deletion_dialog.dart';
 
+import 'support/navigation.dart';
 import 'support/fake_store.dart';
 
 void main() {
@@ -27,7 +28,13 @@ void main() {
 
   Future<void> tap(WidgetTester tester, String key) async {
     final target = find.byKey(Key(key));
-    if (target.evaluate().isEmpty) await tester.scrollUntilVisible(target, 200);
+    if (target.evaluate().isEmpty) {
+      await tester.scrollUntilVisible(
+        target,
+        200,
+        scrollable: verticalScrollable(),
+      );
+    }
     await tester.ensureVisible(target);
     await tester.pumpAndSettle();
     await tester.tap(target);
@@ -53,6 +60,13 @@ void main() {
     final receipt = find.text(
       store.documents.single.document.snapshot.branch.name,
     );
+    if (receipt.evaluate().isEmpty) {
+      await tester.scrollUntilVisible(
+        receipt,
+        250,
+        scrollable: verticalScrollable(),
+      );
+    }
     await tester.ensureVisible(receipt);
     await tester.pumpAndSettle();
     await tester.tap(receipt);

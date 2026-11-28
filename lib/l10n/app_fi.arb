@@ -1,5 +1,12 @@
 {
   "@@locale": "fi",
+  "clearSearch": "Tyhjennä haku",
+  "receiptSearch": "Hae kuitteja",
+  "receiptSearchHint": "Toimipiste tai kuitin tuoterivi",
+  "productSearch": "Hae tuotteita",
+  "productSearchHint": "Tuotteen nimi tai aktiivinen kuittinimi",
+  "aliasSearchHint": "Kuittinimen teksti",
+  "searchNoMatches": "Ei hakutuloksia.",
   "appTitle": "Kuittiseuranta",
   "duplicateTitle": "Mahdollinen kaksoiskuitti",
   "duplicateIncoming": "Uusi kuitti",

@@ -10,6 +10,7 @@ final class HistoryFilter {
     this.minTotalCents,
     this.maxTotalCents,
     this.category,
+    this.query = '',
   }) {
     for (final date in [fromDate, throughDate]) {
       if (date != null && date.hour != null) {
@@ -35,6 +36,17 @@ final class HistoryFilter {
   final StoredReceiptDate? fromDate, throughDate;
   final BigInt? minTotalCents, maxTotalCents;
   final ReceiptCategory? category;
+  final String query;
+
+  HistoryFilter withQuery(String value) => HistoryFilter(
+    branchId: branchId,
+    fromDate: fromDate,
+    throughDate: throughDate,
+    minTotalCents: minTotalCents,
+    maxTotalCents: maxTotalCents,
+    category: category,
+    query: value,
+  );
 
   bool get isEmpty =>
       branchId == null &&
@@ -42,7 +54,8 @@ final class HistoryFilter {
       throughDate == null &&
       minTotalCents == null &&
       maxTotalCents == null &&
-      category == null;
+      category == null &&
+      query.trim().isEmpty;
 
   static int _day(StoredReceiptDate date) =>
       date.year * 10000 + date.month * 100 + date.day;

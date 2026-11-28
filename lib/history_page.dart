@@ -15,6 +15,7 @@ import 'ocr_correction_page.dart';
 import 'receipt_deletion_dialog.dart';
 import 'category_labels.dart';
 import 'receipt_product_links_page.dart';
+import 'text_search_field.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({
@@ -37,6 +38,8 @@ class _HistoryPageState extends State<HistoryPage> {
   final _receipts = <StoredReceipt>[];
   bool _loading = false, _failed = false, _more = true;
   HistoryFilterSelection? _selection;
+  int _generation = 0;
+  int _searchReset = 0;
 
   @override
   void initState() {
@@ -46,7 +49,8 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   Future<void> _load({bool refresh = false}) async {
-    if (_loading) return;
+    if (_loading && !refresh) return;
+    final generation = refresh ? ++_generation : _generation;
     setState(() {
       _loading = true;
       _failed = false;
@@ -61,17 +65,27 @@ class _HistoryPageState extends State<HistoryPage> {
         offset: _receipts.length,
         filter: _selection?.filter,
       );
-      if (mounted) {
+      if (mounted && generation == _generation) {
         setState(() {
           _receipts.addAll(page);
           _more = page.length == _pageSize;
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _failed = true);
+      if (mounted && generation == _generation) setState(() => _failed = true);
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && generation == _generation) {
+        setState(() => _loading = false);
+      }
     }
+  }
+
+  void _search(String query) {
+    final filter = (_selection?.filter ?? HistoryFilter()).withQuery(query);
+    _selection = filter.isEmpty
+        ? null
+        : HistoryFilterSelection(filter, _selection?.branchName);
+    _load(refresh: true);
   }
 
   Future<void> _filters() async {
@@ -106,6 +120,7 @@ class _HistoryPageState extends State<HistoryPage> {
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
+    final filterSummary = _selection == null ? '' : _filterSummary(s);
     return Scaffold(
       appBar: AppBar(
         title: Text(s.historyTitle),
@@ -126,6 +141,14 @@ class _HistoryPageState extends State<HistoryPage> {
               padding: const EdgeInsets.all(20),
               children: [
                 Text(s.historyNotice),
+                TextSearchField(
+                  key: ValueKey(_searchReset),
+                  fieldKey: 'history-search',
+                  value: _selection?.filter.query ?? '',
+                  label: s.receiptSearch,
+                  hint: s.receiptSearchHint,
+                  onChanged: _search,
+                ),
                 Wrap(
                   spacing: 8,
                   children: [
@@ -142,17 +165,15 @@ class _HistoryPageState extends State<HistoryPage> {
                             ? null
                             : () {
                                 _selection = null;
+                                _searchReset++;
                                 _load(refresh: true);
                               },
                         child: Text(s.historyResetFilters),
                       ),
                   ],
                 ),
-                if (_selection != null)
-                  Text(
-                    _filterSummary(s),
-                    key: const Key('history-filter-summary'),
-                  ),
+                if (filterSummary.isNotEmpty)
+                  Text(filterSummary, key: const Key('history-filter-summary')),
                 if (_selection?.filter.category != null)
                   Text(s.categoryHistoryNotice),
                 if (!_loading && !_failed && _receipts.isEmpty)
@@ -172,6 +193,15 @@ class _HistoryPageState extends State<HistoryPage> {
                         Text(
                           '${formatCents(receipt.document.snapshot.totalCents)} €',
                         ),
+                        if ((_selection?.filter.query.trim() ?? '').isNotEmpty)
+                          Text(
+                            receipt.document.snapshot.items
+                                .map((item) => item.name)
+                                .take(3)
+                                .join(' · '),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                       ],
                     ),
                     onTap: () async {

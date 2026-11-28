@@ -47,14 +47,19 @@ extension ProductCatalog on ReceiptRepository {
     DurableId storeId, {
     int limit = 100,
     int offset = 0,
+    String query = '',
   }) {
     _catalogPage(limit, offset);
     return _guard(
       () => _db.transaction(
         () async => List.unmodifiable([
-          for (final row in await _rows(
-            'SELECT id FROM products WHERE store_id = ? ORDER BY canonical_name, id LIMIT ? OFFSET ?',
-            [storeId.value, limit, offset],
+          for (final row in await _catalogSearchRows(
+            storeId,
+            false,
+            false,
+            query,
+            limit,
+            offset,
           ))
             await _product(DurableId.parse(row['id']! as String)),
         ]),
@@ -62,19 +67,76 @@ extension ProductCatalog on ReceiptRepository {
     );
   }
 
+  Future<List<Map<String, Object?>>> _catalogSearchRows(
+    DurableId storeId,
+    bool alias,
+    bool activeOnly,
+    String query,
+    int limit,
+    int offset,
+  ) async {
+    final search = TextSearchQuery(query);
+    final table = alias ? 'product_aliases' : 'products';
+    final name = alias ? 'normalized_name' : 'canonical_name';
+    final active = alias && activeOnly ? 'AND is_active = 1' : '';
+    if (search.isEmpty) {
+      return _rows(
+        'SELECT id FROM $table WHERE store_id = ? $active ORDER BY $name, id LIMIT ? OFFSET ?',
+        [storeId.value, limit, offset],
+      );
+    }
+    final matches = <Map<String, Object?>>[];
+    var skipped = 0;
+    String? lastName, lastId;
+    while (true) {
+      final rows = await _rows(
+        'SELECT id, $name AS name FROM $table WHERE store_id = ? $active '
+        '${lastId == null ? '' : 'AND ($name, id) > (?, ?) '}ORDER BY $name, id LIMIT 64',
+        [
+          storeId.value,
+          if (lastId != null) ...[lastName!, lastId],
+        ],
+      );
+      if (rows.isEmpty) break;
+      for (final row in rows) {
+        lastName = row['name']! as String;
+        lastId = row['id']! as String;
+        final names = [lastName];
+        if (!alias && !search.matches(names)) {
+          names.addAll(
+            (await _rows(
+              'SELECT normalized_name FROM product_aliases WHERE store_id = ? AND product_id = ? AND is_active = 1',
+              [storeId.value, lastId],
+            )).map((a) => a['normalized_name']! as String),
+          );
+        }
+        if (!search.matches(names)) continue;
+        if (skipped++ < offset) continue;
+        matches.add(row);
+        if (matches.length == limit) return matches;
+      }
+    }
+    return matches;
+  }
+
   Future<List<StoredProductAlias>> aliases(
     DurableId storeId, {
     bool activeOnly = true,
     int limit = 100,
     int offset = 0,
+    String query = '',
   }) {
     _catalogPage(limit, offset);
     return _guard(
       () => _db.transaction(
         () async => List.unmodifiable([
-          for (final row in await _rows(
-            'SELECT id FROM product_aliases WHERE store_id = ? ${activeOnly ? 'AND is_active = 1' : ''} ORDER BY normalized_name, id LIMIT ? OFFSET ?',
-            [storeId.value, limit, offset],
+          for (final row in await _catalogSearchRows(
+            storeId,
+            true,
+            activeOnly,
+            query,
+            limit,
+            offset,
           ))
             await _alias(DurableId.parse(row['id']! as String)),
         ]),

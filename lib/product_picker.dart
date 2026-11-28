@@ -6,6 +6,7 @@ import 'package:receipt_storage/receipt_storage.dart';
 import 'catalog_service.dart';
 import 'catalog_editor.dart';
 import 'l10n/generated/app_localizations.dart';
+import 'text_search_field.dart';
 
 String productLabel(StoredProduct product) {
   final p = product.document.product;
@@ -55,20 +56,23 @@ class _ProductPicker extends StatefulWidget {
 
 class _ProductPickerState extends State<_ProductPicker> {
   int _offset = 0;
+  String _query = '';
   StoredProduct? _recent;
   bool _editing = false;
   late Future<(List<StoredProduct>, ProductAliasMatch?, ReceiptBranch)> _load =
       _read()..ignore();
   Future<(List<StoredProduct>, ProductAliasMatch?, ReceiptBranch)>
   _read() async {
+    final offset = _offset, query = _query;
     final branch = (await widget.service.branches()).firstWhere(
       (b) => b.id == widget.storeId,
     );
     final products = await widget.service.products(
       widget.storeId,
-      offset: _offset,
+      offset: offset,
+      query: query,
     );
-    final match = widget.receiptName == null
+    final match = widget.receiptName == null || query.trim().isNotEmpty
         ? null
         : await widget.service.matchAlias(widget.storeId, widget.receiptName!);
     return (products, match, branch);
@@ -125,85 +129,111 @@ class _ProductPickerState extends State<_ProductPicker> {
       scrollable: true,
       content: SizedBox(
         width: 520,
-        child: FutureBuilder(
-          future: _load,
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return Column(
-                children: [
-                  Text(s.catalogLoadFailed),
-                  TextButton(
-                    onPressed: () => setState(() {
-                      _load = _read()..ignore();
-                    }),
-                    child: Text(s.catalogReload),
-                  ),
-                ],
-              );
-            }
-            if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final (products, match, branch) = snapshot.data!;
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(s.productPickerEditNotice),
-                TextButton.icon(
-                  key: const Key('picker-create-product'),
-                  onPressed: _editing ? null : () => _edit(branch),
-                  icon: const Icon(Icons.add),
-                  label: Text(s.catalogAddProduct),
-                ),
-                if (_recent != null) ...[
-                  Text(s.productRecentlySaved),
-                  tile(_recent!, 'product-recent', branch),
-                  const Divider(),
-                ],
-                if (match != null &&
-                    match.product.document.product.id !=
-                        _recent?.document.product.id) ...[
-                  Text(s.productSuggestion),
-                  tile(match.product, 'product-suggestion', branch),
-                  const Divider(),
-                ],
-                if (products.isEmpty && _recent == null && match == null)
-                  Text(s.catalogEmpty),
-                for (final product in products)
-                  if (product.document.product.id !=
-                      _recent?.document.product.id)
-                    tile(
-                      product,
-                      'pick-product-${product.document.product.id.value}',
-                      branch,
-                    ),
-                Wrap(
-                  spacing: 12,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextSearchField(
+              fieldKey: 'picker-search',
+              value: _query,
+              label: s.productSearch,
+              hint: s.productSearchHint,
+              enabled: !_editing,
+              onChanged: (query) => setState(() {
+                _query = query;
+                _offset = 0;
+                _load = _read()..ignore();
+              }),
+            ),
+            FutureBuilder(
+              key: ValueKey('$_query:$_offset'),
+              future: _load,
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Column(
+                    children: [
+                      Text(s.catalogLoadFailed),
+                      TextButton(
+                        onPressed: () => setState(() {
+                          _load = _read()..ignore();
+                        }),
+                        child: Text(s.catalogReload),
+                      ),
+                    ],
+                  );
+                }
+                if (snapshot.connectionState != ConnectionState.done ||
+                    !snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final (products, match, branch) = snapshot.data!;
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TextButton(
-                      onPressed: _offset == 0
-                          ? null
-                          : () => setState(() {
-                              _offset -= 30;
-                              _load = _read()..ignore();
-                            }),
-                      child: Text(s.catalogPrevious),
+                    Text(s.productPickerEditNotice),
+                    TextButton.icon(
+                      key: const Key('picker-create-product'),
+                      onPressed: _editing ? null : () => _edit(branch),
+                      icon: const Icon(Icons.add),
+                      label: Text(s.catalogAddProduct),
                     ),
-                    TextButton(
-                      onPressed: products.length < 30
-                          ? null
-                          : () => setState(() {
-                              _offset += 30;
-                              _load = _read()..ignore();
-                            }),
-                      child: Text(s.catalogNext),
+                    if (_recent != null && _query.trim().isEmpty) ...[
+                      Text(s.productRecentlySaved),
+                      tile(_recent!, 'product-recent', branch),
+                      const Divider(),
+                    ],
+                    if (match != null &&
+                        match.product.document.product.id !=
+                            _recent?.document.product.id) ...[
+                      Text(s.productSuggestion),
+                      tile(match.product, 'product-suggestion', branch),
+                      const Divider(),
+                    ],
+                    if (products.isEmpty &&
+                        (_recent == null || _query.trim().isNotEmpty) &&
+                        match == null)
+                      Text(
+                        _query.trim().isEmpty
+                            ? s.catalogEmpty
+                            : s.searchNoMatches,
+                      ),
+                    for (final product in products)
+                      if (_query.trim().isNotEmpty ||
+                          product.document.product.id !=
+                              _recent?.document.product.id)
+                        tile(
+                          product,
+                          'pick-product-${product.document.product.id.value}',
+                          branch,
+                        ),
+                    Wrap(
+                      spacing: 12,
+                      children: [
+                        TextButton(
+                          onPressed: _offset == 0
+                              ? null
+                              : () => setState(() {
+                                  _offset -= 30;
+                                  _load = _read()..ignore();
+                                }),
+                          child: Text(s.catalogPrevious),
+                        ),
+                        TextButton(
+                          onPressed: products.length < 30
+                              ? null
+                              : () => setState(() {
+                                  _offset += 30;
+                                  _load = _read()..ignore();
+                                }),
+                          child: Text(s.catalogNext),
+                        ),
+                      ],
                     ),
                   ],
-                ),
-              ],
-            );
-          },
+                );
+              },
+            ),
+          ],
         ),
       ),
       actions: [

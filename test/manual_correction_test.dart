@@ -9,11 +9,18 @@ import 'package:receipt_reader/app.dart';
 import 'package:receipt_reader/history_page.dart';
 import 'package:receipt_reader/manual_receipt_page.dart';
 
+import 'support/navigation.dart';
 import 'support/fake_store.dart';
 
 Future<void> tapKey(WidgetTester tester, String key) async {
   final finder = find.byKey(Key(key));
-  if (finder.evaluate().isEmpty) await tester.scrollUntilVisible(finder, 300);
+  if (finder.evaluate().isEmpty) {
+    await tester.scrollUntilVisible(
+      finder,
+      300,
+      scrollable: verticalScrollable(),
+    );
+  }
   await tester.ensureVisible(finder);
   await tester.pumpAndSettle();
   await tester.tap(finder);
@@ -91,7 +98,11 @@ Future<void> openEditor(WidgetTester tester, FakeStore store) async {
   await tester.pumpWidget(ReceiptReaderApp(storageOpener: () async => store));
   await tester.pumpAndSettle();
   await tapKey(tester, 'open-history');
-  await tester.scrollUntilVisible(find.text(store.branch.name), 300);
+  await tester.scrollUntilVisible(
+    find.text(store.branch.name),
+    300,
+    scrollable: verticalScrollable(),
+  );
   await tester.ensureVisible(find.text(store.branch.name));
   await tester.pumpAndSettle();
   await tester.tap(find.text(store.branch.name));

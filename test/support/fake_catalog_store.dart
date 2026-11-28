@@ -18,8 +18,23 @@ class FakeCatalogStore extends FakeStore implements CatalogService {
     DurableId storeId, {
     int limit = 30,
     int offset = 0,
+    String query = '',
   }) async => productRecords
-      .where((p) => p.document.product.storeId == storeId)
+      .where(
+        (p) =>
+            p.document.product.storeId == storeId &&
+            TextSearchQuery(query).matches([
+              p.document.product.canonicalName,
+              ...aliasRecords
+                  .where(
+                    (a) =>
+                        a.document.alias.storeId == storeId &&
+                        a.document.alias.productId == p.document.product.id &&
+                        a.document.alias.isActive,
+                  )
+                  .map((a) => a.document.alias.normalizedName),
+            ]),
+      )
       .skip(offset)
       .take(limit)
       .toList();
@@ -29,10 +44,12 @@ class FakeCatalogStore extends FakeStore implements CatalogService {
     bool activeOnly = false,
     int limit = 30,
     int offset = 0,
+    String query = '',
   }) async => aliasRecords
       .where(
         (a) =>
             a.document.alias.storeId == storeId &&
+            TextSearchQuery(query).matches([a.document.alias.normalizedName]) &&
             (!activeOnly || a.document.alias.isActive),
       )
       .skip(offset)

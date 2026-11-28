@@ -24,6 +24,7 @@ on a real Android phone and Windows, distributed through versioned GitHub Releas
 Implemented: JPEG/PNG import and bundled OCR on both platforms; Android in-app,
 memory-only camera capture; reviewed receipt save/edit/delete and duplicate
 comparison/atomic replacement; catalog and links;
+receipt and product text search;
 dashboard, categories, price histories and
 cross-store comparisons; encrypted backup/recovery. See the [feature references](README.md#technical-reference).
 
@@ -45,13 +46,20 @@ emulator probe. The owner now reports working camera capture on the OnePlus;
 recognition quality and broader phone acceptance remain open. There is no sync or
 update button yet.
 
-## Immediate priority: everyday use and duplicate protection
+## Immediate priority: everyday use, duplicate protection and search
 
 The owner now reports a consistent phone workflow for testing and adding receipts.
 Possible-duplicate protection is implemented for new OCR/manual saves: compare
 matching date/time candidates, explicitly keep old/new/both, and replace a selected
 old receipt atomically. Verify these choices on the phone while everyday use
 continues. See [duplicate review](receipt-review.md#possible-duplicate-receipts).
+
+Receipt history now searches saved branch/item text alongside existing filters.
+Product catalog and receipt product selection search canonical names and active
+aliases within the selected branch. Matching runs before pagination; Unicode case,
+partial words and explicit clear controls work offline. Validate search on the
+phone while further development continues; the next release tags remain deferred.
+See [receipt search](history-filters.md#text-search) and [product search](product-catalog.md#identity-and-matching-rules).
 
 Phone feedback reports that important fields are recognized but false positives,
 mandatory comments and unclear completion state make review too slow. The review

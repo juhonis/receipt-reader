@@ -48,6 +48,9 @@ build over the phone's real dataset. Use the emulator for automated native tests
 - [ ] Re-scan a disposable saved receipt. Check that keeping the old one writes
   nothing, replacing it leaves one receipt counted, and keeping both is explicit.
   Compare date/time and totals in the warning; cancellation must preserve the draft.
+- [ ] Search receipts by store and item text, including a receipt beyond the first
+  page. Combine text with date/amount filters, then clear text. Search products by
+  canonical name and an active alias in the catalog and receipt product picker.
 - [ ] Correct a saved receipt/category and confirm affected graphs update. Test
   deletion only with a disposable sample; retain the real data you want to keep.
 - [ ] Export through the native backup picker and rehearse reviewed recovery with

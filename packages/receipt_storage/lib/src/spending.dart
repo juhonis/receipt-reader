@@ -1,10 +1,11 @@
 part of 'repository.dart';
 
 extension ReceiptSpending on ReceiptRepository {
-  Future<List<StoredReceipt>> _categoryHistory(
+  Future<List<StoredReceipt>> _filteredHistory(
     String where,
     List<Object> args,
-    ReceiptCategory category,
+    ReceiptCategory? category,
+    TextSearchQuery query,
     int limit,
     int offset,
   ) async {
@@ -33,12 +34,15 @@ extension ReceiptSpending on ReceiptRepository {
         ];
         final stored = (await _read(DurableId.parse(row['id']! as String)))!;
         final receipt = stored.document.snapshot;
-        final categories = await lookup.forReceipt(receipt);
-        if (!categorizeReceipt(
-          receipt,
-          categories,
-        ).any((v) => v.category == category))
-          continue;
+        if (!query.matchesReceipt(receipt)) continue;
+        if (category != null) {
+          final categories = await lookup.forReceipt(receipt);
+          if (!categorizeReceipt(
+            receipt,
+            categories,
+          ).any((v) => v.category == category))
+            continue;
+        }
         if (matched++ < offset) continue;
         result.add(stored);
         if (result.length == limit) return List.unmodifiable(result);
@@ -115,6 +119,7 @@ extension ReceiptSpending on ReceiptRepository {
   Future<SpendingSummary> spendingSummary({HistoryFilter? filter}) => _guard(
     () => _db.transaction(() async {
       final builder = SpendingSummaryBuilder();
+      final query = TextSearchQuery(filter?.query ?? '');
       final categoryLookup = filter?.category == null
           ? null
           : _CurrentProductCategories(this);
@@ -154,6 +159,7 @@ extension ReceiptSpending on ReceiptRepository {
         for (final row in batch) {
           cursor = row['id']! as String;
           final receipt = (await _read(DurableId.parse(cursor)))!;
+          if (!query.matchesReceipt(receipt.document.snapshot)) continue;
           if (filter?.category case final category?) {
             final categories = await categoryLookup!.forReceipt(
               receipt.document.snapshot,

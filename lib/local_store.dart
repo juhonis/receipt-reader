@@ -88,16 +88,20 @@ final class RepositoryStore
     DurableId storeId, {
     int limit = 30,
     int offset = 0,
-  }) => repository.products(storeId, limit: limit, offset: offset);
+    String query = '',
+  }) =>
+      repository.products(storeId, limit: limit, offset: offset, query: query);
   @override
   Future<List<StoredProductAlias>> aliases(
     DurableId storeId, {
     bool activeOnly = false,
     int limit = 30,
     int offset = 0,
+    String query = '',
   }) => repository.aliases(
     storeId,
     activeOnly: activeOnly,
+    query: query,
     limit: limit,
     offset: offset,
   );
@@ -211,8 +215,14 @@ final class WorkspaceStore
     DurableId storeId, {
     int limit = 30,
     int offset = 0,
+    String query = '',
   }) => _run(
-    () => workspace.repository.products(storeId, limit: limit, offset: offset),
+    () => workspace.repository.products(
+      storeId,
+      limit: limit,
+      offset: offset,
+      query: query,
+    ),
   );
   @override
   Future<List<StoredProductAlias>> aliases(
@@ -220,10 +230,12 @@ final class WorkspaceStore
     bool activeOnly = false,
     int limit = 30,
     int offset = 0,
+    String query = '',
   }) => _run(
     () => workspace.repository.aliases(
       storeId,
       activeOnly: activeOnly,
+      query: query,
       limit: limit,
       offset: offset,
     ),

@@ -1,5 +1,33 @@
 # Receipt history filters
 
+## Text search
+
+**Hae kuitteja** searches saved branch names and receipt row names, including
+unlinked rows. Type part of a name; searches ignore letter case and require every
+space-separated word somewhere in the receipt. For example, `market leipä` can
+match a branch name and a product row. Finnish letters and punctuation remain
+distinct: `ä` does not match `a`, and `%`/`_` are literal characters.
+
+Search combines with branch, date, amount and category filters. It covers the
+whole matching history before pagination, preserves the usual date/time order,
+and restarts at the first result when changed. The clear icon removes only text;
+**Tyhjennä suodattimet** clears all criteria. Refresh and returning from receipt
+details keep the active search. Each result can be opened as usual.
+
+Typing waits briefly before querying; the keyboard search action applies at once.
+An older pending result cannot replace results for a newer query. Failed searches
+offer the normal retry path. Search lasts for this screen and never writes data.
+
+The repository accepts `HistoryFilter(query: '...')`; `withQuery` preserves the
+other criteria. Text matching uses Dart Unicode lowercasing over saved branch and
+row names, rather than SQLite's ASCII-only default case conversion. Search and
+category filtering scan bounded batches in one read transaction and paginate
+after matching. `spendingSummary` respects the same query when supplied one.
+No schema, canonical document, event or backup format changes are needed.
+Large-history performance remains a release check; there is no full-text index.
+
+## Date, branch and amount filters
+
 The Android and Windows history screens support read-only filters for saved
 manual and OCR receipts. Open **Kuittihistoria → Suodata kuitteja**. Select a
 stored branch and/or enter date and total-amount bounds, then choose
@@ -23,8 +51,8 @@ all branches. The applied bounds appear above the results.
 - **Näytä lisää kuitteja** reads another 30 matching receipts. A failed read keeps
   already loaded matching rows; retry uses the same filter object and offset.
   Applying a different filter clears the prior results before the request, so a
-  failed first page cannot show rows from the previous query. Changes to filters
-  and refresh are disabled during a read to prevent overlapping requests.
+  failed first page cannot show rows from the previous query. Filter-dialog and
+  refresh controls are disabled during a read; a new text query may supersede it.
 - Filters last for the current history screen only. Closing and reopening history
   starts unfiltered. [Reviewed manual corrections](manual-corrections.md) and
   [fresh-image OCR corrections](ocr-corrections.md) are available from receipt
@@ -38,12 +66,13 @@ accepts an immutable filter with optional `branchId`, day-precision `fromDate` a
 precision, inclusive range order and signed integer bounds before SQL execution.
 Existing calls without a filter keep their prior behavior.
 
-Values are bound query parameters. SQL applies all predicates before LIMIT/OFFSET
-and retains the printed-date/time descending order with durable ID ties.
+Values are bound query parameters. SQL applies branch/date/amount predicates;
+text and category matching run before result pagination. History retains
+printed-date/time descending order with durable ID ties.
 Date-only receipts follow known times on the same day. Each page is read in a
 consistent transaction and returned documents are checked against their
-canonical data and projections. The existing branch/date index is reused; schema
-version remains 2. There are no writes, new events or changes to canonical
+canonical data and projections. The existing branch/date index is reused. There
+are no writes, new events or changes to canonical
 receipt bytes, review provenance, identities or mutation retry records.
 
 After a local manual correction, history keeps the applied filter and restarts

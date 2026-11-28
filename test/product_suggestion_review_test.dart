@@ -25,9 +25,10 @@ class _ObservedCatalog extends FakeCatalogStore {
     DurableId storeId, {
     int limit = 30,
     int offset = 0,
+    String query = '',
   }) async {
     if (failProducts) throw const StorageFailure('database');
-    return super.products(storeId, limit: limit, offset: offset);
+    return super.products(storeId, limit: limit, offset: offset, query: query);
   }
 
   @override
