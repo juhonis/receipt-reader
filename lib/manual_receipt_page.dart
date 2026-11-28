@@ -9,6 +9,7 @@ import 'catalog_service.dart';
 import 'product_picker.dart';
 import 'receipt_format.dart';
 import 'app_version.dart';
+import 'duplicate_receipts.dart';
 
 class ManualReceiptPage extends StatefulWidget {
   const ManualReceiptPage({super.key, required this.store}) : _initial = null;
@@ -94,6 +95,8 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
   bool _branchReviewed = false, _dateReviewed = false, _totalReviewed = false;
   bool _saving = false;
   ReviewedReceipt? _pending;
+  ReviewedReceiptDeletion? _pendingReplacement;
+  bool _checkingDuplicates = false;
   bool _saveFailed = false;
   bool _prepareFailed = false, _stale = false;
 
@@ -311,17 +314,37 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
       setState(() => _prepareFailed = true);
       return;
     }
+    setState(() => _checkingDuplicates = true);
+    final choice = await chooseDuplicateSave(context, widget.store, _pending!);
+    if (!mounted) return;
+    setState(() => _checkingDuplicates = false);
+    if (choice == null) {
+      setState(() => _pending = null);
+      return;
+    }
+    if (choice.action == DuplicateSaveAction.discardNew) {
+      Navigator.pop(context, false);
+      return;
+    }
+    _pendingReplacement = choice.deletion;
     await _sendPending();
   }
 
   Future<void> _sendPending() async {
-    if (_saving || _stale) return;
+    if (_saving || _stale || _checkingDuplicates) return;
     setState(() {
       _saving = true;
       _saveFailed = false;
     });
     try {
-      await widget.store.saveManual(_pending!);
+      if (_pendingReplacement case final duplicate?) {
+        await (widget.store as ReceiptReplacementStore).replaceReceipt(
+          _pending!,
+          duplicate,
+        );
+      } else {
+        await widget.store.saveManual(_pending!);
+      }
       if (mounted) Navigator.pop(context, true);
     } on StorageFailure catch (error) {
       if (mounted) {
@@ -336,6 +359,10 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
               error.code == 'staleReceipt' ||
               error.code == 'staleBranch' ||
               error.code == 'receiptDeleted';
+          _stale =
+              _stale ||
+              error.code == 'replacementState' ||
+              error.code == 'notDuplicate';
         });
       }
     } catch (_) {
@@ -566,7 +593,7 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
                     const SizedBox(height: 12),
                     FilledButton(
                       key: const Key('manual-save'),
-                      onPressed: _saving || _stale
+                      onPressed: _saving || _stale || _checkingDuplicates
                           ? null
                           : locked
                           ? _sendPending
@@ -574,7 +601,7 @@ class _ManualReceiptPageState extends State<ManualReceiptPage> {
                           ? () => _save(snapshot!)
                           : null,
                       child: Text(
-                        _saving
+                        _saving || _checkingDuplicates
                             ? s.savingReceipt
                             : locked
                             ? s.retrySave

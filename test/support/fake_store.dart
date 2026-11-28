@@ -2,7 +2,7 @@ import 'package:receipt_domain/receipt_domain.dart';
 import 'package:receipt_storage/receipt_storage.dart';
 import 'package:receipt_reader/local_store.dart';
 
-class FakeStore implements LocalStore {
+class FakeStore implements LocalStore, ReceiptReplacementStore {
   final branch = ReceiptBranch(
     id: DurableId.generate(),
     name: 'SYNTHETIC BRANCH',
@@ -10,6 +10,7 @@ class FakeStore implements LocalStore {
   );
   final saved = <ReviewedReceipt>[];
   final deletions = <ReviewedReceiptDeletion>[];
+  final replacements = <(ReviewedReceipt, ReviewedReceiptDeletion)>[];
   final tombstones = <DurableId, ReceiptTombstone>{};
   final documents = <StoredReceipt>[];
   final categoryLabels = <DurableId, String?>{};
@@ -108,6 +109,44 @@ class FakeStore implements LocalStore {
 
   @override
   Future<SaveResult> saveOcr(ReviewedReceipt command) => saveManual(command);
+  @override
+  Future<SaveResult> replaceReceipt(
+    ReviewedReceipt incoming,
+    ReviewedReceiptDeletion duplicate,
+  ) async {
+    replacements.add((incoming, duplicate));
+    final previousDocuments = List.of(documents),
+        previousTombstones = Map.of(tombstones),
+        previousResults = Map.of(_results);
+    final previousSequence = _nextRevision;
+    final failAfterCommit = failSaveAfterCommit;
+    failSaveAfterCommit = false;
+    late SaveResult savedResult;
+    try {
+      savedResult = await saveManual(incoming);
+      final deleted = await deleteReceipt(duplicate);
+      if (savedResult.replayed != deleted.replayed) {
+        throw const StorageFailure('replacementState');
+      }
+    } catch (_) {
+      documents
+        ..clear()
+        ..addAll(previousDocuments);
+      tombstones
+        ..clear()
+        ..addAll(previousTombstones);
+      _results
+        ..clear()
+        ..addAll(previousResults);
+      _nextRevision = previousSequence;
+      rethrow;
+    } finally {
+      failSaveAfterCommit = failAfterCommit;
+    }
+    if (failAfterCommit) throw const StorageFailure('database');
+    return savedResult;
+  }
+
   @override
   Future<SaveResult> deleteReceipt(ReviewedReceiptDeletion command) async {
     deletions.add(command);

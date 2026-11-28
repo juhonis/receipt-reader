@@ -12,6 +12,29 @@ structured snapshots and an immutable tombstone in the local change log. It is
 **not secure erasure**. There is no undo or receipt restoration workflow yet.
 The app does not delete imported original images or separately exported files.
 
+## Duplicate replacement
+
+The [new-receipt duplicate comparison](receipt-review.md#possible-duplicate-receipts)
+can explicitly keep the incoming receipt and remove one selected old receipt.
+`ReceiptRepository.replaceReceipt(incoming, deletion)` wraps the existing reviewed
+save and reviewed deletion in one outer SQLite transaction. It requires a new,
+distinct receipt ID, no correction heads, separate mutation IDs and a plausible
+date/time match with the exact current old document/head. Manual and OCR provenance
+remain independent; replacing one with the other never relabels its prior history.
+
+Both mutations must be new together or exact replays together. A separately saved
+incoming mutation cannot be repurposed to delete another receipt, and a separately
+committed deletion cannot admit an otherwise fresh incoming save. Any validation
+or statement failure rolls back both changes, sequence/cursor updates and retry
+records. Later retries cannot resurrect either receipt after subsequent deletion.
+
+The app adapters serialize the whole replacement with workspace/backup operations.
+Pending retries freeze both commands. Existing tombstone/event formats, schema,
+backup versions, catalog entries and original receipt files remain unchanged.
+Backups retain both prior history and the one current replacement; spending counts
+only live receipts. Native tests verify rollback, reopen, retry, backup restore and
+single-counted spending with a real temporary SQLite dataset.
+
 ## Reviewed command and causal identity
 
 `ReceiptDeletionChecks` captures the exact displayed document and expected

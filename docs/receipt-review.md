@@ -20,6 +20,36 @@ remaining blocker. It does not promise OCR accuracy: a wrong product name, omitt
 text the engine never recognized, or compensating amount errors can escape these
 checks. Every field remains editable even when the totals match.
 
+## Possible duplicate receipts
+
+New OCR and manually entered receipts are checked against live saved receipts
+when saving. A matching printed calendar date and minute raises a possible-duplicate
+warning even if branch, total or seconds differ, so a corrected rescan can replace
+a bad earlier reading. If either time is missing, the warning requires the same
+day, branch (identity or complete normalized name) and total. Different known
+minutes do not match. These are candidates, not proof that two purchases are equal.
+
+The comparison shows the new and saved branch, date/time, total and expandable
+item lists. Choose explicitly:
+
+- **Säilytä vanhat ja hylkää uusi** closes the draft without writing anything.
+- **Säilytä uusi ja poista tämä vanha** replaces only the selected saved receipt.
+- **Säilytä molemmat** saves the new receipt alongside the old one.
+- **Palaa muokkaukseen** keeps the draft editable without saving.
+
+With multiple candidates, replacement targets one displayed receipt; other matches
+remain untouched. No candidate means no additional dialog. Existing-receipt
+corrections skip duplicate review. Lookup failures offer retry/cancel instead of
+silently bypassing the check. Leaving during a pending lookup cannot trigger a
+later dialog/save.
+
+Replacement saves the approved new document and tombstones the exact reviewed
+old revision in one transaction. Failure leaves both operations uncommitted;
+uncertain retries reuse both original commands. Stale old data is not deleted.
+The old receipt leaves ordinary history/statistics but its audit history remains.
+Catalog entries and imported images are not deleted. See [deletion and atomic
+replacement](receipt-deletion.md#duplicate-replacement) for the storage contract.
+
 ## Review problems one at a time
 
 The normal receipt screen shows one problem at a time, a **Käsitelty n/total**

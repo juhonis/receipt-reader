@@ -413,6 +413,46 @@ final class ReceiptRepository {
       _save(command, 'manual');
   Future<SaveResult> saveOcr(ReviewedReceipt command) => _save(command, 'ocr');
 
+  /// Commit two existing immutable mutations in one SQLite transaction. A failed
+  /// save/deletion rolls both back. Exact retries cannot delete a different head,
+  /// double-count the incoming receipt or resurrect a later-deleted replacement.
+  Future<SaveResult> replaceReceipt(
+    ReviewedReceipt incoming,
+    ReviewedReceiptDeletion duplicate,
+  ) => _guard(
+    () => _db.transaction(() async {
+      final snapshot = incoming.document.snapshot,
+          tombstone = duplicate.tombstone;
+      _check(
+        snapshot.id != tombstone.receiptId &&
+            incoming.document.review.expectedHeads.isEmpty,
+        'replacementRequiresNewReceipt',
+      );
+      _check(
+        incoming.mutationId != duplicate.mutationId,
+        'mutationIdentityReused',
+      );
+      final old = await _read(tombstone.receiptId);
+      if (old != null) {
+        _check(
+          old.revision == tombstone.expectedHead &&
+              old.document.sha256Hex == tombstone.documentSha256,
+          'staleReceipt',
+        );
+        _check(
+          receiptDuplicateReason(snapshot, old.document.snapshot) != null,
+          'notDuplicate',
+        );
+      }
+      final saved = await _save(incoming, incoming.document.review.source);
+      final deleted = await deleteReceipt(duplicate);
+      // A previously separate save/delete must not turn a new replacement
+      // attempt into an unrelated deletion or a second incoming receipt.
+      _check(saved.replayed == deleted.replayed, 'replacementState');
+      return saved;
+    }),
+  );
+
   Future<SaveResult> _save(ReviewedReceipt command, String source) => _guard(
     () => _db.transaction(() async {
       _check(command.document.review.source == source, 'unsupportedSource');

@@ -21,6 +21,7 @@ import 'app_version.dart';
 import 'branch_recommendations.dart';
 import 'product_suggestion_dialog.dart';
 import 'finding_review.dart';
+import 'duplicate_receipts.dart';
 
 class ReviewPage extends StatefulWidget {
   const ReviewPage({
@@ -249,6 +250,7 @@ class _ReviewPageState extends State<ReviewPage> {
 
   Future<void> _saveOcr() async {
     if (_saving) return;
+    FocusManager.instance.primaryFocus?.unfocus();
     setState(() => _saving = true);
     try {
       await _performSaveOcr();
@@ -457,10 +459,24 @@ class _ReviewPageState extends State<ReviewPage> {
       });
       return;
     }
+    final duplicateChoice = await chooseDuplicateSave(
+      context,
+      widget.store!,
+      command,
+    );
+    if (!mounted || duplicateChoice == null) return;
+    if (duplicateChoice.action == DuplicateSaveAction.discardNew) {
+      Navigator.pop(context, false);
+      return;
+    }
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => OcrSaveDialog(store: widget.store!, command: command),
+      builder: (_) => OcrSaveDialog(
+        store: widget.store!,
+        command: command,
+        replacement: duplicateChoice.deletion,
+      ),
     );
     if (mounted) Navigator.pop(context, true);
   }
@@ -1393,7 +1409,7 @@ class _ReviewPageState extends State<ReviewPage> {
         ),
       ],
     );
-    return Scaffold(
+    final page = Scaffold(
       appBar: AppBar(title: Text(s.reviewTitle)),
       body: SafeArea(
         child: Row(
@@ -2422,6 +2438,7 @@ class _ReviewPageState extends State<ReviewPage> {
         ),
       ),
     );
+    return AbsorbPointer(absorbing: _saving, child: page);
   }
 }
 

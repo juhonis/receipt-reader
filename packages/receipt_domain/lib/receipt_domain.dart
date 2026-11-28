@@ -15,6 +15,7 @@ part 'src/manual_review.dart';
 part 'src/ocr_review.dart';
 
 part 'src/deletion.dart';
+part 'src/duplicates.dart';
 part 'src/catalog.dart';
 part 'src/purchase.dart';
 part 'src/purchase_summary.dart';

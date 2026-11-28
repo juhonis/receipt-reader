@@ -24,9 +24,18 @@ abstract interface class LocalStore {
   Future<void> close();
 }
 
+/// Optional seam for adapters that support an atomic duplicate replacement.
+abstract interface class ReceiptReplacementStore {
+  Future<SaveResult> replaceReceipt(
+    ReviewedReceipt incoming,
+    ReviewedReceiptDeletion duplicate,
+  );
+}
+
 final class RepositoryStore
     implements
         LocalStore,
+        ReceiptReplacementStore,
         CatalogService,
         PurchaseHistoryService,
         ProductComparisonService,
@@ -130,6 +139,11 @@ final class RepositoryStore
   Future<SaveResult> deleteReceipt(ReviewedReceiptDeletion command) =>
       repository.deleteReceipt(command);
   @override
+  Future<SaveResult> replaceReceipt(
+    ReviewedReceipt incoming,
+    ReviewedReceiptDeletion duplicate,
+  ) => repository.replaceReceipt(incoming, duplicate);
+  @override
   Future<void> close() => repository.close();
 }
 
@@ -137,6 +151,7 @@ final class RepositoryStore
 final class WorkspaceStore
     implements
         LocalStore,
+        ReceiptReplacementStore,
         BackupService,
         CatalogService,
         PurchaseHistoryService,
@@ -277,6 +292,11 @@ final class WorkspaceStore
   @override
   Future<SaveResult> deleteReceipt(ReviewedReceiptDeletion command) =>
       _run(() => workspace.repository.deleteReceipt(command));
+  @override
+  Future<SaveResult> replaceReceipt(
+    ReviewedReceipt incoming,
+    ReviewedReceiptDeletion duplicate,
+  ) => _run(() => workspace.repository.replaceReceipt(incoming, duplicate));
   @override
   Future<Uint8List> exportProtected(String password) =>
       _run(() => workspace.exportProtected(password));

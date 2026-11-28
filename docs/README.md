@@ -26,6 +26,7 @@ not the current release checklist or a place to append every later test run.
 - Receipt workflows: [manual save](manual-saving.md), [OCR save](ocr-saving.md),
   [review](receipt-review.md), [manual correction](manual-corrections.md),
   [OCR correction](ocr-corrections.md), [deletion](receipt-deletion.md),
+  [duplicate comparison/replacement](receipt-review.md#possible-duplicate-receipts),
   [filtered history](history-filters.md).
 - Products: [catalog](product-catalog.md), [saved links](saved-product-links.md),
   [inline editing](inline-product-editing.md), [purchase history](purchase-history.md),

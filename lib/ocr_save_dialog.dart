@@ -8,9 +8,15 @@ import 'local_store.dart';
 /// Holds one immutable confirmed command until success or explicit exit to history.
 /// No edit/re-approval or image disposal occurs during an uncertain retry.
 class OcrSaveDialog extends StatefulWidget {
-  const OcrSaveDialog({super.key, required this.store, required this.command});
+  const OcrSaveDialog({
+    super.key,
+    required this.store,
+    required this.command,
+    this.replacement,
+  });
   final LocalStore store;
   final ReviewedReceipt command;
+  final ReviewedReceiptDeletion? replacement;
   @override
   State<OcrSaveDialog> createState() => _OcrSaveDialogState();
 }
@@ -30,7 +36,14 @@ class _OcrSaveDialogState extends State<OcrSaveDialog> {
       _failed = false;
     });
     try {
-      await widget.store.saveOcr(widget.command);
+      if (widget.replacement case final duplicate?) {
+        await (widget.store as ReceiptReplacementStore).replaceReceipt(
+          widget.command,
+          duplicate,
+        );
+      } else {
+        await widget.store.saveOcr(widget.command);
+      }
       if (mounted) Navigator.pop(context);
     } on StorageFailure catch (error) {
       if (mounted) {
@@ -45,6 +58,10 @@ class _OcrSaveDialogState extends State<OcrSaveDialog> {
               error.code == 'staleReceipt' ||
               error.code == 'staleBranch' ||
               error.code == 'receiptDeleted';
+          _stale =
+              _stale ||
+              error.code == 'replacementState' ||
+              error.code == 'notDuplicate';
         });
       }
     } catch (_) {

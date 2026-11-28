@@ -1,6 +1,6 @@
 # Project plan
 
-Updated November 27, 2026. The immediate goal is a dependable personal-use alpha
+Updated November 28, 2026. The immediate goal is a dependable personal-use alpha
 on a real Android phone and Windows, distributed through versioned GitHub Releases.
 [Documentation index](README.md) · [Architecture](architecture.md) · [Release plan](releases.md)
 
@@ -22,7 +22,8 @@ on a real Android phone and Windows, distributed through versioned GitHub Releas
 ## Current baseline
 
 Implemented: JPEG/PNG import and bundled OCR on both platforms; Android in-app,
-memory-only camera capture; reviewed receipt save/edit/delete; catalog and links;
+memory-only camera capture; reviewed receipt save/edit/delete and duplicate
+comparison/atomic replacement; catalog and links;
 dashboard, categories, price histories and
 cross-store comparisons; encrypted backup/recovery. See the [feature references](README.md#technical-reference).
 
@@ -44,13 +45,19 @@ emulator probe. The owner now reports working camera capture on the OnePlus;
 recognition quality and broader phone acceptance remain open. There is no sync or
 update button yet.
 
-## Immediate priority: receipt review friction and recognition quality
+## Immediate priority: everyday use and duplicate protection
+
+The owner now reports a consistent phone workflow for testing and adding receipts.
+Possible-duplicate protection is implemented for new OCR/manual saves: compare
+matching date/time candidates, explicitly keep old/new/both, and replace a selected
+old receipt atomically. Verify these choices on the phone while everyday use
+continues. See [duplicate review](receipt-review.md#possible-duplicate-receipts).
 
 Phone feedback reports that important fields are recognized but false positives,
 mandatory comments and unclear completion state make review too slow. The review
 now uses a grouped, one-at-a-time queue with direct ignore/category/accept actions,
-optional comments and retained progress for unaffected decisions. Verify this flow
-on the phone before adding more recognition complexity.
+optional comments and retained progress for unaffected decisions. Broader receipt
+coverage and formal recovery/upgrade acceptance remain open.
 
 A confirmed private receipt now produces automatic boundaries, correct amounts,
 date/time, total and both quantity lines in the optimized Android pipeline.
@@ -84,7 +91,7 @@ Detailed evidence and the confirmed reference stay in the Git-ignored
 Validate each field against confirmed references, repeat on both native platforms
 for shared-parser changes, and test fresh photos on the OnePlus. One successful
 receipt or a reconciled total is not a general OCR accuracy result. Next, validate
-the streamlined queue on the OnePlus, then collect samples and measure bounded
+duplicate handling on the OnePlus, then collect samples and measure bounded
 in-memory image preprocessing against
 confirmed references. Keep the current offline engine until broader evidence
 justifies a replacement.

@@ -45,6 +45,9 @@ build over the phone's real dataset. Use the emulator for automated native tests
 - [ ] Use the keyboard, scrolling, zoom and review controls on the physical screen.
   Check text scaling and dense dashboard layouts, including week/month/year/custom
   periods, branch filters, spending comparisons, category shares and product history.
+- [ ] Re-scan a disposable saved receipt. Check that keeping the old one writes
+  nothing, replacing it leaves one receipt counted, and keeping both is explicit.
+  Compare date/time and totals in the warning; cancellation must preserve the draft.
 - [ ] Correct a saved receipt/category and confirm affected graphs update. Test
   deletion only with a disposable sample; retain the real data you want to keep.
 - [ ] Export through the native backup picker and rehearse reviewed recovery with
